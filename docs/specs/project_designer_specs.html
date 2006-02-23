@@ -1,0 +1,562 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta content="text/html; charset=ISO-8859-1"
+ http-equiv="content-type">
+  <title>project graphs</title>
+</head>
+<body>
+<div style="text-align: center;"><big><big><big><span
+ style="font-weight: bold;">Project Designer Specifications</span></big></big></big></div>
+<br>
+<ol id="mozToc">
+<!--mozToc h1 1 h2 2 h3 3 h4 4 h5 5 h6 6--><li><a href="#mozTocId741556">Summary</a></li>
+  <li><a href="#mozTocId519883">Current state of the
+art</a></li>
+  <li><a href="#mozTocId644127">What should be
+displayed</a></li>
+  <li><a href="#mozTocId727820">Implementation details</a>
+    <ol>
+      <li><a href="#mozTocId156151">Generating the graph</a></li>
+      <li><a href="#mozTocId142389">Display properties</a></li>
+      <li><a href="#mozTocId230931">Implementing the class</a>
+        <ol>
+          <li><a href="#mozTocId648096">Shape Meta Info</a></li>
+          <li><a href="#mozTocId834374">Callback functionality</a>
+            <ol>
+              <li><a href="#mozTocId274960">Event handlers</a></li>
+            </ol>
+          </li>
+        </ol>
+      </li>
+    </ol>
+  </li>
+</ol>
+<br>
+<h1><a class="mozTocH1" name="mozTocId741556"></a>Summary</h1>
+This is a brief description of the Project Designer that is to be
+implemented
+in DataTrawler. It should greatly help in the sales effort and the
+sales to business people. The Project Designer is intended to augment
+not
+replace existing functionality. <br>
+It is proposed to implement the Project Designer using the wxWindows
+OGL
+library for display purposes as well as an interactive tool so that a
+users can design and alter projects.<br>
+<br>
+<h1><a class="mozTocH1" name="mozTocId519883"></a>Current state of the
+art</h1>
+A typical screenshot of a project in DataTrawler is displayed in the
+following. Each operation in a project consists of 2 tree control
+nodes, one representing the operation, the subsequent child node the
+results table.<br>
+<br>
+<br>
+<img alt="project tree" src="project_tree.png"
+ style="border: 0px solid ; width: 933px; height: 1024px;"><br>
+<br>
+<br>
+Whilst this is useful for data analysts for quick navigation and
+project design, it has a couple of drawbacks:<br>
+<ul>
+  <li>Business users are usually more used to Project Designers</li>
+  <li>Some competitor products have Project Designers</li>
+  <li>cross links are difficult to detect</li>
+  <li>A Project Designer can be more consise in the visual
+representation of
+operations.<br>
+  </li>
+</ul>
+<br>
+<br>
+<br>
+<h1><a class="mozTocH1" name="mozTocId644127"></a>What should be
+displayed</h1>
+It should be possible to easily switch over to Project Designer view
+and back
+again. In Project Designer view the operation pane (right pane) will
+show a Project Designer and the original treectrl pane (left pane) will
+then display
+operations that can be dragged and dropped onto the Project Designer. A
+Project Designer layout of the project displayed above would look like
+the
+following image:<br>
+<br>
+<br>
+<img alt="project dashboard" src="project_dash.png"
+ style="border: 1px solid ; width: 1184px; height: 411px;"><br>
+<br>
+This image was created by converting the internal repesentation of a
+project into a graph represented in the <span
+ style="font-style: italic;">dot</span> language and then using the
+graphing package <span style="font-style: italic;">graphviz</span> to
+convert it to an image.<br>
+Operations are now collapsed to a single box representing the operation
+setup and results, thereby reducing complexity. It can now also be seen
+clearly that the Match operation t31 is actually an external match
+depending on the results of operation t8 and t5 in contrast to the
+other match nodes (eg. t9, 10, etc.). This relation impossible to see
+in the original project tree. <br>
+<br>
+As an example of what the Project Designer might finally look like see
+the image below<br>
+<img alt="" src="dashboard_sample.gif"
+ style="width: 792px; height: 786px;"><br>
+<br>
+Ideally in Datactics colour scheme it should look like the following:<br>
+<img alt="dash board" src="project_dash2.jpg"
+ style="width: 790px; height: 575px;"><br>
+<br>
+Note that the right hand side now has 2 panes. The bottom or Data pane
+will be the responsibility of DataTrawler. The top pane contains the
+project layout. It would be nice if a shaded colour scheme with a faint
+grid like the one in the image above could be implemented. <br>
+Both project layout and data pane should have a small toolbar for some
+additional functionality like help buttons, zoom, print, etc. Some of
+these buttons may be implemented at a later stage.<br>
+<br>
+<h1><a class="mozTocH1" name="mozTocId727820"></a>Implementation details</h1>
+This section describes in more detail what the Project Designer has to
+achieve
+and how some of it should be implemented. The idea is to keep the
+project as selfcontained as possible with clearly designated hooks in
+the source code so that the resulting classes and functions can be
+easily integrated into the existing DataTrawler code base. The
+integration itself is done by Datactics people, since the actual code base is
+now well over 200000 lines of code.<br>
+<br>
+<h2><a class="mozTocH2" name="mozTocId156151"></a>Generating the graph</h2>
+The tricky bit can be the layout of the graph. We are very likely going
+to use graphviz as the layout engine. It is a C library where the graph
+is described in the <span style="font-style: italic;">dot</span>
+language and functions are provided for traversing edges and nodes to
+provide size and position information. The actual graph description
+generation is already implemented in DataTrawler. The following is a
+sample program of the graph shown above<br>
+<br>
+<table style="width: 100%; text-align: left;" border="1" cellpadding="2"
+ cellspacing="2">
+  <tbody>
+    <tr>
+      <td style="vertical-align: top;"><span
+ style="font-family: monospace;">#include &lt;gvc.h&gt;</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">#include
+&lt;gd.h&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+/* lib/gd/gd.h */</span><br style="font-family: monospace;">
+      <br style="font-family: monospace;">
+      <br style="font-family: monospace;">
+      <span style="font-family: monospace;">static char sproject[]=""</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">"digraph project {"</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; node
+[shape=\"record\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t1 [label=\"{ t1 |
+Flat File Import }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t2 [label=\"{ t2 |
+Flat File Import }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t3 [label=\"{ t3 |
+Flat File Import }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t4 [label=\"{ t4 |
+File Import }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t5 [label=\"{ t5 |
+Insert }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t8 [label=\"{ t8 |
+Split }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t9 [label=\"{ t9 |
+Match }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t10 [label=\"{ t10
+| Match }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t12 [label=\"{ t12
+| Match }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t15 [label=\"{ t15
+| Search }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t16 [label=\"{ t16
+| Clean }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t18 [label=\"{ t18
+| File Import }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t19 [label=\"{ t19
+| Insert }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t20 [label=\"{ t20
+| Insert }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t21 [label=\"{ t21
+| Extract }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t25 [label=\"{ t25
+| Extract }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t26 [label=\"{ t26
+| Unite }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t27 [label=\"{ t27
+| Match }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t28 [label=\"{ t28
+| File Import }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t29 [label=\"{ t29
+| File Import }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t31 [label=\"{ t31
+| Match }\"];"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t4 -&gt; t5
+[arrowhead=none]"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t5 -&gt; t8
+[arrowhead=none]"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t8 -&gt; t9
+[arrowhead=none]"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t8 -&gt; t10
+[arrowhead=none]"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t8 -&gt; t12
+[arrowhead=none]"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t8 -&gt; t15
+[arrowhead=none]"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t8 -&gt; t16
+[arrowhead=none]"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t18 -&gt; t19
+[arrowhead=none]"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t18 -&gt; t20
+[arrowhead=none]"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t18 -&gt; t21
+[arrowhead=none]"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t18 -&gt; t25
+[arrowhead=none]"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t20 -&gt; t26
+[arrowhead=none]"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t8 -&gt; t27
+[arrowhead=none]"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t8 -&gt; t31
+[arrowhead=none]"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"&nbsp; t5 -&gt; t31
+[arrowhead=none]"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">"}";</span><br
+ style="font-family: monospace;">
+      <br style="font-family: monospace;">
+      <span style="font-family: monospace;">int main(int argc, char
+**argv)</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">{</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp; GVC_t *pgvc;</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp; graph_t *pg;</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp; FILE *fpout;</span><br
+ style="font-family: monospace;">
+      <br style="font-family: monospace;">
+      <br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp; pgvc=gvContext();</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;
+pg=agmemread(sproject);</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp; gvLayout(pgvc, pg,
+"dot");</span><br style="font-family: monospace;">
+      <br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp; {</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">/*&nbsp;&nbsp;&nbsp;&nbsp;
+char buf[BUFSIZ]; */</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp; point
+pos;</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp; Agnode_t
+*pn;</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp; Agedge_t
+*pe;</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp; int
+ix,iy,iw,ih;</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;
+for(pn=agfstnode(pg); pn; pn=agnxtnode(pg,pn)) {</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+pos=ND_coord_i(pn);</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">/*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+sprintf(buf,"%d,%d", p.x, p.y); */</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">/*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+agset(n,"pos",buf); */</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">/*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+printf("node %s at position (%s)\n", n-&gt;name, buf); */</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ix=(int)(PS2INCH(pos.x)*GD_RESOLUTION);</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+iy=(int)(PS2INCH(pos.y)*GD_RESOLUTION);</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+iw=(int)(ND_width( pn)*GD_RESOLUTION);</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ih=(int)(ND_height(pn)*GD_RESOLUTION);</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+printf("node %s at centre point: (%i,%i) size: (%i,%i)\n"</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+,pn-&gt;name,ix,iy,iw,ih);</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+for(pe=agfstedge(pg,pn); pe; pe=agnxtedge(pg,pe,pn)) {</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+if(!ED_spl(pe)) continue;</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+int nlast=ED_spl(pe)-&gt;size;</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+if(nlast) {</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+int nedge=ED_spl(pe)-&gt;list[nlast-1].size;</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ix=(PS2INCH(ED_spl(pe)-&gt;list-&gt;list[0].x)*GD_RESOLUTION);</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+iy=(PS2INCH(ED_spl(pe)-&gt;list-&gt;list[0].y)*GD_RESOLUTION);</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+iw=(PS2INCH(ED_spl(pe)-&gt;list-&gt;list[nedge-1].x)*GD_RESOLUTION);</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ih=(PS2INCH(ED_spl(pe)-&gt;list-&gt;list[nedge-1].y)*GD_RESOLUTION);</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+printf("edge %s %s at start: (%i,%i) end: (%i,%i)\n"</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+,pe-&gt;tail-&gt;name,pe-&gt;head-&gt;name,ix,iy,iw,ih);</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+}</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+}</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp; }</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp; }</span><br
+ style="font-family: monospace;">
+      <br style="font-family: monospace;">
+      <span style="font-family: monospace;">/*&nbsp; gvRender(pgvc, pg,
+"plain", stdout); */</span><br style="font-family: monospace;">
+      <br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;
+fpout=fopen("simple.gif","w");</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp; gvRender(pgvc, pg,
+"gif", fpout);</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp; fclose(fpout);</span><br
+ style="font-family: monospace;">
+      <br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;
+gvFreeLayout(pgvc,pg);</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp; agclose(pg);</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp; gvFreeContext(pgvc);</span><br
+ style="font-family: monospace;">
+      <br style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp; return 0;</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">}</span><br
+ style="font-family: monospace;">
+      </td>
+    </tr>
+  </tbody>
+</table>
+This code can be compiled on linux using the following commands
+(assuming graphviz is installed and the code above is called <span
+ style="font-style: italic;">simple.c</span>):<br>
+<table style="width: 100%; text-align: left;" border="1" cellpadding="2"
+ cellspacing="2">
+  <tbody>
+    <tr>
+      <td style="vertical-align: top;"><span
+ style="font-family: monospace;">cc `pkg-config libgvc --cflags` -Wall
+-g&nbsp;&nbsp;&nbsp; -c -o simple.o simple.c</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">cc -Wl,--rpath
+-Wl,`pkg-config libgvc --variable=libdir` `pkg-config libgvc
+--libs`&nbsp; simple.o&nbsp;&nbsp; -o simple</span><br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+It provides as output as output an <span style="font-style: italic;">simple.gif</span>
+image file and a description of the nodes and edges in pixels to stdout.<br>
+It should be possible to use&nbsp; this information to generate the
+shapes using the OGL library on a canvas. The two <span
+ style="font-style: italic;">printf</span> commands in the loops&nbsp;
+currently dump the layout info to stdout, they should be replaced with
+calls to creating the OGL shapes on a canvas.<br>
+<br>
+<span style="font-family: monospace;"></span>Word of caution: <br>
+<ul>
+  <li>All size and position info in the above code has been converted
+to pixels, since graphviz uses a funny mixture of inches and points
+with different resolutions. <br>
+  </li>
+  <li>The position is the <span style="font-weight: bold;">centre</span>
+of the shape so that any lower or upper left hand corner needs to be
+calculated from the size info.</li>
+  <li>There could be a discrepancy in size and positioning if very
+different fonts are used for OGL labels. It should be possible to
+remedy this by specifying corresponding fonts and font sizes in
+graphviz.<br>
+  </li>
+</ul>
+<br>
+<h2><a class="mozTocH2" name="mozTocId142389"></a>Display properties</h2>
+Each OGL shape should be a box with 2 text entries as shown in the
+graphs above. Ideally it would be good if a mouse click event could
+distinguish whether the top or bottom label has been clicked or double
+clicked in order to display the operation or result info of that node.<br>
+<br>
+Connecting two nodes should probably be done via left click and/or
+dragging. This would mean that activation of a node should be provided
+via double click. The right mouse button should probably not be used at
+this stage. It may be used at a later stage for displaying popup menu.<br>
+<br>
+The Project Designer should have scrollbars if necessary according to
+the size
+of the final graph.<br>
+<br>
+Some hooks should be provided for displaying small icons and images
+inside the OGL shapes for the top and bottom labels.<br>
+<br>
+Top and bottom labels could potentially be multiline text but this is
+probably to be avoided initially to make the graph as compact as
+possible.<br>
+<br>
+Once the graph is generated the user should be able to drag and resize
+any shapes and corresponding connected arrows. Also dropping new
+operations/shapes on the canvas will be userdefined. This is in
+contrast to the original layout of the graph which needs to be
+generated by graphviz since a real project can be quite complicated and
+graphviz is doing a good job at producing a planar graph. There should
+be a autolayout button that prettyfies and existing graph (ie.
+calculates a new layout) if a user has dropped many new items onto the
+canvas in a random fashion.<br>
+<br>
+The canvas should allow for zooming, panning, selecting multiple
+objects (for copy/paste) and so on. If zooming is too difficult it
+could be implemented at a later stage.<br>
+<br>
+It should be possible to save the graph to a file so that the positions
+and sizes which may have been altered by the user&nbsp; are remembered
+on reload. The format of this file is probably guided by what is
+easiest to save and reload/parse. There is no need to save it as a dot
+file, since it can easily be regenerated by DataTrawler for a new
+autolayout.<br>
+<br>
+<h2><a class="mozTocH2" name="mozTocId230931"></a>Implementing the class</h2>
+The Project Designer should be a selfcontained class with a panel as
+one of
+the input parameters on which the Project Designer is to be displayed.
+This
+panel is very likely a panel provided by a splitter&nbsp; or sash
+window. There will be other parameters that provide callback and
+integration with the main DataTrawler frame class, but they will be
+implemented by Datactics.<br>
+To make sure that the functionality is working a very simple frame with
+a splitter window could be constructed in which to display the Project
+Designer on the right pane.<br>
+On the left pane of that splitter window a treectrl is to be
+implemented which will provide the operations. These operations can
+then be dragged onto the Project Designer or, if not possible,
+activated and
+clicked onto the Project Designer.<br>
+<br>
+If the implementation is as selfcontained as possible and sufficiently
+abstracted it should be possible to replace the display library at a
+later stage if needed, ie. move from the OGL library to wxArt2d for
+example. Initially for reasons of simplicity and a speedy
+implementation the OGL should be sufficient.<br>
+<br>
+<h3><a class="mozTocH4" name="mozTocId648096"></a>Shape Meta Info</h3>
+There needs to be some info stored in the shape
+objects that allows for identification, ie a handler or pointer to
+structs that contain meta info, probably provided via callback
+functions to DataTrawler, ie:<br>
+<tt>get_operation_id(&amp;shape)<br>
+get_operation_label(&amp;shape)<br>
+display_operation_configuration(&amp;shape)<br>
+</tt>etc.<br>
+where for example:<br>
+<tt>wxString get_operation_label(&amp;shape)<br>
+{<br>
+&nbsp; wxString
+strlabel=datatrawler_get_label_from_handle(shape.handle);<br>
+&nbsp; return strlabel;<br>
+}<br>
+</tt>and the function <tt>datatrawler_get_label_from_handle(shape.handle);</tt>
+is a DataTrawler callback function that produces an operation specific
+label.<br>
+<br>
+<h3><a class="mozTocH2" name="mozTocId834374"></a>Callback functionality</h3>
+List of events that need to be exposed to provide call back to the
+datatrawler code base:<br>
+<ul>
+  <li>Selecting a node.</li>
+  <li>Activating a node (double click). Ideally it should tell the
+program which label has been clicked, ie. operation label (top) or
+result label (bottom).</li>
+  <li>User is dropping a new node onto the Project Designer.</li>
+  <li>User is connecting two nodes. This may be vetoed if certain nodes
+are not connectible, eg. a file import will always be a start node with
+no connections to it, similarly a file export will always be an end
+node, no connections are allowed from it.</li>
+</ul>
+The canvas should provide immediate feedback as to whether things are
+allowed or not, but the logic for that will probably be done inside the
+DataTrawler codebase, hence the need for callback functions. Simple
+checks can probably easily provided in the class itself, eg. and import
+operation never has an arrow connecting to it.<br>
+<br>
+<h4><a class="mozTocH4" name="mozTocId274960"></a>Event handlers</h4>
+Assuming that there is an event handler called
+OnShapesConnected(shape1,shape2) that is being called if the user
+connects shape 1 to&nbsp; shape 2 (in that order), then it needs to
+accomplish the following: <br>
+<br>
+<tt>void OnShapesConnected(shape1,shape2)<br>
+{<br>
+&nbsp; if(shape2==import) {<br>
+&nbsp;&nbsp;&nbsp; wxMessageBox("You cannot connect to an import
+operation");<br>
+&nbsp;&nbsp;&nbsp; veto_arrow_drawing();<br>
+&nbsp;&nbsp;&nbsp; return;<br>
+&nbsp; }<br>
+&nbsp; if(shape1==export) {<br>
+&nbsp;&nbsp;&nbsp; wxMessageBox("You cannot connect from an export
+operation");<br>
+&nbsp;&nbsp;&nbsp; veto_arrow_drawing();<br>
+&nbsp;&nbsp;&nbsp; return;<br>
+&nbsp; }<br>
+</tt><tt>&nbsp; if(shape2==already_connected_to &amp;&amp;
+shape2!=dedupe) {<br>
+&nbsp;&nbsp;&nbsp; wxMessageBox("You cannot create more than 1 </tt><tt>connection
+to shape2</tt><tt>");<br>
+&nbsp;&nbsp;&nbsp; veto_arrow_drawing();<br>
+&nbsp;&nbsp;&nbsp; return;<br>
+&nbsp; }<br>
+</tt><tt>
+&nbsp; int iret=configure_and_run_operation(shape1,shape2);<br>
+&nbsp; if(iret) {<br>
+&nbsp;&nbsp;&nbsp; veto_arrow_drawing();<br>
+&nbsp;&nbsp;&nbsp; return;<br>
+&nbsp; }<br>
+&nbsp; // all ok<br>
+}<br>
+</tt><br>
+the comparison <span style="font-family: monospace;">shape2==import</span>
+stands for identifying the property of shape2 as being an 'import
+operation'. The function<tt>&nbsp;&nbsp;&nbsp; veto_arrow_drawing();<br>
+</tt>would delete the just drawn arrow between the two shapes (if that
+is needed) and <br>
+<tt>configure_and_run_operation(shape1,shape2);<br>
+</tt>is the callback function to DataTrawler that prompts the user for
+operation config info, execution of the operation and returns 0 on
+success, or an errorcode number otherwise in which case the arrow
+should also be deleted. <br>
+All this needs to be expanded largely by myself, but for the sake of
+getting a workable implementation going this could be collapsed to:<br>
+<tt>void OnShapesConnected(shape1,shape2)<br>
+{<br>
+&nbsp;&nbsp;&nbsp; wxMessageBox("just connected shape1 and shape2");<br>
+}</tt><br>
+<br>
+<br>
+<br>
+<br>
+</body>
+</html>

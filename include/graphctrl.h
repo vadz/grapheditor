@@ -18,6 +18,9 @@ class Graph;
 class GraphElement;
 class GraphNode;
 
+/*
+ * Implementation classes
+ */
 namespace implementation
 {
     class GraphDiagram;
@@ -141,49 +144,96 @@ private:
     typedef implementation::GraphIteratorBase B;
 };
 
+/**
+ * An abstract base class which provides a common interface for nodes and
+ * edges within a Graph object.
+ *
+ * @see Graph
+ */
 class GraphElement : public wxObject
 {
 public:
+    /** Constructor. */
     GraphElement() { }
+    /** Destructor. */
     virtual ~GraphElement() { }
 
+    /** The element's main colour. */
     virtual wxColour GetColour() const = 0;
+    /** The element's background colour. */
     virtual wxColour GetBackgroundColour() const = 0;
 
+    /** The element's main colour. */
     virtual GraphElement *SetColor(const wxColour& colour) = 0;
+    /** The element's background colour. */
     virtual GraphElement *SetBackgroundColour(const wxColour& colour) = 0;
 
+    /**
+     * Selects this element. If the element has been added to a Graph, then
+     * this adds the element to the Graph's current selection.
+     */
     virtual GraphElement *Select() = 0;
-    virtual GraphElement *UnSelect() = 0;
+    /**
+     * Unselects this element. If the element has been added to a Graph,
+     * then this removes the element to the Graph's current selection.
+     */
+    virtual GraphElement *Unselect() = 0;
+    /**
+     * Returns true if this element is selected. If the element has been
+     * added to a Graph, then this indicates whether the element is part of
+     * the Graph's current selection.
+     */
     virtual bool IsSelected() = 0;
  
+    /** Write a text representation of this element's attributes. */
     virtual bool Serialize(wxOutputStream& out) = 0;
+    /** Restore this element's attributes from text written by Serialize. */
     virtual bool Deserialize(wxInputStream& in) = 0;
 };
 
+/**
+ * Represents an edge in a Graph.
+ *
+ * Edges are typically drawn as lines between the nodes of the graph,
+ * sometimes with an arrow indicating direction.
+ *
+ * The Style attribute allows the selection of some predefined appearances
+ * and derived classes may have additional styles.
+ * 
+ * @see Graph
+ */
 class GraphEdge : public GraphElement
 {
 public:
+    /** An iterator type for returning the edge's two nodes. */
     typedef GraphIterator<GraphNode> iterator;
+    /** An iterator type for returning the edge's two nodes. */
     typedef GraphIterator<const GraphNode> const_iterator;
 
-    enum { style_line, style_arrow };
+    /** An enumeration of predefined appearances for edges. */
+    enum Style { style_line, style_arrow };
 
+    /** Constructor. */
     GraphEdge();
+    /** Destructor. */
     ~GraphEdge();
 
+    /** A number from the Style enumeration indicating the edge's appearance. */
     int GetStyle() const                 { return m_style; }
     wxColour GetColour() const           { return m_colour; }
     wxColour GetBackgroundColour() const { return m_bgcolour; }
     bool IsSelected()                    { return m_selected; }
 
+    /** A number from the Style enumeration indicating the edge's appearance. */
     GraphEdge *SetStyle();
     GraphEdge *SetColor(const wxColour& colour);
     GraphEdge *SetBackgroundColour(const wxColour& colour);
     GraphEdge *Select();
     GraphEdge *UnSelect();
  
+    /** An interator range returning the two nodes this edge connects. */
     std::pair<iterator, iterator> GetNodes();
+    /** An interator range returning the two nodes this edge connects. */
     std::pair<const_iterator, const_iterator> GetNodes() const;
 
     bool Serialize(wxOutputStream& out);
@@ -198,41 +248,73 @@ private:
     implementation::GraphEdgeImpl *m_handler;
 };
 
+/**
+ * Represents a node in a Graph.
+ *
+ * The nodes of the Graph are typically drawn as boxes or other shapes with
+ * the edges drawn as lines between them.
+ *
+ * The Style attribute allows the selection of some predefined appearances
+ * and derived classes may have additional styles.
+ * 
+ * @see Graph
+ */
 class GraphNode : public GraphElement
 {
 public:
+    /** An iterator type for returning the node's list of edges. */
     typedef GraphIterator<GraphEdge> iterator;
+    /** An iterator type for returning the node's list of edges. */
     typedef GraphIterator<const GraphEdge> const_iterator;
 
-    enum { style_rectangle };
-    enum { hittest_image = 1, hittest_text };
+    /** An enumeration of predefined appearances for nodes. */
+    enum Style { style_rectangle };
+    /**
+     * An enumeration for indicating what part of a node is at a given
+     * point, for example the text label or image.
+     */
+    enum HitValue { hittest_image = 1, hittest_text };
 
+    /** Constructor. */
     GraphNode();
+    /** Destructor. */
     ~GraphNode();
  
+    /** The node's main text label. */
     wxString GetText() const             { return m_text; }
+    /** The node's font. */
     wxFont GetFont() const               { return m_font; }
+    /** A number from the Style enumeration indicating the node's appearance. */
     int GetStyle() const                 { return m_style; }
     wxColour GetColour() const           { return m_colour; }
+    /** The colour of the node's text. */
     wxColour GetTextColour() const       { return m_textcolour; }
     wxColour GetBackgroundColour() const { return m_bgcolour; }
     bool IsSelected()                    { return m_selected; }
 
+    /** The node's main text label. */
     GraphNode *SetText(const wxString& text);
+    /** The node's font. */
     GraphNode *SetFont(const wxFont& font);
+    /** A number from the Style enumeration indicating the node's appearance. */
     GraphNode *SetStyle();
     GraphNode *SetColor(const wxColour& colour);
+    /** The colour of the node's text. */
     GraphNode *SetTextColor(const wxColour& colour);
     GraphNode *SetBackgroundColour(const wxColour& colour);
     GraphNode *Select();
     GraphNode *UnSelect();
 
-    void EnsureVisible();
-    void ScrollTo();
+    /**
+     * Indicates what part of the node is at the given point, for example
+     * the text label or image. Returns a value from the HitValue
+     * enumeration.
+     */
+    int HitTest(const wxPoint& pt) const;
 
-    int HitTest(wxPoint pt) const;
-
+    /** An interator range returning the edges connecting to this node. */
     std::pair<iterator, iterator> GetEdges();
+    /** An interator range returning the edges connecting to this node. */
     std::pair<const_iterator, const_iterator> GetEdges() const;
 
     bool Serialize(wxOutputStream& out);
@@ -249,9 +331,34 @@ private:
     implementation::GraphNodeImpl *m_handler;
 };
 
+/**
+ * A control for interactive editing of a Graph object.
+ *
+ * The GraphCtrl is associated with a Graph object by calling SetGraph.
+ * For example, you frame's OnInit() method might contain:
+ * 
+ * <pre>
+ *  m_graph = new Graph;
+ *  m_graphctrl = new GraphCtrl(this);
+ *  m_graphctrl->SetGraph(m_graph);
+ * </pre>
+ *
+ * Note that it does not take ownership of the Graph.
+ *
+ * In the current implementation a GraphCtrl and a Graph must be used
+ * together in a one to one relationship, however in future versions it may
+ * be possible for more than one GraphCtrl to update a single Graph, which
+ * would allow multiple views to update a document in a doc/view
+ * application.
+ *
+ * @see Graph
+ */
 class GraphCtrl : public wxScrolledWindow
 {
 public:
+    /**
+     * Constructor.
+     */
     GraphCtrl(wxWindow *parent,
               wxWindowID id = wxID_ANY,
               const wxPoint& pos = wxDefaultPosition,
@@ -260,11 +367,32 @@ public:
               const wxString& name = DefaultName);
     ~GraphCtrl();
 
+    /**
+     * Scales the image by the given percantage.
+     */
     void SetZoom(int percent);
+    /**
+     * Returns the current scaling as a percentage.
+     */
     int GetZoom();
 
+    /**
+     * Sets the Graph object that this GraphCtrl will operate on.
+     * The GraphCtrl does not take ownership.
+     */
     void SetGraph(Graph *graph);
+    /**
+     * Returns the Graph object assoicated with this GraphCtrl.
+     */
     Graph *GetGraph() const { return m_graph; }
+
+    /**
+     * Scroll the Graph so that the node is within the area visible.
+     * Has no effect if the node is already visible.
+     */
+    void EnsureVisible(const GraphNode *node);
+    /** Scroll the Graph, centering on the node. */
+    void ScrollTo(const GraphNode *node);
 
     void OnSize(wxSizeEvent& event);
 

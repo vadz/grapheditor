@@ -1,0 +1,115 @@
+##############################################################################
+# Name:         docs/graph.doxy
+# Purpose:      Doxygen config file for Graph Editor
+# Author:       Vadim Zeitlin
+# Created:      2006-03-10
+# RCS-ID:       $Id:$
+# Copyright:    (c) 2006 TT-Solutions SARL
+##############################################################################
+
+#---------------------------------------------------------------------------
+# General configuration options
+#---------------------------------------------------------------------------
+
+PROJECT_NAME           = Graph Editor
+PROJECT_NUMBER         =
+OUTPUT_DIRECTORY       = .
+ALWAYS_DETAILED_SEC    = NO
+FULL_PATH_NAMES        = yes
+STRIP_FROM_PATH        = ../include
+INTERNAL_DOCS          = NO
+SOURCE_BROWSER         = yes
+CASE_SENSE_NAMES       = no
+VERBATIM_HEADERS       = no
+JAVADOC_AUTOBRIEF      = yes
+
+#---------------------------------------------------------------------------
+# configuration options related to warning and progress messages
+#---------------------------------------------------------------------------
+
+QUIET                  = yes
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = no
+WARN_FORMAT            = "$file:$line: $text"
+
+#---------------------------------------------------------------------------
+# configuration options related to the input files
+#---------------------------------------------------------------------------
+
+INPUT                  = ../include
+FILE_PATTERNS          = *.h
+RECURSIVE              = yes
+
+#EXCLUDE                =
+
+# If the value of the INPUT tag contains directories, you can use the
+# EXCLUDE_PATTERNS tag to specify one or more wildcard patterns to exclude
+# certain files from those directories.
+
+#EXCLUDE_PATTERNS       =
+EXTRACT_PRIVATE        = NO
+
+#---------------------------------------------------------------------------
+# configuration options related to the alphabetical class index
+#---------------------------------------------------------------------------
+
+ALPHABETICAL_INDEX     = yes
+COLS_IN_ALPHA_INDEX    = 5
+IGNORE_PREFIX          =
+
+#---------------------------------------------------------------------------
+# configuration options related to the HTML output
+#---------------------------------------------------------------------------
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+HTML_HEADER            =
+HTML_FOOTER            =
+HTML_STYLESHEET        =
+HTML_ALIGN_MEMBERS     = YES
+GENERATE_HTMLHELP      = yes
+CHM_FILE               = ../graph.chm
+GENERATE_TREEVIEW      = yes
+TREEVIEW_WIDTH         = 250
+
+#---------------------------------------------------------------------------
+# configuration options related to the LaTeX output
+#---------------------------------------------------------------------------
+
+GENERATE_LATEX         = no
+LATEX_OUTPUT           = latex
+COMPACT_LATEX          = NO
+PAPER_TYPE             = a4wide
+EXTRA_PACKAGES         =
+LATEX_HEADER           =
+PDF_HYPERLINKS         = yes
+USE_PDFLATEX           = yes
+
+#---------------------------------------------------------------------------
+# Configuration options related to the dot tool
+#---------------------------------------------------------------------------
+
+HAVE_DOT               = yes
+CLASS_GRAPH            = YES
+COLLABORATION_GRAPH    = YES
+INCLUDE_GRAPH          = YES
+INCLUDED_BY_GRAPH      = YES
+GRAPHICAL_HIERARCHY    = YES
+DOT_PATH               =
+MAX_DOT_GRAPH_WIDTH    = 800
+MAX_DOT_GRAPH_HEIGHT   = 600
+GENERATE_LEGEND        = YES
+
+#---------------------------------------------------------------------------
+# Configuration options related to the preprocessor
+#---------------------------------------------------------------------------
+
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = yes
+EXPAND_ONLY_PREDEF     = yes
+SEARCH_INCLUDES        = YES
+INCLUDE_PATH           = ../include
+INCLUDE_FILE_PATTERNS  =
+PREDEFINED             = DOXYGEN
+EXPAND_AS_DEFINED      = _WIN32 _MSC_VER
+

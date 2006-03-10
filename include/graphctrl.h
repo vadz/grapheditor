@@ -10,6 +10,8 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #ifndef GRAPHCTRL_H
+#define GRAPHCTRL_H
+
 #include "wx/wx.h"
 
 namespace tt_solutions {

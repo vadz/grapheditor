@@ -48,7 +48,7 @@ namespace implementation
         GraphIteratorBase();
 
         GraphIteratorBase(const GraphIteratorBase& it);
-        
+
         ~GraphIteratorBase();
 
         const GraphElement& operator *() const;
@@ -66,7 +66,7 @@ namespace implementation
             ++(*this);
             return it;
         }
-        
+
         GraphIteratorBase& operator --();
 
         GraphIteratorBase operator --(int) {
@@ -174,9 +174,9 @@ public:
     virtual wxColour GetBackgroundColour() const = 0;
 
     /** @brief The element's main colour. */
-    virtual GraphElement *SetColour(const wxColour& colour) = 0;
+    virtual void SetColour(const wxColour& colour) = 0;
     /** @brief The element's background colour. */
-    virtual GraphElement *SetBackgroundColour(const wxColour& colour) = 0;
+    virtual void SetBackgroundColour(const wxColour& colour) = 0;
 
     /**
      * @brief Selects this element.
@@ -184,14 +184,14 @@ public:
      * If the element has been added to a Graph, then
      * this adds the element to the Graph's current selection.
      */
-    virtual GraphElement *Select() = 0;
+    virtual void Select() = 0;
     /**
      * @brief Unselects this element.
      *
      * If the element has been added to a Graph, then this removes the
      * element to the Graph's current selection.
      */
-    virtual GraphElement *Unselect() = 0;
+    virtual void Unselect() = 0;
     /**
      * @brief Returns true if this element is selected.
      *
@@ -199,7 +199,7 @@ public:
      * the element is part of the Graph's current selection.
      */
     virtual bool IsSelected() = 0;
- 
+
     /** @brief Write a text representation of this element's attributes. */
     virtual bool Serialize(wxOutputStream& out) = 0;
     /**
@@ -217,7 +217,7 @@ public:
  *
  * The Style attribute allows the selection of some predefined appearances
  * and derived classes may have additional styles.
- * 
+ *
  * @see Graph
  */
 class GraphEdge : public GraphElement
@@ -249,12 +249,12 @@ public:
      * @brief A number from the Style enumeration indicating the edge's
      * appearance.
      */
-    GraphEdge *SetStyle();
-    GraphEdge *SetColour(const wxColour& colour);
-    GraphEdge *SetBackgroundColour(const wxColour& colour);
-    GraphEdge *Select();
-    GraphEdge *Unselect();
- 
+    void SetStyle();
+    void SetColour(const wxColour& colour);
+    void SetBackgroundColour(const wxColour& colour);
+    void Select();
+    void Unselect();
+
     /**
      * @brief An interator range returning the two nodes this edge connects.
      */
@@ -262,7 +262,6 @@ public:
     /**
      * @brief An interator range returning the two nodes this edge connects.
      */
-    std::pair<iterator, iterator> GetNodes();
     std::pair<const_iterator, const_iterator> GetNodes() const;
 
     bool Serialize(wxOutputStream& out);
@@ -285,7 +284,7 @@ private:
  *
  * The Style attribute allows the selection of some predefined appearances
  * and derived classes may have additional styles.
- * 
+ *
  * @see Graph
  */
 class GraphNode : public GraphElement
@@ -302,13 +301,13 @@ public:
      * @brief An enumeration for indicating what part of a node is at a given
      * point, for example the text label or image.
      */
-    enum HitValue { hittest_image = 1, hittest_text };
+    enum HitValue { hittest_none, hittest_image, hittest_text };
 
     /** @brief Constructor. */
     GraphNode();
     /** @brief Destructor. */
     ~GraphNode();
- 
+
     /** @brief The node's main text label. */
     wxString GetText() const             { return m_text; }
     /** @brief The node's font. */
@@ -325,20 +324,20 @@ public:
     bool IsSelected()                    { return m_selected; }
 
     /** @brief The node's main text label. */
-    GraphNode *SetText(const wxString& text);
+    void SetText(const wxString& text);
     /** @brief The node's font. */
-    GraphNode *SetFont(const wxFont& font);
+    void SetFont(const wxFont& font);
     /**
      * @brief A number from the Style enumeration indicating the node's
      * appearance.
      */
-    GraphNode *SetStyle();
-    GraphNode *SetColour(const wxColour& colour);
+    void SetStyle();
+    void SetColour(const wxColour& colour);
     /** @brief The colour of the node's text. */
-    GraphNode *SetTextColor(const wxColour& colour);
-    GraphNode *SetBackgroundColour(const wxColour& colour);
-    GraphNode *Select();
-    GraphNode *Unselect();
+    void SetTextColor(const wxColour& colour);
+    void SetBackgroundColour(const wxColour& colour);
+    void Select();
+    void Unselect();
 
     /**
      * @brief Indicates what part of the node is at the given point, for example
@@ -375,7 +374,7 @@ private:
  *
  * The GraphCtrl is associated with a Graph object by calling SetGraph.
  * For example, you frame's OnInit() method might contain:
- * 
+ *
  * @code
  *  m_graph = new Graph;
  *  m_graphctrl = new GraphCtrl(this);
@@ -489,15 +488,15 @@ public:
      * @brief Deletes the nodes and edges specified by the given iterator
      * range.
      */
-    void Delete(iterator_pair range);
-    
+    void Delete(const iterator_pair& range);
+
     /** @brief Invokes a layout engine to layout the graph. */
     bool Layout();
-    /** @brief 
-     * Invokes a layout engine to layout the subset of the graph specified
-     * by the given iterator range.
+    /**
+     * @brief Invokes a layout engine to layout the subset of the graph
+     * specified by the given iterator range.
      */
-    bool Layout(iterator_pair range);
+    bool Layout(const iterator_pair& range);
 
     /** @brief Adds the given node or edge to the current selection. */
     void Select(GraphElement *element);
@@ -505,15 +504,15 @@ public:
      * @brief Adds the nodes and edges specified by the given iterator range
      * to the current selection.
      */
-    void Select(iterator_pair range);
-    
+    void Select(const iterator_pair& range);
+
     /** @brief Removes the given node or edge from the current selection. */
     void Unselect(GraphElement *element);
     /**
      * @brief Removes the nodes and edges specified by the given iterator
      * range from the current selection.
      */
-    void Unselect(iterator_pair range);
+    void Unselect(const iterator_pair& range);
 
     /** @brief An interator range returning all the nodes in the graph. */
     std::pair<node_iterator, node_iterator> GetNodes();
@@ -571,7 +570,7 @@ public:
      * @brief The spacing of the grid used when SetSnapToGrid is switched on.
      */
     int GetGridSpacing() const;
-    
+
     /** @brief Undo the last operation. */
     void Undo();
     /** @brief Redo the last Undo. */
@@ -615,17 +614,17 @@ public:
     GraphEvent(wxEventType commandType = wxEVT_NULL, int id = 0);
     GraphEvent(const GraphEvent& event);
 
-    virtual wxEvent *Clone() const { return new GraphEvent(*this); }
+    virtual wxEvent *Clone() const      { return new GraphEvent(*this); }
 
-    GraphEvent *SetNode(GraphNode *node)    { m_node = node; return this; }
-    GraphEvent *SetTarget(GraphNode *node)  { m_target = node; return this; }
-    GraphEvent *SetEdge(GraphEdge *edge)    { m_edge = edge; return this; }
-    GraphEvent *SetPoint(const wxPoint& pt) { m_point = pt; return this; }
+    void SetNode(GraphNode *node)       { m_node = node; }
+    void SetTarget(GraphNode *node)     { m_target = node; }
+    void SetEdge(GraphEdge *edge)       { m_edge = edge; }
+    void SetPoint(const wxPoint& pt)    { m_point = pt; }
 
-    GraphNode *GetNode() const              { return m_node; }
-    GraphNode *GetTarget() const            { return m_target; }
-    GraphEdge *GetEdge() const              { return m_edge; }
-    wxPoint GetPoint() const                { return m_point; }
+    GraphNode *GetNode() const          { return m_node; }
+    GraphNode *GetTarget() const        { return m_target; }
+    GraphEdge *GetEdge() const          { return m_edge; }
+    wxPoint GetPoint() const            { return m_point; }
 
 private:
     wxPoint m_point;

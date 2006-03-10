@@ -166,7 +166,7 @@ public:
     virtual wxColour GetBackgroundColour() const = 0;
 
     /** The element's main colour. */
-    virtual GraphElement *SetColor(const wxColour& colour) = 0;
+    virtual GraphElement *SetColour(const wxColour& colour) = 0;
     /** The element's background colour. */
     virtual GraphElement *SetBackgroundColour(const wxColour& colour) = 0;
 
@@ -228,7 +228,7 @@ public:
 
     /** A number from the Style enumeration indicating the edge's appearance. */
     GraphEdge *SetStyle();
-    GraphEdge *SetColor(const wxColour& colour);
+    GraphEdge *SetColour(const wxColour& colour);
     GraphEdge *SetBackgroundColour(const wxColour& colour);
     GraphEdge *Select();
     GraphEdge *UnSelect();
@@ -300,7 +300,7 @@ public:
     GraphNode *SetFont(const wxFont& font);
     /** A number from the Style enumeration indicating the node's appearance. */
     GraphNode *SetStyle();
-    GraphNode *SetColor(const wxColour& colour);
+    GraphNode *SetColour(const wxColour& colour);
     /** The colour of the node's text. */
     GraphNode *SetTextColor(const wxColour& colour);
     GraphNode *SetBackgroundColour(const wxColour& colour);

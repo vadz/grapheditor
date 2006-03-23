@@ -12,7 +12,12 @@
 #ifndef PROJECTDESIGNER_H
 #define PROJECTDESIGNER_H
 
-#include <graphctrl.h>
+/**
+ * @file projectdesigner.h
+ * @brief Header for ProjectDesigner classes.
+ */
+
+#include "graphctrl.h"
 
 namespace datactics {
 
@@ -21,13 +26,13 @@ namespace datactics {
  *
  * @see ProjectDesigner
  */
-class DesignerNode : public tt_solutions::GraphNode
+class ProjectNode : public tt_solutions::GraphNode
 {
 public:
     /** @brief Constructor. */
-    DesignerNode();
+    ProjectNode();
     /** @brief Destructor. */
-    ~DesignerNode();
+    ~ProjectNode();
 
     /** @brief The node's id. */
     wxString GetId() const                  { return m_id; }
@@ -35,6 +40,7 @@ public:
     wxString GetOperation() const           { return GetText(); }
     /** @brief The node's result label. */
     wxString GetResult() const              { return m_result; }
+    wxIcon GetIcon() const                  { return m_icon; }
 
     /** @brief The node's id. */
     void SetId(const wxString& text);
@@ -42,34 +48,67 @@ public:
     void SetOperation(const wxString& text) { return SetText(text); }
     /** @brief The node's result label. */
     void SetResult(const wxString& text);
+    void SetIcon(const wxIcon& icon);
 
-    bool Serialize(wxOutputStream& out);
-    bool Deserialize(wxInputStream& in);
+    //bool Serialize(wxOutputStream& out);
+    //bool Deserialize(wxInputStream& in);
+
+    void OnDraw(wxDC& dc);
+
+    int GetBorderThickness()                { return m_borderThickness; }
+    int GetCornerRadius()                   { return m_cornerRadius; }
+
+    void OnSize(int& x, int& y);
+    void OnLayout(wxDC &dc);
 
 private:
     wxString m_id;
     wxString m_result;
+    wxIcon m_icon;
+    wxString m_operation;
+    int m_cornerRadius;
+    int m_borderThickness;
+    wxRect m_rcIcon;
+    wxRect m_rcText;
+    wxRect m_rcResult;
+    wxSize m_minSize;
+    int m_divide;
+
+    DECLARE_DYNAMIC_CLASS(ProjectNode)
 };
 
 /**
  * @brief Graph layout control for Datactics projects.
  */
-class ProjectDesigner : public tt_solutions::GraphCtrl,
-                        public tt_solutions::Graph
+class ProjectDesigner : public tt_solutions::GraphCtrl
 {
 public:
+    /** @brief Constructor. */
+    ProjectDesigner();
+
     /** @brief Constructor. */
     ProjectDesigner(wxWindow *parent,
                     wxWindowID id = wxID_ANY,
                     const wxPoint& pos = wxDefaultPosition,
                     const wxSize& size = wxDefaultSize,
                     long style = wxBORDER | wxRETAINED,
+                    const wxValidator& validator = wxDefaultValidator,
                     const wxString& name = DefaultName);
 
     /** @brief Destructor. */
     ~ProjectDesigner();
 
+    void OnCanvasBackground(wxEraseEvent& event);
+    void DrawCanvasBackground(wxDC& dc);
+
     static const wxChar DefaultName[];
+
+private:
+    void Init();
+
+    DECLARE_EVENT_TABLE()
+    DECLARE_DYNAMIC_CLASS(ProjectDesigner)
+    DECLARE_NO_COPY_CLASS(ProjectDesigner)
 };
 
 } // namespace datactics

@@ -211,8 +211,10 @@ void ProjectNode::OnLayout(wxDC &dc)
     wxRect bounds = GetBounds();
 
     if (bounds.width < m_minSize.x || bounds.height < m_minSize.y) {
-        bounds.width = m_minSize.x;
-        bounds.height = m_minSize.y;
+        if (bounds.width < m_minSize.x)
+            bounds.width = m_minSize.x;
+        if (bounds.height< m_minSize.y)
+            bounds.height = m_minSize.y;
         SetSize(bounds.GetSize());
     }
 

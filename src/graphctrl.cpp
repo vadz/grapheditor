@@ -358,6 +358,8 @@ public:
     void OnSizingDragLeft(wxControlPoint* pt, bool draw, double x, double y, int keys, int attachment);
     void OnSizingEndDragLeft(wxControlPoint* pt, double x, double y, int keys, int attachment);
 
+    void CallOnSize(double& x, double& y);
+
     inline GraphNode *GetNode() const;
 
 private:
@@ -490,18 +492,33 @@ void GraphNodeHandler::OnSizingDragLeft(wxControlPoint* pt, bool draw,
                                         double x, double y,
                                         int keys, int attachment)
 {
-    int w = int(x), h = int(y);
-    GetNode()->OnSize(w, h);
-    GraphElementHandler::OnSizingDragLeft(pt, draw, w, h, keys, attachment);
+    CallOnSize(x, y);
+    GraphElementHandler::OnSizingDragLeft(pt, draw, x, y, keys, attachment);
 }
 
 void GraphNodeHandler::OnSizingEndDragLeft(wxControlPoint* pt,
                                            double x, double y,
                                            int keys, int attachment)
 {
-    int w = int(x), h = int(y);
+    CallOnSize(x, y);
+    GraphElementHandler::OnSizingEndDragLeft(pt, x, y, keys, attachment);
+}
+
+void GraphNodeHandler::CallOnSize(double& x, double& y)
+{
+    wxShape *shape = GetShape();
+
+    double shapeX = shape->GetX();
+    double shapeY = shape->GetY();
+    int signX = x >= shapeX ? 1 : -1;
+    int signY = y >= shapeY ? 1 : -1;
+    int w = signX * int(x - shapeX) * 2;
+    int h = signY * int(y - shapeY) * 2;
+
     GetNode()->OnSize(w, h);
-    GraphElementHandler::OnSizingEndDragLeft(pt, w, h, keys, attachment);
+
+    x = shapeX + signX * w / 2;
+    y = shapeY + signY * h / 2;
 }
 
 // ----------------------------------------------------------------------------

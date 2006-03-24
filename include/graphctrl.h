@@ -13,6 +13,8 @@
 #define GRAPHCTRL_H
 
 #include <wx/wx.h>
+
+#include <iterator>
 #include <utility>
 
 /**

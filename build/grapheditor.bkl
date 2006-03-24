@@ -1,0 +1,73 @@
+<?xml version="1.0" ?>
+<!-- $Id:$ -->
+
+<makefile>
+    <!-- ======================================================================
+        Configuration
+     ====================================================================== -->
+
+    <option name="GRAPHVIZ_CPPFLAGS">
+        <description>Compiler flags needed for graphviz</description>
+        <default-value>pkg-config libgvc --cflags</default-value>
+    </option>
+
+    <option name="DEBUG">
+        <default-value>1</default-value>
+        <values>0 1</values>
+    </option>
+
+    <set var="BUILDDIR">obj</set>
+    <set var="SRCDIR">..</set>
+
+    <!-- ======================================================================
+        Common stuff
+     ====================================================================== -->
+
+    <include file="presets/wx.bkl"/>
+
+    <fragment format="gnu">
+# regenerate Makefile when bakefile changes
+Makefile: opsession.bkl
+	bakefile $(BKLFLAGS_GRAPHEDITOR) -f gnu -o $@ $&lt;
+	@touch $@
+    </fragment>
+
+
+    <!-- ======================================================================
+        Libraries
+     ====================================================================== -->
+
+    <lib id="grapheditor" template="wx-lib">
+        <sources>
+            src/graphctrl.cpp
+            src/graphtree.cpp
+            src/projectdesigner.cpp
+        </sources>
+        <include>$(SRCDIR)/include</include>
+        <include>$(WX_DIR)/contrib/include</include>
+    </lib>
+
+     <!-- ======================================================================
+        Executables
+      ====================================================================== -->
+
+    <exe id="graphtest" template="wx">
+        <sources>
+                samples/graphtest.cpp
+        </sources>
+
+        <include>$(SRCDIR)/include</include>
+        <include>$(WX_DIR)/contrib/include</include>
+        <cppflags>$(GRAPHVIZ_CPPFLAGS)</cppflags>
+
+        <library>grapheditor</library>
+
+        <wx-lib>base</wx-lib>
+        <wx-lib>core</wx-lib>
+        <wx-lib>ogl</wx-lib>
+
+        <sys-lib>gd</sys-lib>
+        <sys-lib>gvc</sys-lib>
+    </exe>
+
+</makefile>

@@ -91,6 +91,8 @@ public:
 
     static const wxChar DefaultName[];
     
+    void OnLeftClick(double x, double y, int keys);
+
     void OnDragLeft(bool draw, double x, double y, int keys);
     void OnBeginDragLeft(double x, double y, int keys);
     void OnEndDragLeft(double x, double y, int keys);
@@ -125,6 +127,11 @@ BEGIN_EVENT_TABLE(GraphCanvas, wxShapeCanvas)
     EVT_PAINT(GraphCanvas::OnPaint)
     EVT_SIZE(GraphCanvas::OnSize)
 END_EVENT_TABLE()
+
+void GraphCanvas::OnLeftClick(double x, double y, int keys)
+{
+    GetGraph()->UnselectAll();
+}
 
 void GraphCanvas::OnBeginDragLeft(double, double, int keys)
 {
@@ -288,8 +295,10 @@ class GraphElementHandler: public GraphHandler
 {
 public:
     GraphElementHandler(wxShapeEvtHandler *prev);
-
     void OnLeftClick(double x, double y, int keys, int attachment);
+
+protected:
+    void Select(wxShape *shape, bool select, int keys);
 };
 
 GraphElementHandler::GraphElementHandler(wxShapeEvtHandler *prev)
@@ -297,10 +306,14 @@ GraphElementHandler::GraphElementHandler(wxShapeEvtHandler *prev)
 {
 }
 
-void GraphElementHandler::OnLeftClick(double x, double y,
-                                      int keys, int attachment)
+void GraphElementHandler::OnLeftClick(double, double, int keys, int)
 {
     wxShape *shape = GetShape();
+    Select(shape, !shape->Selected(), keys);
+}
+
+void GraphElementHandler::Select(wxShape *shape, bool select, int keys)
+{
     wxShapeCanvas *canvas = shape->GetCanvas();
 
     wxClientDC dc(canvas);
@@ -320,7 +333,7 @@ void GraphElementHandler::OnLeftClick(double x, double y,
         }
     }
 
-    shape->Select(others || !shape->Selected(), &dc);
+    shape->Select(others || select, &dc);
 }
 
 // ----------------------------------------------------------------------------
@@ -349,11 +362,14 @@ public:
 
 private:
     GraphNode *m_target;
+    bool m_multiple;
+    wxPoint m_offset;
 };
 
 GraphNodeHandler::GraphNodeHandler(wxShapeEvtHandler *prev)
   : GraphElementHandler(prev),
-    m_target(NULL)
+    m_target(NULL),
+    m_multiple(false)
 {
 }
 
@@ -365,11 +381,22 @@ GraphNode *GraphNodeHandler::GetNode() const
 void GraphNodeHandler::OnBeginDragLeft(double x, double y,
                                        int keys, int attachment)
 {
-    if (keys == 0) {
-        m_target = NULL;
-        OnDragLeft(true, x, y, keys, attachment);
-        GetShape()->GetCanvas()->CaptureMouse();
-    }
+    wxShape *shape = GetShape();
+    GraphCanvas *canvas = wxStaticCast(shape->GetCanvas(), GraphCanvas);
+    Graph *graph = canvas->GetGraph();
+
+    m_target = NULL;
+    m_offset = wxPoint(int(shape->GetX() - x), int(shape->GetY() - y));
+
+    if (!shape->Selected())
+        Select(shape, true, keys);
+
+    Graph::node_iterator it, end;
+    unpair(it, end) = graph->GetNodes(true);
+    m_multiple = it != end && ++it != end;
+
+    OnDragLeft(true, x, y, keys, attachment);
+    canvas->CaptureMouse();
 }
 
 void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
@@ -378,9 +405,9 @@ void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
     attachment = 0;
 
     wxShape *shape = GetShape();
-    wxShapeCanvas *canvas = shape->GetCanvas();
+    GraphCanvas *canvas = wxStaticCast(shape->GetCanvas(), GraphCanvas);
 
-    if (draw) {
+    if (!m_multiple && draw) {
         int new_attachment;
         wxShape *target = 
             canvas->FindFirstSensitiveShape(x, y, &new_attachment, OP_ALL);
@@ -391,35 +418,66 @@ void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
             m_target = NULL;
     }
 
+    wxClientDC dc(canvas);
+    canvas->PrepareDC(dc);
+
+    wxPen dottedPen(*wxBLACK, 1, wxDOT);
+    dc.SetLogicalFunction(OGLRBLF);
+    dc.SetPen(dottedPen);
+
     if (m_target) {
-        wxClientDC dc(canvas);
-        canvas->PrepareDC(dc);
-
-        wxPen dottedPen(*wxBLACK, 1, wxDOT);
-        dc.SetLogicalFunction(OGLRBLF);
-        dc.SetPen(dottedPen);
-
         double xp, yp;
         shape->GetAttachmentPosition(attachment, &xp, &yp);
         dc.DrawLine(wxCoord(xp), wxCoord(yp), wxCoord(x), wxCoord(y));
     }
     else {
-        GetPreviousHandler()->OnDragLeft(draw, x, y, keys, attachment);
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        Graph::node_iterator it, end;
+        Graph *graph = canvas->GetGraph();
+        double shapeX = shape->GetX();
+        double shapeY = shape->GetY();
+
+        for (unpair(it, end) = graph->GetNodes(true); it != end; ++it) {
+            wxShape *sh = it->GetShape();
+            double xx = x - shapeX + sh->GetX() + m_offset.x;
+            double yy = y - shapeY + sh->GetY() + m_offset.y;
+
+            canvas->Snap(&xx, &yy);
+            double w, h;
+            sh->GetBoundingBoxMax(&w, &h);
+            sh->OnDrawOutline(dc, xx, yy, w, h);
+        }
     }
 }
 
 void GraphNodeHandler::OnEndDragLeft(double x, double y,
                                      int keys, int attachment)
 {
+    wxShape *shape = GetShape();
+    GraphCanvas *canvas = wxStaticCast(shape->GetCanvas(), GraphCanvas);
+    canvas->ReleaseMouse();
+
     if (m_target) {
-        wxShape *shape = GetShape();
-        GraphCanvas *canvas = wxStaticCast(shape->GetCanvas(), GraphCanvas);
         Graph *graph = canvas->GetGraph();
-        canvas->ReleaseMouse();
         graph->Add(*GetNode(), *m_target);
     }
     else {
-        GetPreviousHandler()->OnEndDragLeft(x, y, keys, attachment);
+        wxClientDC dc(canvas);
+        canvas->PrepareDC(dc);
+
+        Graph *graph = canvas->GetGraph();
+        double shapeX = shape->GetX();
+        double shapeY = shape->GetY();
+        Graph::node_iterator it, end;
+
+        for (unpair(it, end) = graph->GetNodes(true); it != end; ++it) {
+            wxShape *sh = it->GetShape();
+            double xx = x - shapeX + sh->GetX() + m_offset.x;
+            double yy = y - shapeY + sh->GetY() + m_offset.y;
+            canvas->Snap(&xx, &yy);
+            sh->Erase(dc);
+            sh->Move(dc, xx, yy);
+        }
     }
 }
 
@@ -478,7 +536,13 @@ namespace impl {
 class GraphIteratorImpl
 {
 public:
-    GraphIteratorImpl(int flags) : m_flags(flags) { }
+    GraphIteratorImpl(int flags, bool selectionOnly)
+        : m_flags(flags), m_selectionOnly(selectionOnly)
+    { }
+    GraphIteratorImpl(const GraphIteratorImpl& other)
+        : m_flags(other.m_flags), m_selectionOnly(other.m_selectionOnly)
+    { }
+
     virtual ~GraphIteratorImpl() { }
 
     virtual void inc() = 0;
@@ -487,11 +551,13 @@ public:
     virtual GraphElement *get() const = 0;
     virtual GraphIteratorImpl *clone() const = 0;
 
-    enum Flags { AllElements, Selection, NodesOnly, EdgesOnly, Pair };
+    enum Flags { AllElements, NodesOnly, EdgesOnly, Pair };
     int GetFlags() const { return m_flags; }
+    bool IsSelectionOnly() const { return m_selectionOnly; }
 
 private:
     int m_flags;
+    bool m_selectionOnly;
 };
 
 GraphIteratorBase::GraphIteratorBase(const GraphIteratorBase& it)
@@ -545,18 +611,20 @@ class ListIterImpl : public GraphIteratorImpl
 public:
     ListIterImpl(const wxList::iterator& begin,
                  const wxList::iterator& end = wxList::iterator(),
-                 int flags = AllElements)
-      : GraphIteratorImpl(flags), m_it(begin), m_end(end)
+                 int flags = AllElements,
+                 bool selectionOnly = false)
+      : GraphIteratorImpl(flags, selectionOnly), m_it(begin), m_end(end)
     {
-        wxASSERT(flags == AllElements || flags == Selection ||
-                 flags == NodesOnly || flags == EdgesOnly);
+        wxASSERT(flags == AllElements ||
+                 flags == NodesOnly ||
+                 flags == EdgesOnly);
 
         while (m_it != m_end && !filter())
             ++m_it;
     }
 
     ListIterImpl(const ListIterImpl& other)
-      : GraphIteratorImpl(other.GetFlags()),
+      : GraphIteratorImpl(other),
         m_it(other.m_it),
         m_end(other.m_end)
     {
@@ -567,15 +635,12 @@ public:
         GraphElement *element = get();
         if (!element)
             return false;
-
-        int flags = GetFlags();
-
-        if (flags == Selection)
-            return element->IsSelected();
-        if (flags == NodesOnly)
-            return wxDynamicCast(element, GraphNode);
-        if (flags == EdgesOnly)
-            return wxDynamicCast(element, GraphEdge);
+        if (IsSelectionOnly() && !element->IsSelected())
+            return false;
+        if (GetFlags() == NodesOnly)
+            return element->IsKindOf(CLASSINFO(GraphNode));
+        if (GetFlags() == EdgesOnly)
+            return element->IsKindOf(CLASSINFO(GraphEdge));
 
         return true;
     }
@@ -621,7 +686,7 @@ class PairIterImpl : public GraphIteratorImpl
 {
 public:
     PairIterImpl(wxLineShape *line, bool end)
-      : GraphIteratorImpl(Pair), m_line(line)
+      : GraphIteratorImpl(Pair, false), m_line(line)
     {
         if (end) {
             m_pos = 3;
@@ -632,7 +697,7 @@ public:
     }
             
     PairIterImpl(const PairIterImpl& other)
-      : GraphIteratorImpl(Pair), m_line(other.m_line), m_pos(other.m_pos)
+      : GraphIteratorImpl(other), m_line(other.m_line), m_pos(other.m_pos)
     {
     }
 
@@ -802,24 +867,25 @@ Graph::iterator_pair Graph::GetElements()
 }
 
 pair<Graph::node_iterator, Graph::node_iterator>
-Graph::GetNodes()
+Graph::GetNodes(bool selectionOnly)
 {
     wxList *list = m_diagram->GetShapeList();
     wxList::iterator begin = list->begin(), end = list->end();
     const int flags = ListIterImpl::NodesOnly;
 
-    return make_pair(node_iterator(new ListIterImpl(begin, end, flags)),
-                     node_iterator(new ListIterImpl(end, end, flags)));
+    return make_pair(
+        node_iterator(new ListIterImpl(begin, end, flags, selectionOnly)),
+        node_iterator(new ListIterImpl(end, end, flags, selectionOnly)));
 }
 
 Graph::iterator_pair Graph::GetSelection()
 {
     wxList *list = m_diagram->GetShapeList();
     wxList::iterator begin = list->begin(), end = list->end();
-    const int flags = ListIterImpl::Selection;
+    const int flags = ListIterImpl::AllElements;
 
-    return make_pair(iterator(new ListIterImpl(begin, end, flags)),
-                     iterator(new ListIterImpl(end, end, flags)));
+    return make_pair(iterator(new ListIterImpl(begin, end, flags, true)),
+                     iterator(new ListIterImpl(end, end, flags, true)));
 }
 
 Graph::const_iterator_pair Graph::GetElements() const
@@ -846,10 +912,10 @@ Graph::const_iterator_pair Graph::GetSelection() const
 {
     wxList *list = m_diagram->GetShapeList();
     wxList::iterator begin = list->begin(), end = list->end();
-    const int flags = ListIterImpl::Selection;
+    const int flags = ListIterImpl::AllElements;
 
-    return make_pair(const_iterator(new ListIterImpl(begin, end, flags)),
-                     const_iterator(new ListIterImpl(end, end, flags)));
+    return make_pair(const_iterator(new ListIterImpl(begin, end, flags, true)),
+                     const_iterator(new ListIterImpl(end, end, flags, true)));
 }
 
 void Graph::Delete(GraphElement *element)
@@ -984,6 +1050,28 @@ bool Graph::Layout(const iterator_pair& range)
     canvas->Refresh();
 
     return true;
+}
+
+void Graph::Select(const iterator_pair& range)
+{
+    wxShapeCanvas *canvas = m_diagram->GetCanvas();
+    wxClientDC dc(canvas);
+    canvas->PrepareDC(dc);
+    iterator it, end;
+
+    for (unpair(it, end) = range; it != end; ++it)
+        it->GetShape()->Select(true, &dc);
+}
+
+void Graph::Unselect(const iterator_pair& range)
+{
+    wxShapeCanvas *canvas = m_diagram->GetCanvas();
+    wxClientDC dc(canvas);
+    canvas->PrepareDC(dc);
+    iterator it, end;
+
+    for (unpair(it, end) = range; it != end; ++it)
+        it->GetShape()->Select(false, &dc);
 }
 
 // ----------------------------------------------------------------------------

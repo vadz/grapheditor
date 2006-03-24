@@ -560,24 +560,23 @@ public:
      */
     bool Layout(const iterator_pair& range);
 
-    /** @brief Adds the given node or edge to the current selection. */
-    void Select(GraphElement *element);
     /**
      * @brief Adds the nodes and edges specified by the given iterator range
      * to the current selection.
      */
     void Select(const iterator_pair& range);
+    void SelectAll() { Select(GetElements()); }
 
-    /** @brief Removes the given node or edge from the current selection. */
-    void Unselect(GraphElement *element);
     /**
      * @brief Removes the nodes and edges specified by the given iterator
      * range from the current selection.
      */
     void Unselect(const iterator_pair& range);
+    void UnselectAll() { Unselect(GetSelection()); }
 
     /** @brief An interator range returning all the nodes in the graph. */
-    std::pair<node_iterator, node_iterator> GetNodes();
+    std::pair<node_iterator, node_iterator>
+        GetNodes(bool selectionOnly = false);
     /**
      * @brief An interator range returning all the nodes and edges in the
      * graph.

@@ -18,6 +18,7 @@
 
     <set var="BUILDDIR">obj</set>
     <set var="SRCDIR">..</set>
+    <set var="WX_MONOLITHIC">0</set>
 
     <!-- ======================================================================
         Common stuff

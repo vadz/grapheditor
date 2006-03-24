@@ -32,33 +32,34 @@ Makefile: opsession.bkl
 	@touch $@
     </fragment>
 
+    <template id="graphcommon">
+        <warnings>max</warnings>
+
+        <include>$(SRCDIR)/include</include>
+        <include>$(WX_DIR)/contrib/include</include>
+        <cppflags>$(GRAPHVIZ_CPPFLAGS)</cppflags>
+    </template>
 
     <!-- ======================================================================
         Libraries
      ====================================================================== -->
 
-    <lib id="grapheditor" template="wx-lib">
+    <lib id="grapheditor" template="wx-lib" template_append="graphcommon">
         <sources>
             src/graphctrl.cpp
             src/graphtree.cpp
             src/projectdesigner.cpp
         </sources>
-        <include>$(SRCDIR)/include</include>
-        <include>$(WX_DIR)/contrib/include</include>
     </lib>
 
      <!-- ======================================================================
         Executables
       ====================================================================== -->
 
-    <exe id="graphtest" template="wx">
+    <exe id="graphtest" template="wx" template_append="graphcommon">
         <sources>
                 samples/graphtest.cpp
         </sources>
-
-        <include>$(SRCDIR)/include</include>
-        <include>$(WX_DIR)/contrib/include</include>
-        <cppflags>$(GRAPHVIZ_CPPFLAGS)</cppflags>
 
         <library>grapheditor</library>
 

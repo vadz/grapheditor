@@ -33,14 +33,18 @@ void GraphTreeCtrl::OnBeginDrag(wxTreeEvent& event)
     if (GetChildrenCount(item, false) == 0) {
         m_dragItem = item;
         int image = GetItemImage(item);
+        wxSize size;
 
-        if (image != -1)
-            m_dragImg = new wxDragImage(GetImageList()->GetIcon(image));
-        else
+        if (image != -1) {
+            wxIcon icon = GetImageList()->GetIcon(image);
+            size = wxSize(icon.GetWidth(), icon.GetHeight());
+            m_dragImg = new wxDragImage(icon);
+        }
+        else {
             m_dragImg = new wxDragImage(*this, item);
+        }
 
-        wxRect rc = m_dragImg->GetImageRect(wxPoint(0, 0));
-        wxPoint pt(3 * rc.GetWidth() / 4, 3 * rc.GetHeight() / 4);
+        wxPoint pt(3 * size.x / 4, 3 * size.y / 4);
         m_dragImg->BeginDrag(pt, this, true);
         m_dragImg->Show();
     }

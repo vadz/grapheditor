@@ -252,13 +252,13 @@ public:
 
     Graph *GetGraph() const;
     virtual wxSize GetSize() const;
+    virtual wxRect GetBounds() const;
 
 protected:
     virtual void DoSelect(bool select);
     virtual void UpdateShape() = 0;
     virtual void Refresh();
     virtual void OnLayout(wxDC& dc) { }
-    virtual wxRect GetBounds() const;
     virtual wxPoint GetPosition() const;
     void SetSize(const wxSize& size);
 

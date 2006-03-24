@@ -133,17 +133,20 @@ void GraphCanvas::OnLeftClick(double x, double y, int keys)
     GetGraph()->UnselectAll();
 }
 
-void GraphCanvas::OnBeginDragLeft(double, double, int keys)
+void GraphCanvas::OnBeginDragLeft(double x, double y, int keys)
 {
-    if (keys == 0) {
+    if ((keys & KEY_SHIFT) != 0) {
         m_isDragging = true;
         m_ptDrag = wxGetMousePosition();
         GetViewStart(&m_ptView.x, &m_ptView.y);
-        CaptureMouse();
     }
+    else {
+        m_ptDrag = wxPoint(int(x), int(y));
+    }
+    CaptureMouse();
 }
 
-void GraphCanvas::OnDragLeft(bool, double, double, int)
+void GraphCanvas::OnDragLeft(bool, double x, double y, int)
 {
     if (m_isDragging) {
         wxMouseState mouse = wxGetMouseState();
@@ -172,16 +175,67 @@ void GraphCanvas::OnDragLeft(bool, double, double, int)
             Scroll(x / unitX, y / unitY);
         }
     }
+    else {
+        wxClientDC dc(this);
+        PrepareDC(dc);
+
+        wxPen dottedPen(*wxBLACK, 1, wxDOT);
+        dc.SetLogicalFunction(OGLRBLF);
+        dc.SetPen(dottedPen);
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+
+        wxSize size(int(x) - m_ptDrag.x, int(y) - m_ptDrag.y);
+        dc.DrawRectangle(m_ptDrag, size);
+    }
 }
 
-void GraphCanvas::OnEndDragLeft(double, double, int)
+void GraphCanvas::OnEndDragLeft(double x, double y, int key)
 {
+    ReleaseMouse();
+
     if (m_isDragging) {
-        ReleaseMouse();
         m_isDragging = false;
         m_scrolled = true;
         SetScrollPos(wxHORIZONTAL, GetScrollPos(wxHORIZONTAL));
         SetScrollPos(wxVERTICAL, GetScrollPos(wxVERTICAL));
+    }
+    else {
+        Graph *graph = GetGraph();
+        Graph::iterator it, end;
+        wxRect rc;
+
+        if (x >= m_ptDrag.x) {
+            rc.x = m_ptDrag.x;
+            rc.width = int(x) - m_ptDrag.x;
+        } else {
+            rc.x = int(x);
+            rc.width = m_ptDrag.x - int(x);
+        }
+
+        if (y >= m_ptDrag.y) {
+            rc.y = m_ptDrag.y;
+            rc.height = int(y) - m_ptDrag.y;
+        } else {
+            rc.y = int(y);
+            rc.height = m_ptDrag.y - int(y);
+        }
+
+        wxClientDC dc(this);
+        PrepareDC(dc);
+
+        for (unpair(it, end) = graph->GetElements(); it != end; ++it)
+        {
+            wxShape *shape = it->GetShape();
+
+            if (!shape->Selected()) {
+                if (rc.Intersects(it->GetBounds()))
+                    shape->Select(true, &dc);
+            }
+            else {
+                if ((key & KEY_CTRL) == 0 && !rc.Intersects(it->GetBounds()))
+                    shape->Select(false, &dc);
+            }
+        }
     }
 }
 
@@ -1050,6 +1104,7 @@ bool Graph::Layout(const iterator_pair& range)
 
     dot << _T("}\n");
 
+#ifndef __WINDOWS__
     GVC_t *context = gvContext();
 
     Agraph_t *graph = agmemread(wx_const_cast(char*, dot.mb_str()));
@@ -1073,6 +1128,7 @@ bool Graph::Layout(const iterator_pair& range)
     agclose(graph);
     gvFreeContext(context);
     canvas->Refresh();
+#endif
 
     return true;
 }

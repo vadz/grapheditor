@@ -248,8 +248,12 @@ void ProjectNode::OnDraw(wxDC& dc)
         dc.DrawRectangle(rc);
     }
 
-    dc.DrawText(GetText(), bounds.GetTopLeft() + m_rcText.GetTopLeft());
-    dc.DrawText(GetResult(), bounds.GetTopLeft() + m_rcResult.GetTopLeft());
+    rc = m_rcText;
+    rc.Offset(bounds.GetTopLeft());
+    dc.DrawLabel(GetText(), rc);
+    rc = m_rcResult;
+    rc.Offset(bounds.GetTopLeft());
+    dc.DrawLabel(GetResult(), rc);
     if (GetIcon().Ok())
         dc.DrawIcon(GetIcon(), bounds.GetTopLeft() + m_rcIcon.GetTopLeft());
 }

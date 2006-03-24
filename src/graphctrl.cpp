@@ -766,14 +766,22 @@ private:
 
 IMPLEMENT_DYNAMIC_CLASS(Graph, wxEvtHandler)
 
+int Graph::m_initalise;
+
 Graph::Graph()
 {
+    if (m_initalise++ == 0)
+        wxOGLInitialize();
+
     m_diagram = new GraphDiagram;
 }
 
 Graph::~Graph()
 {
     delete m_diagram;
+
+    if (--m_initalise == 0)
+        wxOGLCleanUp();
 }
 
 wxShape *Graph::DefaultShape(GraphNode *node)
@@ -1120,7 +1128,6 @@ GraphCtrl::GraphCtrl(
     Graph *graph = new Graph;
     canvas->SetGraph(graph);
     SetGraph(graph);
-    //SetZoom(200);
 }
 
 GraphCtrl::~GraphCtrl()
@@ -1143,6 +1150,7 @@ void GraphCtrl::SetZoom(int percent)
 {
     double scale = percent / 100.0;
     m_canvas->SetScale(scale, scale);
+    m_canvas->Refresh();
 }
 
 int GraphCtrl::GetZoom()

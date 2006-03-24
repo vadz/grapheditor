@@ -94,9 +94,17 @@ public:
     void OnClear(wxCommandEvent& event);
     void OnSelectAll(wxCommandEvent& event);
     void OnLayout(wxCommandEvent& event);
+    void OnZoomIn(wxCommandEvent& event);
+    void OnZoomOut(wxCommandEvent& event);
 
     // help menu
     void OnAbout(wxCommandEvent& event);
+
+    enum {
+        ZoomMin = 25,
+        ZoomMax = 300,
+        ZoomStep = 25
+    };
 
 private:
     ProjectDesigner *m_graphctrl;
@@ -113,7 +121,6 @@ private:
 enum {
     ID_LAYOUT
 };
-
 
 // ----------------------------------------------------------------------------
 // event tables and other macros for wxWidgets
@@ -134,6 +141,8 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(wxID_CLEAR,  MyFrame::OnClear)
     EVT_MENU(wxID_SELECTALL, MyFrame::OnSelectAll)
     EVT_MENU(ID_LAYOUT, MyFrame::OnLayout)
+    EVT_MENU(wxID_ZOOM_IN, MyFrame::OnZoomIn)
+    EVT_MENU(wxID_ZOOM_OUT, MyFrame::OnZoomOut)
     EVT_GRAPHTREE_DROP(wxID_ANY,  MyFrame::OnGraphTreeDrop)
 END_EVENT_TABLE()
 
@@ -205,6 +214,9 @@ MyFrame::MyFrame(const wxString& title)
     editMenu->Append(wxID_SELECTALL, _("Select &All\tCtrl+A"));
     editMenu->AppendSeparator();
     editMenu->Append(ID_LAYOUT, _("&Layout\tCtrl+L"));
+    editMenu->AppendSeparator();
+    editMenu->Append(wxID_ZOOM_IN, _("Zoom&In\t+"));
+    editMenu->Append(wxID_ZOOM_OUT, _("Zoom&Out\t-"));
 
     // help menu
     wxMenu *helpMenu = new wxMenu;
@@ -338,4 +350,20 @@ void MyFrame::OnSelectAll(wxCommandEvent&)
 void MyFrame::OnLayout(wxCommandEvent&)
 {
     m_graphctrl->GetGraph()->Layout();
+}
+
+void MyFrame::OnZoomIn(wxCommandEvent&)
+{
+    int zoom = m_graphctrl->GetZoom();
+    zoom += ZoomStep;
+    if (zoom <= ZoomMax)
+        m_graphctrl->SetZoom(zoom);
+}
+
+void MyFrame::OnZoomOut(wxCommandEvent&)
+{
+    int zoom = m_graphctrl->GetZoom();
+    zoom -= ZoomStep;
+    if (zoom >= ZoomMin)
+        m_graphctrl->SetZoom(zoom);
 }

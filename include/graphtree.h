@@ -29,7 +29,7 @@ namespace tt_solutions {
 class GraphTreeCtrl : public wxTreeCtrl
 {
 public:
-    GraphTreeCtrl() { }
+    GraphTreeCtrl() { Init(); }
 
     GraphTreeCtrl(wxWindow *parent, wxWindowID id = wxID_ANY,
                const wxPoint& pos = wxDefaultPosition,
@@ -38,7 +38,9 @@ public:
                const wxValidator &validator = wxDefaultValidator,
                const wxString& name = DefaultName)
         : wxTreeCtrl(parent, id, pos, size, style, validator, name)
-    { }
+    {
+        Init();
+    }
 
     bool SendAutoScrollEvents(wxScrollWinEvent&) const { return false; }
 
@@ -49,6 +51,8 @@ public:
     static const wxChar DefaultName[];
 
 private:
+    void Init() { m_dragImg = NULL; }
+
     wxDragImage *m_dragImg;
     wxTreeItemId m_dragItem;
 

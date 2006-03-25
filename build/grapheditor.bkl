@@ -16,11 +16,6 @@
         <default-value>pkg-config libgvc --libs</default-value>
     </option>
 
-    <option name="DEBUG">
-        <default-value>1</default-value>
-        <values>0 1</values>
-    </option>
-
     <set var="BUILDDIR">obj</set>
     <set var="SRCDIR">..</set>
     <set var="WX_MONOLITHIC">0</set>
@@ -29,6 +24,7 @@
         Common stuff
      ====================================================================== -->
 
+    <include file="presets/simple.bkl"/>
     <include file="presets/wx.bkl"/>
 
     <fragment format="gnu">
@@ -38,7 +34,7 @@ Makefile: opsession.bkl
 	@touch $@
     </fragment>
 
-    <template id="graphcommon">
+    <template id="graphcommon" template="simple">
         <warnings>max</warnings>
 
         <include>$(SRCDIR)/include</include>
@@ -50,7 +46,7 @@ Makefile: opsession.bkl
         Libraries
      ====================================================================== -->
 
-    <lib id="grapheditor" template="wx-lib" template_append="graphcommon">
+    <lib id="grapheditor" template="graphcommon" template_append="wx-lib">
         <sources>
             src/graphctrl.cpp
             src/graphtree.cpp
@@ -62,10 +58,8 @@ Makefile: opsession.bkl
         Executables
       ====================================================================== -->
 
-    <exe id="graphtest" template="wx" template_append="graphcommon">
-        <sources>
-                samples/graphtest.cpp
-        </sources>
+    <exe id="graphtest" template="graphcommon" template_append="wx">
+        <sources>samples/graphtest.cpp</sources>
 
         <library>grapheditor</library>
 

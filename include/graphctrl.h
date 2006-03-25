@@ -258,7 +258,7 @@ protected:
     virtual void DoSelect(bool select);
     virtual void UpdateShape() = 0;
     virtual void Refresh();
-    virtual void OnLayout(wxDC& dc) { }
+    virtual void OnLayout(wxDC& WXUNUSED(dc)) { }
     virtual wxPoint GetPosition() const;
     void SetSize(const wxSize& size);
 
@@ -409,7 +409,7 @@ public:
     bool Serialize(wxOutputStream& out);
     bool Deserialize(wxInputStream& in);
 
-    virtual void OnSize(int& x, int& y) { }
+    virtual void OnSize(int& WXUNUSED(x), int& WXUNUSED(y)) { }
 
 protected:
     void UpdateShape();

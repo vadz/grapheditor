@@ -191,7 +191,8 @@ MyFrame::MyFrame(const wxString& title)
        : wxFrame(NULL, wxID_ANY, title, wxDefaultPosition, wxSize(800, 600))
 {
     // set the frame icon
-    SetIcon(wxICON(sample));
+    wxIcon icon = wxICON(graphtest);
+    SetIcon(icon);
 
     // file menu
     wxMenu *fileMenu = new wxMenu;
@@ -239,7 +240,6 @@ MyFrame::MyFrame(const wxString& title)
     m_graphctrl->SetBackgroundColour(wxColour(0x1f97f6));
     m_graphctrl->SetForegroundColour(*wxWHITE);
 
-    wxIcon icon = wxIcon(sample_xpm);
     wxImageList *images = new wxImageList(icon.GetWidth(), icon.GetHeight());
     images->Add(icon);
     tree->AssignImageList(images);

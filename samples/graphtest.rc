@@ -1,0 +1,5 @@
+aaaaaaaa ICON "graphtest.ico"
+graphtest ICON "graphtest.ico"
+
+#include "wx/msw/wx.rc"
+

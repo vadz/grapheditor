@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<!-- $Id:$ -->
+<!-- $Id$ -->
 
 <makefile>
     <!-- ======================================================================
@@ -60,6 +60,7 @@ Makefile: opsession.bkl
 
     <exe id="graphtest" template="graphcommon" template_append="wx">
         <sources>samples/graphtest.cpp</sources>
+        <win32-res>samples/graphtest.rc</win32-res>
 
         <library>grapheditor</library>
 

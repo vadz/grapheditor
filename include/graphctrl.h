@@ -22,8 +22,6 @@
  * @brief Header for the graph control GUI component.
  */
 
-class wxShapeCanvas;
-class wxDiagram;
 class wxShape;
 class wxLineShape;
 
@@ -39,6 +37,8 @@ class GraphNode;
 namespace impl
 {
     class GraphIteratorImpl;
+    class GraphDiagram;
+    class GraphCanvas;
 
     class GraphIteratorBase
     {
@@ -497,7 +497,7 @@ public:
     wxWindow *GetCanvas() const;
 
 private:
-    wxShapeCanvas *m_canvas;
+    impl::GraphCanvas *m_canvas;
     Graph *m_graph;
 
     DECLARE_EVENT_TABLE()
@@ -670,9 +670,10 @@ public:
 
 private:
     friend void GraphCtrl::SetGraph(Graph *graph);
+    void SetCanvas(impl::GraphCanvas *canvas);
     void DoDelete(GraphElement *element);
 
-    wxDiagram *m_diagram;
+    impl::GraphDiagram *m_diagram;
     wxRect m_rcBounds;
     static int m_initalise;
 

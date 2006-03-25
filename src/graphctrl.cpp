@@ -18,6 +18,7 @@ namespace tt_solutions {
 
 using std::make_pair;
 using std::pair;
+using namespace impl;
 
 // ----------------------------------------------------------------------------
 // Events
@@ -74,6 +75,8 @@ GraphEvent::GraphEvent(const GraphEvent& event)
 // ----------------------------------------------------------------------------
 // Canvas
 // ----------------------------------------------------------------------------
+
+namespace impl {
 
 class GraphCanvas : public wxShapeCanvas
 {
@@ -295,6 +298,8 @@ void GraphCanvas::OnSize(wxSizeEvent& event)
     Refresh();
     event.Skip();
 }
+
+} // namespace impl
 
 // ----------------------------------------------------------------------------
 // Handler to give shapes a transparent background
@@ -579,6 +584,8 @@ void GraphNodeHandler::CallOnSize(double& x, double& y)
 // GraphDiagram
 // ----------------------------------------------------------------------------
 
+namespace impl {
+
 class GraphDiagram : public wxDiagram
 {
 public:
@@ -597,6 +604,8 @@ void GraphDiagram::InsertShape(wxShape *shape)
     shape->SetEventHandler(new GraphHandler(shape));
     wxDiagram::InsertShape(shape);
 }
+
+} // namespace impl
 
 // ----------------------------------------------------------------------------
 // iterator
@@ -674,8 +683,6 @@ bool GraphIteratorBase::operator ==(const GraphIteratorBase& it) const
 }
 
 } // namespace impl
-
-using impl::GraphIteratorImpl;
 
 class ListIterImpl : public GraphIteratorImpl
 {
@@ -832,10 +839,27 @@ Graph::Graph()
 
 Graph::~Graph()
 {
+    wxASSERT_MSG(!m_diagram->GetCanvas(),
+        _T("Can't delete Graph while it is assigned to a GraphCtrl, ")
+        _T("delete the GraphCtrl first or call GraphCtrl::SetGraph(NULL)"));
+
+    Delete(GetElements());
+    m_diagram->DeleteAllShapes();
     delete m_diagram;
 
     if (--m_initalise == 0)
         wxOGLCleanUp();
+}
+
+void Graph::SetCanvas(GraphCanvas *canvas)
+{
+    m_diagram->SetCanvas(canvas);
+
+    wxList::iterator it, end;
+    wxList *list = m_diagram->GetShapeList();
+
+    for (it = list->begin(); it != list->end(); ++it)
+        wxStaticCast(*it, wxShape)->SetCanvas(canvas);
 }
 
 wxShape *Graph::DefaultShape(GraphNode *node)
@@ -1025,9 +1049,9 @@ void Graph::Delete(GraphNode *node)
 void Graph::DoDelete(GraphElement *element)
 {
     wxShape *shape = element->GetShape();
-    shape->Select(false);
+    if (shape->GetCanvas())
+        shape->Select(false);
     m_diagram->RemoveShape(shape);
-    delete shape;
     delete element;
 }
 
@@ -1044,10 +1068,12 @@ void Graph::Delete(const iterator_pair& range)
 
         if (node) {
             GraphNode::iterator j, end_edges;
+            unpair(j, end_edges) = node->GetEdges();
 
-            for (unpair(j, end_edges) = node->GetEdges(); j != end_edges; ++j)
+            while (j != end_edges)
             {
                 GraphEdge *edge = &*j;
+                ++j;
                 if (i != end && edge == &*i)
                     ++i;
                 Delete(edge);
@@ -1061,7 +1087,8 @@ void Graph::Delete(const iterator_pair& range)
     }
 
     wxShapeCanvas *canvas = m_diagram->GetCanvas();
-    canvas->Refresh();
+    if (canvas)
+        canvas->Refresh();
 }
 
 bool Graph::Layout(const iterator_pair& range)
@@ -1181,25 +1208,31 @@ GraphCtrl::GraphCtrl(
     GraphCanvas *canvas =
         new GraphCanvas(this, winid, wxPoint(0, 0), size, 0);
     m_canvas = canvas;
-    Graph *graph = new Graph;
-    canvas->SetGraph(graph);
-    SetGraph(graph);
 }
 
 GraphCtrl::~GraphCtrl()
 {
+    SetGraph(NULL);
     delete m_canvas;
-    delete m_graph;
 }
 
 void GraphCtrl::SetGraph(Graph *graph)
 {
-    wxASSERT(graph != NULL);
+    if (m_graph)
+        m_graph->SetCanvas(NULL);
 
-    delete m_graph;
     m_graph = graph;
-    m_canvas->SetDiagram(graph->m_diagram);
-    graph->m_diagram->SetCanvas(m_canvas);
+    m_canvas->SetGraph(graph);
+
+    if (graph) {
+        m_canvas->SetDiagram(graph->m_diagram);
+        graph->SetCanvas(m_canvas);
+    }
+    else {
+        m_canvas->SetDiagram(NULL);
+    }
+
+    Refresh();
 }
 
 void GraphCtrl::SetZoom(int percent)
@@ -1249,6 +1282,7 @@ GraphElement::GraphElement()
 
 GraphElement::~GraphElement()
 {
+    delete m_shape;
 }
 
 void GraphElement::Refresh()

@@ -61,19 +61,26 @@ ProjectDesigner::~ProjectDesigner()
 
 void ProjectDesigner::OnCanvasBackground(wxEraseEvent& event)
 {
-    wxDC *pdc = event.GetDC();
+    if (GetGraph()) {
+        wxDC *pdc = event.GetDC();
 
-    if (pdc) {
-        DrawCanvasBackground(*pdc);
+        if (pdc) {
+            DrawCanvasBackground(*pdc);
+        }
+        else {
+            wxClientDC dc(GetCanvas());
+            DrawCanvasBackground(dc);
+        }
     }
     else {
-        wxClientDC dc(GetCanvas());
-        DrawCanvasBackground(dc);
+        event.Skip();
     }
 }
 
 void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
 {
+    wxASSERT(GetGraph());
+
     wxRect rcClip = GetClientRect();
     //dc.GetClippingBox(rcClip);
 

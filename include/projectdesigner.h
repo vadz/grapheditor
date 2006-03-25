@@ -45,7 +45,7 @@ public:
     /** @brief The node's id. */
     void SetId(const wxString& text);
     /** @brief The node's operation label. */
-    void SetOperation(const wxString& text) { return SetText(text); }
+    void SetOperation(const wxString& text) { SetText(text); }
     /** @brief The node's result label. */
     void SetResult(const wxString& text);
     void SetIcon(const wxIcon& icon);

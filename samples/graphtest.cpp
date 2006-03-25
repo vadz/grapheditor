@@ -52,6 +52,7 @@ using datactics::ProjectDesigner;
 using datactics::ProjectNode;
 using tt_solutions::GraphTreeEvent;
 using tt_solutions::GraphTreeCtrl;
+using tt_solutions::Graph;
 
 // ----------------------------------------------------------------------------
 // private classes
@@ -108,6 +109,7 @@ public:
 
 private:
     ProjectDesigner *m_graphctrl;
+    Graph *m_graph;
 
     // any class wishing to process wxWidgets events must use this macro
     DECLARE_EVENT_TABLE()
@@ -235,6 +237,8 @@ MyFrame::MyFrame(const wxString& title)
     wxSplitterWindow *splitter = new wxSplitterWindow(this);
     GraphTreeCtrl *tree = new GraphTreeCtrl(splitter);
     m_graphctrl = new ProjectDesigner(splitter);
+    m_graph = new Graph;
+    m_graphctrl->SetGraph(m_graph);
     splitter->SplitVertically(tree, m_graphctrl, 210);
 
     m_graphctrl->SetBackgroundColour(wxColour(0x1f97f6));
@@ -260,6 +264,7 @@ MyFrame::MyFrame(const wxString& title)
 MyFrame::~MyFrame()
 {
     delete m_graphctrl;
+    delete m_graph;
 }
 
 // event handlers

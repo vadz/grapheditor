@@ -68,6 +68,7 @@ Makefile: opsession.bkl
         <wx-lib>ogl</wx-lib>
 
         <ldflags>$(GRAPHVIZ_LDFLAGS)</ldflags>
+        <app-type>gui</app-type>
     </exe>
 
 </makefile>

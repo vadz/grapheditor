@@ -18,6 +18,9 @@ namespace tt_solutions {
 
 using std::make_pair;
 using std::pair;
+using std::min;
+using std::max;
+
 using namespace impl;
 
 // ----------------------------------------------------------------------------
@@ -85,12 +88,7 @@ public:
                  const wxPoint& pos = wxDefaultPosition,
                  const wxSize& size = wxDefaultSize,
                  long style = wxBORDER | wxRETAINED,
-                 const wxString& name = DefaultName)
-        : wxShapeCanvas(parent, id, pos, size, style, name),
-          m_graph(NULL), m_isDragging(false), m_scrolled(false)
-    {
-        SetScrollRate(1, 1);
-    }
+                 const wxString& name = DefaultName);
 
     static const wxChar DefaultName[];
     
@@ -108,11 +106,14 @@ public:
     void OnPaint(wxPaintEvent& event);
     void OnSize(wxSizeEvent& event);
 
+    void PrepareDC(wxDC& dc);
+
 private:
     Graph *m_graph;
     bool m_isDragging;
     wxPoint m_ptDrag;
     wxPoint m_ptView;
+    wxPoint m_ptOrigin;
     bool m_scrolled;
 
     DECLARE_EVENT_TABLE()
@@ -130,6 +131,21 @@ BEGIN_EVENT_TABLE(GraphCanvas, wxShapeCanvas)
     EVT_PAINT(GraphCanvas::OnPaint)
     EVT_SIZE(GraphCanvas::OnSize)
 END_EVENT_TABLE()
+
+GraphCanvas::GraphCanvas(
+        wxWindow *parent,
+        wxWindowID id,
+        const wxPoint& pos,
+        const wxSize& size,
+        long style,
+        const wxString& name)
+  : wxShapeCanvas(parent, id, pos, size, style, name),
+    m_graph(NULL),
+    m_isDragging(false),
+    m_scrolled(false)
+{
+    SetScrollRate(1, 1);
+}
 
 void GraphCanvas::OnLeftClick(double x, double y, int keys)
 {
@@ -167,15 +183,34 @@ void GraphCanvas::OnDragLeft(bool, double x, double y, int)
             wxSize needed = GetClientSize() + wxSize(x, y);
             wxSize size = current;
 
-            if (needed.x > current.x)
+            x -= x % unitX;
+            y -= y % unitY;
+
+            if (x < 0) {
+                m_ptOrigin.x -= x;
+                m_ptView.x -= x;
+                size.x -= x;
+                ScrollWindow(-x, 0);
+            }
+            else if (needed.x > current.x) {
                 size.x = needed.x;
-            if (needed.y > current.y)
+            }
+
+            if (y < 0) {
+                m_ptOrigin.y -= y;
+                m_ptView.y -= y;
+                size.y -= y;
+                ScrollWindow(0, -y);
+            }
+            else if (needed.y > current.y) {
                 size.y = needed.y;
+            }
 
             if (size != current)
                 SetVirtualSize(size.x, size.y);
 
             Scroll(x / unitX, y / unitY);
+            Update();
         }
     }
     else {
@@ -264,21 +299,43 @@ void GraphCanvas::OnIdle(wxIdleEvent& event)
         GetViewStart(&viewX, &viewY);
         int unitX, unitY;
         GetScrollPixelsPerUnit(&unitX, &unitY);
+        viewX *= unitX;
+        viewY *= unitY;
 
-        int x = dc.DeviceToLogicalX(cs.x);
-        int y = dc.DeviceToLogicalY(cs.y);
         wxRect b = m_graph->GetBounds();
+        b.x = dc.LogicalToDeviceX(b.x);
+        b.y = dc.LogicalToDeviceY(b.y);
+        b.width = dc.LogicalToDeviceXRel(b.width);
+        b.height = dc.LogicalToDeviceYRel(b.height);
 
-        if (x > b.GetRight() + 1) {
-            int sx = viewX * unitX + cs.x;
-            if (sx < current.x)
-                size.x = sx;
+        int x = min(min(m_ptOrigin.x - viewX, b.x), 0) + viewX;
+        x -= x % unitX;
+        if (x > 0) {
+            m_ptOrigin.x -= x;
+            size.x -= x;
+            m_xScrollPosition -= x / unitX;
+            SetScrollPos(wxHORIZONTAL, m_xScrollPosition); 
         }
-        if (y > b.GetBottom() + 1) {
-            int sy = viewY * unitY + cs.y;
-            if (sy < current.y)
-                size.y = sy;
+
+        x = max(max(cs.x, m_ptOrigin.x - viewX + cs.x), b.GetRight());
+        x -= current.x - viewX;
+        if (x < 0)
+            size.x += x;
+
+        int y = min(min(m_ptOrigin.y - viewY, b.y), 0) + viewY;
+        y -= y % unitY;
+        if (y > 0) {
+            m_ptOrigin.y -= y;
+            size.y -= y;
+            m_yScrollPosition -= y / unitY;
+            SetScrollPos(wxVERTICAL, m_yScrollPosition); 
         }
+
+        y = max(max(cs.y, m_ptOrigin.y - viewY + cs.y), b.GetBottom());
+        y -= current.y - viewY;
+        if (y < 0)
+            size.y += y;
+
         if (current != size)
             SetVirtualSize(size);
     }
@@ -297,6 +354,12 @@ void GraphCanvas::OnSize(wxSizeEvent& event)
 {
     Refresh();
     event.Skip();
+}
+
+void GraphCanvas::PrepareDC(wxDC& dc)
+{
+    dc.SetDeviceOrigin(m_ptOrigin.x, m_ptOrigin.y);
+    wxShapeCanvas::PrepareDC(dc);
 }
 
 } // namespace impl
@@ -377,7 +440,6 @@ void GraphElementHandler::Select(wxShape *shape, bool select, int keys)
 
     wxClientDC dc(canvas);
     canvas->PrepareDC(dc);
-    bool others = false;
 
     if ((keys & KEY_CTRL) == 0) {
         GraphElement *element = GetElement(shape);
@@ -387,12 +449,13 @@ void GraphElementHandler::Select(wxShape *shape, bool select, int keys)
         for (unpair(it, end) = graph->GetSelection(); it != end; ++it) {
             if (&*it != element) {
                 it->GetShape()->Select(false, &dc);
-                others = true;
+                select = true;
             }
         }
     }
 
-    shape->Select(others || select, &dc);
+    if (shape->Selected() != select)
+        shape->Select(select, &dc);
 }
 
 // ----------------------------------------------------------------------------
@@ -840,7 +903,7 @@ Graph::Graph()
 Graph::~Graph()
 {
     wxASSERT_MSG(!m_diagram->GetCanvas(),
-        _T("Can't delete Graph while it is assigned to a GraphCtrl, ")
+        _T("Can't delete a Graph while it is assigned to a GraphCtrl, ")
         _T("delete the GraphCtrl first or call GraphCtrl::SetGraph(NULL)"));
 
     Delete(GetElements());
@@ -850,6 +913,19 @@ Graph::~Graph()
     if (--m_initalise == 0)
         wxOGLCleanUp();
 }
+
+/*
+wxRect Graph::GetBounds() const
+{
+    const_node_iterator it, end;
+    wxRect rc;
+
+    for (unpair(it, end) = GetNodes(); it != end; ++it)
+        rc.Union(it->GetBounds());
+
+    return rc;
+}
+*/
 
 void Graph::SetCanvas(GraphCanvas *canvas)
 {
@@ -904,12 +980,9 @@ GraphNode *Graph::Add(GraphNode *node, wxPoint pt)
 
         shape->SetEventHandler(new GraphNodeHandler(shape));
         m_diagram->wxDiagram::AddShape(shape);
-
-        wxShapeCanvas *canvas = m_diagram->GetCanvas();
-        wxClientDC dc(canvas);
-        canvas->PrepareDC(dc);
-
-        shape->Move(dc, pt.x, pt.y);
+        shape->SetX(pt.x);
+        shape->SetY(pt.y);
+        node->Refresh();
         return node;
     }
 
@@ -944,9 +1017,7 @@ GraphEdge *Graph::Add(GraphNode& from, GraphNode& to, GraphEdge *edge)
         wxShapeCanvas *canvas = m_diagram->GetCanvas();
         wxClientDC dc(canvas);
         canvas->PrepareDC(dc);
-
-        fromshape->Move(dc, fromshape->GetX(), fromshape->GetY());
-        toshape->Move(dc, toshape->GetX(), toshape->GetY());
+        line->GetEventHandler()->OnMoveLink(dc);
 
         return edge;
     }
@@ -1049,7 +1120,7 @@ void Graph::Delete(GraphNode *node)
 void Graph::DoDelete(GraphElement *element)
 {
     wxShape *shape = element->GetShape();
-    if (shape->GetCanvas())
+    if (shape->GetCanvas() && shape->Selected())
         shape->Select(false);
     m_diagram->RemoveShape(shape);
     delete element;
@@ -1168,7 +1239,8 @@ void Graph::Select(const iterator_pair& range)
     iterator it, end;
 
     for (unpair(it, end) = range; it != end; ++it)
-        it->GetShape()->Select(true, &dc);
+        if (!it->GetShape()->Selected())
+            it->GetShape()->Select(true, &dc);
 }
 
 void Graph::Unselect(const iterator_pair& range)
@@ -1179,7 +1251,8 @@ void Graph::Unselect(const iterator_pair& range)
     iterator it, end;
 
     for (unpair(it, end) = range; it != end; ++it)
-        it->GetShape()->Select(false, &dc);
+        if (it->GetShape()->Selected())
+            it->GetShape()->Select(false, &dc);
 }
 
 // ----------------------------------------------------------------------------
@@ -1337,7 +1410,7 @@ void GraphElement::SetBackgroundColour(const wxColour& colour)
 
 void GraphElement::DoSelect(bool select)
 {
-    if (m_shape) {
+    if (m_shape && m_shape->Selected() != select) {
         wxShapeCanvas *canvas = m_shape->GetCanvas();
         if (canvas) {
             wxClientDC dc(canvas);

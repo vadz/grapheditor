@@ -101,10 +101,13 @@ public:
     void OnCanvasBackground(wxEraseEvent& event);
     void DrawCanvasBackground(wxDC& dc);
 
+    void SetBackgroundGradient(const wxColour& from, const wxColour& to);
+
     static const wxChar DefaultName[];
 
 private:
     void Init();
+    wxColour m_background[2];
 
     DECLARE_EVENT_TABLE()
     DECLARE_DYNAMIC_CLASS(ProjectDesigner)

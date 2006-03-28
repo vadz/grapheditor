@@ -241,7 +241,7 @@ MyFrame::MyFrame(const wxString& title)
     m_graphctrl->SetGraph(m_graph);
     splitter->SplitVertically(tree, m_graphctrl, 210);
 
-    m_graphctrl->SetBackgroundColour(wxColour(0x1f97f6));
+    m_graphctrl->SetBackgroundGradient(*wxWHITE, wxColour(0x1f97f6));
     m_graphctrl->SetForegroundColour(*wxWHITE);
 
     wxImageList *images = new wxImageList(icon.GetWidth(), icon.GetHeight());

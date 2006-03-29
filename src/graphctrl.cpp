@@ -11,8 +11,11 @@
 
 #include "graphctrl.h"
 #include <wx/ogl/ogl.h>
+
+#ifndef NO_GRAPHVIZ
 #include <gvc.h>
 #include <gd.h>
+#endif
 
 namespace tt_solutions {
 
@@ -110,7 +113,7 @@ public:
 
 private:
     Graph *m_graph;
-    bool m_isDragging;
+    bool m_isPanning;
     wxPoint m_ptDrag;
     wxPoint m_ptView;
     wxPoint m_ptOrigin;
@@ -141,7 +144,7 @@ GraphCanvas::GraphCanvas(
         const wxString& name)
   : wxShapeCanvas(parent, id, pos, size, style, name),
     m_graph(NULL),
-    m_isDragging(false),
+    m_isPanning(false),
     m_scrolled(false)
 {
     SetScrollRate(1, 1);
@@ -155,7 +158,7 @@ void GraphCanvas::OnLeftClick(double x, double y, int keys)
 void GraphCanvas::OnBeginDragLeft(double x, double y, int keys)
 {
     if ((keys & KEY_SHIFT) != 0) {
-        m_isDragging = true;
+        m_isPanning = true;
         m_ptDrag = wxGetMousePosition();
         GetViewStart(&m_ptView.x, &m_ptView.y);
     }
@@ -167,7 +170,7 @@ void GraphCanvas::OnBeginDragLeft(double x, double y, int keys)
 
 void GraphCanvas::OnDragLeft(bool, double x, double y, int)
 {
-    if (m_isDragging) {
+    if (m_isPanning) {
         wxMouseState mouse = wxGetMouseState();
 
         if (mouse.LeftDown()) {
@@ -231,8 +234,8 @@ void GraphCanvas::OnEndDragLeft(double x, double y, int key)
 {
     ReleaseMouse();
 
-    if (m_isDragging) {
-        m_isDragging = false;
+    if (m_isPanning) {
+        m_isPanning = false;
         m_scrolled = true;
         SetScrollPos(wxHORIZONTAL, GetScrollPos(wxHORIZONTAL));
         SetScrollPos(wxVERTICAL, GetScrollPos(wxVERTICAL));
@@ -1014,10 +1017,10 @@ GraphEdge *Graph::Add(GraphNode& from, GraphNode& to, GraphEdge *edge)
         line->SetEventHandler(new GraphElementHandler(line));
         m_diagram->wxDiagram::AddShape(line);
 
-        wxShapeCanvas *canvas = m_diagram->GetCanvas();
-        wxClientDC dc(canvas);
-        canvas->PrepareDC(dc);
-        line->GetEventHandler()->OnMoveLink(dc);
+        double x1, y1, x2, y2;
+        line->FindLineEndPoints(&x1, &y1, &x2, &y2);
+        line->SetEnds(x1, y1, x2, y2);
+        edge->Refresh();
 
         return edge;
     }
@@ -1202,33 +1205,44 @@ bool Graph::Layout(const iterator_pair& range)
 
     dot << _T("}\n");
 
-#ifndef __WINDOWS__
+#ifndef NO_GRAPHVIZ
     GVC_t *context = gvContext();
 
     Agraph_t *graph = agmemread(wx_const_cast(char*, dot.mb_str()));
     wxCHECK(graph, false);
 
-    gvLayout(context, graph, "dot");
+    bool ok = gvLayout(context, graph, "dot") == 0;
 
-    double top = PS2INCH(GD_bb(graph).UR.y) * dpi.y;
-
-    for (Agnode_t *n = agfstnode(graph); n; n = agnxtnode(graph, n))
+    if (ok)
     {
-        point pos = ND_coord_i(n);
-        double x = PS2INCH(pos.x) * dpi.x;
-        double y = top - PS2INCH(pos.y) * dpi.y;
-        GraphNode *node;
-        if (sscanf(n->name, "n%p", &node) == 1)
-            node->GetShape()->Move(dc, x, y, false);
+        double top = PS2INCH(GD_bb(graph).UR.y) * dpi.y;
+
+        for (Agnode_t *n = agfstnode(graph); n; n = agnxtnode(graph, n))
+        {
+            point pos = ND_coord_i(n);
+            double x = PS2INCH(pos.x) * dpi.x;
+            double y = top - PS2INCH(pos.y) * dpi.y;
+            GraphNode *node;
+            if (sscanf(n->name, "n%p", &node) == 1)
+                node->GetShape()->Move(dc, x, y, false);
+        }
+
+        gvFreeLayout(context, graph);
+    }
+    else {
+        wxLogError(_(
+"An error occured laying out the graph with dot.\
+ Please check the installation of the graphviz library and\
+ its configuration file 'PREFIX/lib/graphviz/config'"
+                    ));
     }
 
-    gvFreeLayout(context, graph);
     agclose(graph);
     gvFreeContext(context);
     canvas->Refresh();
 #endif
 
-    return true;
+    return ok;
 }
 
 void Graph::Select(const iterator_pair& range)
@@ -1366,7 +1380,7 @@ void GraphElement::Refresh()
             wxClientDC dc(canvas);
             canvas->PrepareDC(dc);
             OnLayout(dc);
-            m_shape->EraseContents(dc);
+            m_shape->GetEventHandler()->OnErase(dc);
         }
     }
 }

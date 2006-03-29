@@ -58,6 +58,7 @@ void ProjectDesigner::Init()
                     NULL, this);
 
     m_background[0] = m_background[1] = GetBackgroundColour();
+    m_showGrid = true;
 }
 
 ProjectDesigner::~ProjectDesigner()
@@ -69,6 +70,14 @@ void ProjectDesigner::SetBackgroundGradient(const wxColour& from,
 {
     m_background[0] = from;
     m_background[1] = to;
+}
+
+void ProjectDesigner::SetShowGrid(bool show)
+{
+    if (show != m_showGrid) {
+        m_showGrid = show;
+        GetCanvas()->Refresh();
+    }
 }
 
 void ProjectDesigner::OnCanvasBackground(wxEraseEvent& event)
@@ -94,11 +103,11 @@ void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
     wxASSERT(GetGraph());
     wxWindow *canvas = GetCanvas();
 
-    canvas->PrepareDC(dc);
-
-    wxRect rcClip = canvas->GetClientRect();
-    //dc.GetClippingBox(rcClip);
+    wxRect rcClip;
+    dc.GetClippingBox(rcClip);
     rcClip.Inflate(1, 1);
+
+    canvas->PrepareDC(dc);
 
     wxRect rc;
     rc.x = dc.DeviceToLogicalX(rcClip.x);
@@ -107,8 +116,25 @@ void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
     rc.SetBottom(dc.DeviceToLogicalY(rcClip.GetBottom()));
     rcClip = rc;
 
-    const int factor = 5;
-    int spacing = factor * GetGraph()->GetGridSpacing();
+    int factor, spacing;
+
+    if (IsGridShown()) {
+        factor = 5;
+        int zoom = GetZoom();
+
+        if (zoom) {
+            while (zoom <= 50) {
+                factor *= 2;
+                zoom *= 2;
+            }
+        }
+
+        spacing = factor * GetGraph()->GetGridSpacing();
+    }
+    else {
+        factor = 1;
+        spacing = GetGraph()->GetGridSpacing();
+    }
 
     rc.x -= rc.x % spacing;
     if (rcClip.x < 0)
@@ -144,35 +170,37 @@ void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
         rc.x += spacing;
     }
 
-    dc.SetPen(GetForegroundColour());
-    wxCoord x1, y1, x2, y2;
+    if (IsGridShown()) {
+        dc.SetPen(GetForegroundColour());
+        wxCoord x1, y1, x2, y2;
 
-    x1 = rcClip.x - rcClip.x % spacing;
-    if (rcClip.x < 0)
-        x1 -= spacing;
-    x2 = rcClip.GetRight() - rcClip.GetRight() % spacing;
-    if (rcClip.GetRight() > 0)
-        x2 += spacing;
-    y1 = rcClip.y;
-    y2 = rcClip.GetBottom();
+        x1 = rcClip.x - rcClip.x % spacing;
+        if (rcClip.x < 0)
+            x1 -= spacing;
+        x2 = rcClip.GetRight() - rcClip.GetRight() % spacing;
+        if (rcClip.GetRight() > 0)
+            x2 += spacing;
+        y1 = rcClip.y;
+        y2 = rcClip.GetBottom();
 
-    while (x1 <= x2) {
-        dc.DrawLine(x1, y1, x1, y2);
-        x1 += spacing;
-    }
+        while (x1 <= x2) {
+            dc.DrawLine(x1, y1, x1, y2);
+            x1 += spacing;
+        }
 
-    x1 = rcClip.x;
-    x2 = rcClip.GetRight();
-    y1 = rcClip.y - rcClip.y % spacing;
-    if (rcClip.y < 0)
-        y1 -= spacing;
-    y2 = rcClip.GetBottom() - rcClip.GetBottom() % spacing;
-    if (rcClip.GetBottom() > 0)
-        y2 += spacing;
+        x1 = rcClip.x;
+        x2 = rcClip.GetRight();
+        y1 = rcClip.y - rcClip.y % spacing;
+        if (rcClip.y < 0)
+            y1 -= spacing;
+        y2 = rcClip.GetBottom() - rcClip.GetBottom() % spacing;
+        if (rcClip.GetBottom() > 0)
+            y2 += spacing;
 
-    while (y1 <= y2) {
-        dc.DrawLine(x1, y1, x2, y1);
-        y1 += spacing;
+        while (y1 <= y2) {
+            dc.DrawLine(x1, y1, x2, y1);
+            y1 += spacing;
+        }
     }
 }
 
@@ -192,6 +220,19 @@ ProjectNode::ProjectNode()
 
 ProjectNode::~ProjectNode()
 {
+}
+
+void ProjectNode::SetText(const wxString& text)
+{
+    m_rcText = wxRect();
+    GraphNode::SetText(text);
+}
+
+void ProjectNode::SetFont(const wxFont& font)
+{
+    m_rcText = wxRect();
+    m_rcResult = wxRect();
+    GraphNode::SetFont(font);
 }
 
 void ProjectNode::SetId(const wxString& text)
@@ -268,8 +309,6 @@ void ProjectNode::OnLayout(wxDC &dc)
 
 void ProjectNode::OnDraw(wxDC& dc)
 {
-    OnLayout(dc);
-
     wxRect bounds = GetBounds();
     wxRect rc = bounds;
     rc.Deflate(m_borderThickness / 2);

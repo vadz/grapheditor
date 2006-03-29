@@ -34,6 +34,8 @@ public:
     /** @brief Destructor. */
     ~ProjectNode();
 
+    void SetText(const wxString& text);
+    void SetFont(const wxFont& font);
     /** @brief The node's id. */
     wxString GetId() const                  { return m_id; }
     /** @brief The node's operation label. */
@@ -103,11 +105,15 @@ public:
 
     void SetBackgroundGradient(const wxColour& from, const wxColour& to);
 
+    void SetShowGrid(bool show);
+    bool IsGridShown() const { return m_showGrid; }
+
     static const wxChar DefaultName[];
 
 private:
     void Init();
     wxColour m_background[2];
+    bool m_showGrid;
 
     DECLARE_EVENT_TABLE()
     DECLARE_DYNAMIC_CLASS(ProjectDesigner)

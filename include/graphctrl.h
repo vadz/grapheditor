@@ -379,9 +379,9 @@ public:
     wxColour GetTextColour() const       { return m_textcolour; }
 
     /** @brief The node's main text label. */
-    void SetText(const wxString& text);
+    virtual void SetText(const wxString& text);
     /** @brief The node's font. */
-    void SetFont(const wxFont& font);
+    virtual void SetFont(const wxFont& font);
     /**
      * @brief A number from the Style enumeration indicating the node's
      * appearance.

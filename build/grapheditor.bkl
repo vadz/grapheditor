@@ -31,7 +31,7 @@
 
     <fragment format="gnu">
 # regenerate Makefile when bakefile changes
-Makefile: opsession.bkl
+Makefile: grapheditor.bkl
 	bakefile $(BKLFLAGS_GRAPHEDITOR) -f gnu -o $@ $&lt;
 	@touch $@
     </fragment>

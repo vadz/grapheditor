@@ -16,7 +16,9 @@
         <default-value>pkg-config libgvc --libs</default-value>
     </option>
 
-    <set var="BUILDDIR">obj</set>
+    <if cond="FORMAT=='gnu'">
+        <set var="BUILDDIR">obj</set>
+    </if>
     <set var="SRCDIR">..</set>
     <set var="WX_MONOLITHIC">0</set>
 

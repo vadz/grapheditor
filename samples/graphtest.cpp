@@ -41,7 +41,7 @@
 // the application icon (under Windows and OS/2 it is in resources and even
 // though we could still include the XPM here it would be unused)
 #if !defined(__WXMSW__) && !defined(__WXPM__)
-    #include "../sample.xpm"
+    #include "graphtest.xpm"
 #endif
 
 // ----------------------------------------------------------------------------

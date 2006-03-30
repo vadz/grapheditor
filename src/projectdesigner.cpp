@@ -252,7 +252,7 @@ void ProjectNode::SetIcon(const wxIcon& icon)
     Refresh();
 }
 
-void ProjectNode::OnSize(int& x, int& y)
+void ProjectNode::OnConstrainSize(int& x, int& y)
 {
     if (x < m_minSize.x)
         x = m_minSize.x;

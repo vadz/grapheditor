@@ -60,7 +60,7 @@ public:
     int GetBorderThickness()                { return m_borderThickness; }
     int GetCornerRadius()                   { return m_cornerRadius; }
 
-    void OnSize(int& x, int& y);
+    void OnConstrainSize(int& x, int& y);
     void OnLayout(wxDC &dc);
 
 private:

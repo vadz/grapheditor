@@ -111,13 +111,15 @@ public:
 
     void PrepareDC(wxDC& dc);
 
+    void CheckBounds() { m_checkBounds = true; }
+
 private:
     Graph *m_graph;
     bool m_isPanning;
+    bool m_checkBounds;
     wxPoint m_ptDrag;
     wxPoint m_ptView;
     wxPoint m_ptOrigin;
-    bool m_scrolled;
 
     DECLARE_EVENT_TABLE()
     DECLARE_DYNAMIC_CLASS(GraphCanvas)
@@ -145,7 +147,7 @@ GraphCanvas::GraphCanvas(
   : wxShapeCanvas(parent, id, pos, size, style, name),
     m_graph(NULL),
     m_isPanning(false),
-    m_scrolled(false)
+    m_checkBounds(false)
 {
     SetScrollRate(1, 1);
 }
@@ -236,7 +238,7 @@ void GraphCanvas::OnEndDragLeft(double x, double y, int key)
 
     if (m_isPanning) {
         m_isPanning = false;
-        m_scrolled = true;
+        m_checkBounds = true;
         SetScrollPos(wxHORIZONTAL, GetScrollPos(wxHORIZONTAL));
         SetScrollPos(wxVERTICAL, GetScrollPos(wxVERTICAL));
     }
@@ -282,15 +284,15 @@ void GraphCanvas::OnEndDragLeft(double x, double y, int key)
 
 void GraphCanvas::OnScroll(wxScrollWinEvent& event)
 {
-    m_scrolled = true;
+    m_checkBounds = true;
     event.Skip();
 }
 
 void GraphCanvas::OnIdle(wxIdleEvent& event)
 {
-    if (m_scrolled && !wxGetMouseState().LeftDown())
+    if (m_checkBounds && !wxGetMouseState().LeftDown())
     {
-        m_scrolled = false;
+        m_checkBounds = false;
         wxClientDC dc(this);
         PrepareDC(dc);
 
@@ -311,36 +313,42 @@ void GraphCanvas::OnIdle(wxIdleEvent& event)
         b.width = dc.LogicalToDeviceXRel(b.width);
         b.height = dc.LogicalToDeviceYRel(b.height);
 
-        int x = min(min(m_ptOrigin.x - viewX, b.x), 0) + viewX;
+        int x = min(min(0, b.x) + viewX, m_ptOrigin.x);
+        x -= unitX - 1;
         x -= x % unitX;
-        if (x > 0) {
+        if (x != 0) {
             m_ptOrigin.x -= x;
             size.x -= x;
-            m_xScrollPosition -= x / unitX;
-            SetScrollPos(wxHORIZONTAL, m_xScrollPosition); 
+            viewX -= x;
         }
 
-        x = max(max(cs.x, m_ptOrigin.x - viewX + cs.x), b.GetRight());
-        x -= current.x - viewX;
-        if (x < 0)
-            size.x += x;
+        x = max(max(cs.x, b.GetRight()) + viewX, m_ptOrigin.x + cs.x);
+        x += unitX - 1;
+        x -= x % unitX;
+        if (x != current.x)
+            size.x = x;
 
-        int y = min(min(m_ptOrigin.y - viewY, b.y), 0) + viewY;
+        int y = min(min(0, b.y) + viewY, m_ptOrigin.y);
+        y -= unitY - 1;
         y -= y % unitY;
-        if (y > 0) {
+        if (y != 0) {
             m_ptOrigin.y -= y;
             size.y -= y;
-            m_yScrollPosition -= y / unitY;
-            SetScrollPos(wxVERTICAL, m_yScrollPosition); 
+            viewY -= y;
         }
 
-        y = max(max(cs.y, m_ptOrigin.y - viewY + cs.y), b.GetBottom());
-        y -= current.y - viewY;
-        if (y < 0)
-            size.y += y;
+        y = max(max(cs.y, b.GetBottom()) + viewY, m_ptOrigin.y + cs.y);
+        y += unitY - 1;
+        y -= y % unitY;
+        if (y != current.y)
+            size.y = y;
 
         if (current != size)
             SetVirtualSize(size);
+        if (m_xScrollPosition != viewX / unitX)
+            SetScrollPos(wxHORIZONTAL, m_xScrollPosition = viewX / unitX);
+        if (m_yScrollPosition != viewY / unitY)
+            SetScrollPos(wxVERTICAL, m_yScrollPosition = viewY / unitY);
     }
 }
 
@@ -589,22 +597,13 @@ void GraphNodeHandler::OnEndDragLeft(double x, double y,
         graph->Add(*GetNode(), *m_target);
     }
     else {
-        wxClientDC dc(canvas);
-        canvas->PrepareDC(dc);
-
         Graph *graph = canvas->GetGraph();
-        double shapeX = shape->GetX();
-        double shapeY = shape->GetY();
+        wxPoint ptOffset = wxPoint(int(x), int(y)) + m_offset -
+                           GetNode()->GetPosition();
         Graph::node_iterator it, end;
 
-        for (unpair(it, end) = graph->GetNodes(true); it != end; ++it) {
-            wxShape *sh = it->GetShape();
-            double xx = x - shapeX + sh->GetX() + m_offset.x;
-            double yy = y - shapeY + sh->GetY() + m_offset.y;
-            canvas->Snap(&xx, &yy);
-            sh->Erase(dc);
-            sh->Move(dc, xx, yy);
-        }
+        for (unpair(it, end) = graph->GetNodes(true); it != end; ++it)
+            it->SetPosition(it->GetPosition() + ptOffset);
     }
 }
 
@@ -627,6 +626,7 @@ void GraphNodeHandler::OnSizingEndDragLeft(wxControlPoint* pt,
 {
     CallOnSize(x, y);
     GraphElementHandler::OnSizingEndDragLeft(pt, x, y, keys, attachment);
+    GetNode()->GetGraph()->RefreshBounds();
 }
 
 void GraphNodeHandler::CallOnSize(double& x, double& y)
@@ -640,7 +640,7 @@ void GraphNodeHandler::CallOnSize(double& x, double& y)
     int w = signX * int(x - shapeX) * 2;
     int h = signY * int(y - shapeY) * 2;
 
-    GetNode()->OnSize(w, h);
+    GetNode()->OnConstrainSize(w, h);
 
     x = shapeX + signX * w / 2;
     y = shapeY + signY * h / 2;
@@ -917,18 +917,25 @@ Graph::~Graph()
         wxOGLCleanUp();
 }
 
-/*
 wxRect Graph::GetBounds() const
 {
-    const_node_iterator it, end;
-    wxRect rc;
+    if (m_rcBounds.IsEmpty()) {
+        const_node_iterator it, end;
 
-    for (unpair(it, end) = GetNodes(); it != end; ++it)
-        rc.Union(it->GetBounds());
+        for (unpair(it, end) = GetNodes(); it != end; ++it)
+            m_rcBounds += it->GetBounds();
+    }
 
-    return rc;
+    return m_rcBounds;
 }
-*/
+
+void Graph::RefreshBounds()
+{
+    GraphCanvas *canvas = GetCanvas();
+    if (canvas)
+        canvas->CheckBounds();
+    m_rcBounds = wxRect();
+}
 
 void Graph::SetCanvas(GraphCanvas *canvas)
 {
@@ -939,6 +946,12 @@ void Graph::SetCanvas(GraphCanvas *canvas)
 
     for (it = list->begin(); it != list->end(); ++it)
         wxStaticCast(*it, wxShape)->SetCanvas(canvas);
+}
+
+GraphCanvas *Graph::GetCanvas() const
+{
+    wxShapeCanvas *canvas = m_diagram->GetCanvas();
+    return canvas ? wxStaticCast(canvas, GraphCanvas) : NULL;
 }
 
 wxShape *Graph::DefaultShape(GraphNode *node)
@@ -986,6 +999,7 @@ GraphNode *Graph::Add(GraphNode *node, wxPoint pt)
         shape->SetX(pt.x);
         shape->SetY(pt.y);
         node->Refresh();
+        RefreshBounds();
         return node;
     }
 
@@ -1118,13 +1132,17 @@ void Graph::Delete(GraphNode *node)
         Delete(&*it);
 
     DoDelete(node);
+    RefreshBounds();
 }
 
 void Graph::DoDelete(GraphElement *element)
 {
     wxShape *shape = element->GetShape();
-    if (shape->GetCanvas() && shape->Selected())
-        shape->Select(false);
+    if (shape->GetCanvas()) {
+        element->Refresh();
+        if (shape->Selected())
+            shape->Select(false);
+    }
     m_diagram->RemoveShape(shape);
     delete element;
 }
@@ -1154,15 +1172,12 @@ void Graph::Delete(const iterator_pair& range)
             }
 
             DoDelete(node);
+            RefreshBounds();
         }
         else {
             Delete(wxStaticCast(element, GraphEdge));
         }
     }
-
-    wxShapeCanvas *canvas = m_diagram->GetCanvas();
-    if (canvas)
-        canvas->Refresh();
 }
 
 bool Graph::Layout(const iterator_pair& range)
@@ -1228,6 +1243,9 @@ bool Graph::Layout(const iterator_pair& range)
         }
 
         gvFreeLayout(context, graph);
+
+        canvas->Refresh();
+        RefreshBounds();
     }
     else {
         wxLogError(_(
@@ -1239,7 +1257,6 @@ bool Graph::Layout(const iterator_pair& range)
 
     agclose(graph);
     gvFreeContext(context);
-    canvas->Refresh();
 #endif
 
     return ok;
@@ -1327,6 +1344,7 @@ void GraphCtrl::SetZoom(int percent)
     double scale = percent / 100.0;
     m_canvas->SetScale(scale, scale);
     m_canvas->Refresh();
+    m_canvas->CheckBounds();
 }
 
 int GraphCtrl::GetZoom()
@@ -1380,7 +1398,7 @@ void GraphElement::Refresh()
             wxClientDC dc(canvas);
             canvas->PrepareDC(dc);
             OnLayout(dc);
-            m_shape->GetEventHandler()->OnErase(dc);
+            m_shape->Erase(dc);
         }
     }
 }
@@ -1496,14 +1514,6 @@ wxSize GraphElement::GetSize() const
     return size;
 }
 
-void GraphElement::SetSize(const wxSize& size)
-{
-    wxShape *shape = GetShape();
-
-    if (shape)
-        shape->SetSize(size.x, size.y);
-}
-
 // ----------------------------------------------------------------------------
 // GraphEdge
 // ----------------------------------------------------------------------------
@@ -1565,6 +1575,38 @@ GraphNode::GraphNode()
 
 GraphNode::~GraphNode()
 {
+}
+
+void GraphNode::SetPosition(const wxPoint& pt)
+{
+    wxShape *shape = GetShape();
+
+    if (shape) {
+        wxShapeCanvas *canvas = shape->GetCanvas();
+        if (canvas) {
+            double x = pt.x, y = pt.y;
+            canvas->Snap(&x, &y);
+            wxClientDC dc(canvas);
+            canvas->PrepareDC(dc);
+            shape->Erase(dc);
+            shape->Move(dc, x, y, false);
+            shape->Erase(dc);
+            GetGraph()->RefreshBounds();
+        }
+    }
+}
+
+void GraphNode::SetSize(const wxSize& size)
+{
+    wxShape *shape = GetShape();
+
+    if (shape) {
+        shape->SetSize(size.x, size.y);
+
+        Graph *graph = GetGraph();
+        if (graph)
+            graph->RefreshBounds();
+    }
 }
 
 void GraphNode::UpdateShape()

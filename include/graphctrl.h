@@ -254,13 +254,12 @@ public:
     virtual wxSize GetSize() const;
     virtual wxRect GetBounds() const;
     virtual void Refresh();
+    virtual wxPoint GetPosition() const;
 
 protected:
     virtual void DoSelect(bool select);
     virtual void UpdateShape() = 0;
     virtual void OnLayout(wxDC& WXUNUSED(dc)) { }
-    virtual wxPoint GetPosition() const;
-    void SetSize(const wxSize& size);
 
 private:
     wxColour m_colour;
@@ -409,7 +408,10 @@ public:
     bool Serialize(wxOutputStream& out);
     bool Deserialize(wxInputStream& in);
 
-    virtual void OnSize(int& WXUNUSED(x), int& WXUNUSED(y)) { }
+    virtual void OnConstrainSize(int&, int&) { }
+
+    virtual void SetPosition(const wxPoint& pt);
+    virtual void SetSize(const wxSize& size);
 
 protected:
     void UpdateShape();
@@ -663,7 +665,8 @@ public:
     /**
      * @brief Returns a bounding rectange for the graph
      */
-    wxRect GetBounds() const { return m_rcBounds; }
+    wxRect GetBounds() const;
+    void RefreshBounds();
 
     virtual wxShape *DefaultShape(GraphNode *node);
     virtual wxLineShape *DefaultLineShape(GraphEdge *edge);
@@ -671,10 +674,11 @@ public:
 private:
     friend void GraphCtrl::SetGraph(Graph *graph);
     void SetCanvas(impl::GraphCanvas *canvas);
+    impl::GraphCanvas *GetCanvas() const;
     void DoDelete(GraphElement *element);
 
     impl::GraphDiagram *m_diagram;
-    wxRect m_rcBounds;
+    mutable wxRect m_rcBounds;
     static int m_initalise;
 
     //DECLARE_EVENT_TABLE()

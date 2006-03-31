@@ -487,8 +487,8 @@ public:
      * Has no effect if the node is already visible.
      */
     void EnsureVisible(const GraphNode& node);
-    /** @brief Scroll the Graph, centering on the node. */
-    void ScrollTo(const GraphNode& node);
+    /** @brief Scroll the Graph, centering on the element. */
+    void ScrollTo(const GraphElement& element);
 
     wxPoint ScreenToGraph(const wxPoint& pt) const;
 
@@ -529,6 +529,10 @@ public:
     typedef std::pair<iterator, iterator> iterator_pair;
     /** @brief A begin/end pair of iterators returning nodes and edges. */
     typedef std::pair<const_iterator, const_iterator> const_iterator_pair;
+    /** @brief A begin/end pair of iterators returning nodes. */
+    typedef std::pair<node_iterator, node_iterator> node_iterator_pair;
+    /** @brief A begin/end pair of iterators returning nodes. */
+    typedef std::pair<const_node_iterator, const_node_iterator> const_node_iterator_pair;
 
     /** @brief Constructor. */
     Graph();
@@ -579,8 +583,7 @@ public:
     void UnselectAll() { Unselect(GetSelection()); }
 
     /** @brief An interator range returning all the nodes in the graph. */
-    std::pair<node_iterator, node_iterator>
-        GetNodes(bool selectionOnly = false);
+    node_iterator_pair GetNodes();
     /**
      * @brief An interator range returning all the nodes and edges in the
      * graph.
@@ -591,9 +594,13 @@ public:
      * selected.
      */
     iterator_pair GetSelection();
+    /**
+     * @brief An interator range returning all the nodes currently selected.
+     */
+    node_iterator_pair GetSelectionNodes();
 
     /** @brief An interator range returning all the nodes in the graph. */
-    std::pair<const_node_iterator, const_node_iterator> GetNodes() const;
+    const_node_iterator_pair GetNodes() const;
     /**
      * @brief An interator range returning all the nodes and edges in the
      * graph.
@@ -604,6 +611,10 @@ public:
      * selected.
      */
     const_iterator_pair GetSelection() const;
+    /**
+     * @brief An interator range returning all the nodes currently selected.
+     */
+    const_node_iterator_pair GetSelectionNodes() const;
 
     /**
      * @brief Write a text representation of the graph and all its elements.

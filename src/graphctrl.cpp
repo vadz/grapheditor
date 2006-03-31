@@ -111,14 +111,16 @@ public:
 
     void PrepareDC(wxDC& dc);
 
-    void CheckBounds() { m_checkBounds = true; }
+    void SetCheckBounds() { m_checkBounds = true; }
+
+    void ScrollTo(const wxPoint& ptGraph, bool draw = true);
+    wxPoint ScrollByOffset(int x, int y, bool draw = true);
 
 private:
     Graph *m_graph;
     bool m_isPanning;
     bool m_checkBounds;
     wxPoint m_ptDrag;
-    wxPoint m_ptView;
     wxPoint m_ptOrigin;
 
     DECLARE_EVENT_TABLE()
@@ -162,7 +164,6 @@ void GraphCanvas::OnBeginDragLeft(double x, double y, int keys)
     if ((keys & KEY_SHIFT) != 0) {
         m_isPanning = true;
         m_ptDrag = wxGetMousePosition();
-        GetViewStart(&m_ptView.x, &m_ptView.y);
     }
     else {
         m_ptDrag = wxPoint(int(x), int(y));
@@ -176,45 +177,8 @@ void GraphCanvas::OnDragLeft(bool, double x, double y, int)
         wxMouseState mouse = wxGetMouseState();
 
         if (mouse.LeftDown()) {
-            wxPoint ptDelta = m_ptDrag - wxPoint(mouse.GetX(), mouse.GetY());
-
-            int unitX, unitY;
-            GetScrollPixelsPerUnit(&unitX, &unitY);
-
-            int x = m_ptView.x * unitX + ptDelta.x;
-            int y = m_ptView.y * unitY + ptDelta.y;
-
-            wxSize current = GetVirtualSize();
-            wxSize needed = GetClientSize() + wxSize(x, y);
-            wxSize size = current;
-
-            x -= x % unitX;
-            y -= y % unitY;
-
-            if (x < 0) {
-                m_ptOrigin.x -= x;
-                m_ptView.x -= x;
-                size.x -= x;
-                ScrollWindow(-x, 0);
-            }
-            else if (needed.x > current.x) {
-                size.x = needed.x;
-            }
-
-            if (y < 0) {
-                m_ptOrigin.y -= y;
-                m_ptView.y -= y;
-                size.y -= y;
-                ScrollWindow(0, -y);
-            }
-            else if (needed.y > current.y) {
-                size.y = needed.y;
-            }
-
-            if (size != current)
-                SetVirtualSize(size.x, size.y);
-
-            Scroll(x / unitX, y / unitY);
+            m_ptDrag -= ScrollByOffset(m_ptDrag.x - mouse.GetX(),
+                                       m_ptDrag.y - mouse.GetY());
             Update();
         }
     }
@@ -373,6 +337,78 @@ void GraphCanvas::PrepareDC(wxDC& dc)
     wxShapeCanvas::PrepareDC(dc);
 }
 
+void GraphCanvas::ScrollTo(const wxPoint& ptGraph, bool draw)
+{
+    wxClientDC dc(this);
+    PrepareDC(dc);
+
+    wxSize cs = GetClientSize();
+    int x = dc.LogicalToDeviceX(ptGraph.x) - cs.x / 2;
+    int y = dc.LogicalToDeviceY(ptGraph.y) - cs.y / 2;
+
+    ScrollByOffset(x, y, draw);
+}
+
+wxPoint GraphCanvas::ScrollByOffset(int x, int y, bool draw)
+{
+    wxSize cs = GetClientSize();
+    wxSize current = GetVirtualSize();
+    wxSize size = current;
+
+    int viewX, viewY;
+    GetViewStart(&viewX, &viewY);
+    int unitX, unitY;
+    GetScrollPixelsPerUnit(&unitX, &unitY);
+    viewX *= unitX;
+    viewY *= unitY;
+
+    x -= x % unitX;
+    y -= y % unitY;
+    
+    viewX += x;
+    viewY += y;
+
+    if (viewX < 0) {
+        m_ptOrigin.x -= viewX;
+        size.x -= viewX;
+        if (draw)
+            ScrollWindow(-viewX, 0);
+        viewX = 0;
+    }
+    else if (viewX + cs.x > size.x) {
+        size.x = viewX + cs.x;
+    }
+
+    if (viewY < 0) {
+        m_ptOrigin.y -= viewY;
+        size.y -= viewY;
+        if (draw)
+            ScrollWindow(0, -viewY);
+        viewY = 0;
+    }
+    else if (viewY + cs.y > size.y) {
+        size.y = viewY + cs.y;
+    }
+
+    if (size != current)
+        SetVirtualSize(size);
+
+    viewX /= unitX;
+    viewY /= unitY;
+
+    if (draw) {
+        Scroll(viewX, viewY);
+    }
+    else {
+        if (m_xScrollPosition != viewX)
+            SetScrollPos(wxHORIZONTAL, m_xScrollPosition = viewX);
+        if (m_yScrollPosition != viewY)
+            SetScrollPos(wxVERTICAL, m_yScrollPosition = viewY);
+    }
+
+    return wxPoint(x, y);
+}
+
 } // namespace impl
 
 // ----------------------------------------------------------------------------
@@ -527,7 +563,7 @@ void GraphNodeHandler::OnBeginDragLeft(double x, double y,
         Select(shape, true, keys);
 
     Graph::node_iterator it, end;
-    unpair(it, end) = graph->GetNodes(true);
+    unpair(it, end) = graph->GetSelectionNodes();
     m_multiple = it != end && ++it != end;
 
     OnDragLeft(true, x, y, keys, attachment);
@@ -572,7 +608,7 @@ void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
         double shapeX = shape->GetX();
         double shapeY = shape->GetY();
 
-        for (unpair(it, end) = graph->GetNodes(true); it != end; ++it) {
+        for (unpair(it, end) = graph->GetSelectionNodes(); it != end; ++it) {
             wxShape *sh = it->GetShape();
             double xx = x - shapeX + sh->GetX() + m_offset.x;
             double yy = y - shapeY + sh->GetY() + m_offset.y;
@@ -602,7 +638,7 @@ void GraphNodeHandler::OnEndDragLeft(double x, double y,
                            GetNode()->GetPosition();
         Graph::node_iterator it, end;
 
-        for (unpair(it, end) = graph->GetNodes(true); it != end; ++it)
+        for (unpair(it, end) = graph->GetSelectionNodes(); it != end; ++it)
             it->SetPosition(it->GetPosition() + ptOffset);
     }
 }
@@ -933,7 +969,7 @@ void Graph::RefreshBounds()
 {
     GraphCanvas *canvas = GetCanvas();
     if (canvas)
-        canvas->CheckBounds();
+        canvas->SetCheckBounds();
     m_rcBounds = wxRect();
 }
 
@@ -1057,16 +1093,15 @@ Graph::iterator_pair Graph::GetElements()
                      iterator(new ListIterImpl(end)));
 }
 
-pair<Graph::node_iterator, Graph::node_iterator>
-Graph::GetNodes(bool selectionOnly)
+Graph::node_iterator_pair Graph::GetNodes()
 {
     wxList *list = m_diagram->GetShapeList();
     wxList::iterator begin = list->begin(), end = list->end();
     const int flags = ListIterImpl::NodesOnly;
 
     return make_pair(
-        node_iterator(new ListIterImpl(begin, end, flags, selectionOnly)),
-        node_iterator(new ListIterImpl(end, end, flags, selectionOnly)));
+        node_iterator(new ListIterImpl(begin, end, flags)),
+        node_iterator(new ListIterImpl(end, end, flags)));
 }
 
 Graph::iterator_pair Graph::GetSelection()
@@ -1079,6 +1114,16 @@ Graph::iterator_pair Graph::GetSelection()
                      iterator(new ListIterImpl(end, end, flags, true)));
 }
 
+Graph::node_iterator_pair Graph::GetSelectionNodes()
+{
+    wxList *list = m_diagram->GetShapeList();
+    wxList::iterator begin = list->begin(), end = list->end();
+    const int flags = ListIterImpl::NodesOnly;
+
+    return make_pair(node_iterator(new ListIterImpl(begin, end, flags, true)),
+                     node_iterator(new ListIterImpl(end, end, flags, true)));
+}
+
 Graph::const_iterator_pair Graph::GetElements() const
 {
     wxList *list = m_diagram->GetShapeList();
@@ -1088,8 +1133,7 @@ Graph::const_iterator_pair Graph::GetElements() const
                      const_iterator(new ListIterImpl(end)));
 }
 
-pair<Graph::const_node_iterator, Graph::const_node_iterator>
-Graph::GetNodes() const
+Graph::const_node_iterator_pair Graph::GetNodes() const
 {
     wxList *list = m_diagram->GetShapeList();
     wxList::iterator begin = list->begin(), end = list->end();
@@ -1107,6 +1151,17 @@ Graph::const_iterator_pair Graph::GetSelection() const
 
     return make_pair(const_iterator(new ListIterImpl(begin, end, flags, true)),
                      const_iterator(new ListIterImpl(end, end, flags, true)));
+}
+
+Graph::const_node_iterator_pair Graph::GetSelectionNodes() const
+{
+    wxList *list = m_diagram->GetShapeList();
+    wxList::iterator begin = list->begin(), end = list->end();
+    const int flags = ListIterImpl::NodesOnly;
+
+    return make_pair(
+            const_node_iterator(new ListIterImpl(begin, end, flags, true)),
+            const_node_iterator(new ListIterImpl(end, end, flags, true)));
 }
 
 void Graph::Delete(GraphElement *element)
@@ -1220,7 +1275,9 @@ bool Graph::Layout(const iterator_pair& range)
 
     dot << _T("}\n");
 
-#ifndef NO_GRAPHVIZ
+#ifdef NO_GRAPHVIZ
+    return false;
+#else
     GVC_t *context = gvContext();
 
     Agraph_t *graph = agmemread(wx_const_cast(char*, dot.mb_str()));
@@ -1257,9 +1314,8 @@ bool Graph::Layout(const iterator_pair& range)
 
     agclose(graph);
     gvFreeContext(context);
-#endif
-
     return ok;
+#endif
 }
 
 void Graph::Select(const iterator_pair& range)
@@ -1341,15 +1397,31 @@ void GraphCtrl::SetGraph(Graph *graph)
 
 void GraphCtrl::SetZoom(int percent)
 {
+    wxPoint pt;
+    {
+        wxClientDC dc(m_canvas);
+        m_canvas->PrepareDC(dc);
+        m_canvas->GetClientSize(&pt.x, &pt.y);
+        pt.x = dc.DeviceToLogicalX(pt.x / 2);
+        pt.y = dc.DeviceToLogicalY(pt.y / 2);
+    }
+
     double scale = percent / 100.0;
     m_canvas->SetScale(scale, scale);
+
     m_canvas->Refresh();
-    m_canvas->CheckBounds();
+    m_canvas->SetCheckBounds();
+    m_canvas->ScrollTo(pt, false);
 }
 
 int GraphCtrl::GetZoom()
 {
     return int(m_canvas->GetScaleX() * 100.0);
+}
+
+void GraphCtrl::ScrollTo(const GraphElement& element)
+{
+    m_canvas->ScrollTo(element.GetPosition());
 }
 
 wxPoint GraphCtrl::ScreenToGraph(const wxPoint& ptScreen) const

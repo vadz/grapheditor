@@ -10,6 +10,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "graphctrl.h"
+#include <wx/hashset.h>
 #include <wx/ogl/ogl.h>
 
 #ifndef NO_GRAPHVIZ
@@ -94,7 +95,7 @@ public:
                  const wxString& name = DefaultName);
 
     static const wxChar DefaultName[];
-    
+
     void OnLeftClick(double x, double y, int keys);
 
     void OnDragLeft(bool draw, double x, double y, int keys);
@@ -364,7 +365,7 @@ wxPoint GraphCanvas::ScrollByOffset(int x, int y, bool draw)
 
     x -= x % unitX;
     y -= y % unitY;
-    
+
     viewX += x;
     viewY += y;
 
@@ -415,6 +416,8 @@ wxPoint GraphCanvas::ScrollByOffset(int x, int y, bool draw)
 // Handler to give shapes a transparent background
 // ----------------------------------------------------------------------------
 
+namespace {
+
 class GraphHandler: public wxShapeEvtHandler
 {
 public:
@@ -435,7 +438,7 @@ void GraphHandler::OnErase(wxDC& dc)
     if (shape->IsShown() && dc.IsKindOf(CLASSINFO(wxWindowDC)))
     {
         wxWindow *canvas = shape->GetCanvas();
-        
+
         wxPen *pen = shape->GetPen();
         int penWidth = pen ? pen->GetWidth() : 0;
         penWidth += 2;
@@ -580,7 +583,7 @@ void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
 
     if (!m_multiple && draw) {
         int new_attachment;
-        wxShape *target = 
+        wxShape *target =
             canvas->FindFirstSensitiveShape(x, y, &new_attachment, OP_ALL);
 
         if (target != NULL && target != shape)
@@ -681,6 +684,8 @@ void GraphNodeHandler::CallOnSize(double& x, double& y)
     x = shapeX + signX * w / 2;
     y = shapeY + signY * h / 2;
 }
+
+} // namespace
 
 // ----------------------------------------------------------------------------
 // GraphDiagram
@@ -786,6 +791,8 @@ bool GraphIteratorBase::operator ==(const GraphIteratorBase& it) const
 
 } // namespace impl
 
+namespace {
+
 class ListIterImpl : public GraphIteratorImpl
 {
 public:
@@ -875,7 +882,7 @@ public:
             inc();
         }
     }
-            
+
     PairIterImpl(const PairIterImpl& other)
       : GraphIteratorImpl(other), m_line(other.m_line), m_pos(other.m_pos)
     {
@@ -922,6 +929,8 @@ private:
     wxLineShape *m_line;
     int m_pos;
 };
+
+} // namespace
 
 // ----------------------------------------------------------------------------
 // Graph
@@ -1235,7 +1244,22 @@ void Graph::Delete(const iterator_pair& range)
     }
 }
 
-bool Graph::Layout(const iterator_pair& range)
+namespace
+{
+    WX_DECLARE_HASH_SET(GraphNode*, wxPointerHash, wxPointerEqual, NodeSet);
+
+    bool operator<(const wxPoint& pt1, const wxPoint &pt2)
+    {
+        return pt1.y < pt1.y || (pt1.y == pt2.y && pt1.x < pt2.x);
+    }
+
+    wxString NodeName(const GraphNode& node)
+    {
+        return wxString::Format(_T("n%p"), &node);
+    }
+}
+
+bool Graph::Layout(const node_iterator_pair& range)
 {
     wxString dot;
 
@@ -1246,32 +1270,53 @@ bool Graph::Layout(const iterator_pair& range)
     wxClientDC dc(canvas);
     canvas->PrepareDC(dc);
     wxSize dpi = dc.GetPPI();
-    iterator it, end;
+    GraphNode *fixed = NULL;
+    bool externalConnection = false;
+    node_iterator i, endi;
+    NodeSet nodeset;
 
-    for (unpair(it, end) = range; it != end; ++it)
+    for (unpair(i, endi) = range; i != endi; ++i)
+        nodeset.insert(&*i);
+
+    for (i = range.first; i != endi; ++i)
     {
-        GraphEdge *edge = wxDynamicCast(&*it, GraphEdge);
+        GraphNode *node = &*i;
+        GraphNode::iterator j, endj;
+        bool extCon = false;
 
-        if (edge) {
-            GraphEdge::iterator j, end_nodes;
-            unpair(j, end_nodes) = edge->GetNodes();
+        for (unpair(j, endj) = node->GetEdges(); j != endj; ++j)
+        {
+            GraphEdge::iterator it = j->GetNodes().first;
+            GraphNode *n1 = &*it, *n2 = &*++it;
 
-            wxASSERT(j != end_nodes);
-            dot << _T("\tn") << wxString::Format(_T("%p"), &*j);
-            ++j;
-            wxASSERT(j != end_nodes);
-            dot << _T(" -> n") << wxString::Format(_T("%p"), &*j)
-                << _T(";\n");
+            if (nodeset.count(n1 != node ? n1 : n2)) {
+                if (n1 == node)
+                    dot << _T("\t") << NodeName(*n1)
+                        << _T(" -> ") << NodeName(*n2)
+                        << _T(";\n");
+            }
+            else {
+                extCon = true;
+            }
         }
-        else {
-            wxSize size = it->GetSize();
 
-            dot << _T("\tn") << wxString::Format(_T("%p"), &*it)
-                << _T(" [width=\"") << double(size.x) / dpi.x
-                << _T("\", height=\"") << double(size.y) / dpi.y
-                << _T("\"]\n");
+        if (!fixed || (!externalConnection && extCon) ||
+            (externalConnection == extCon &&
+             node->GetPosition() < fixed->GetPosition()))
+        {
+            fixed = node;
+            externalConnection = extCon;
         }
+
+        wxSize size = node->GetSize();
+
+        dot << _T("\t") << NodeName(*node)
+            << _T(" [width=\"") << double(size.x) / dpi.x
+            << _T("\", height=\"") << double(size.y) / dpi.y
+            << _T("\"]\n");
     }
+
+    nodeset.clear();
 
     dot << _T("}\n");
 
@@ -1287,13 +1332,27 @@ bool Graph::Layout(const iterator_pair& range)
 
     if (ok)
     {
-        double top = PS2INCH(GD_bb(graph).UR.y) * dpi.y;
+        double offsetX = 0;
+        double offsetY = 0;
+
+        if (fixed) {
+            Agnode_t *n = agfindnode(graph,
+                           const_cast<char*>(NodeName(*fixed).mb_str()));
+            if (n) {
+                point pos = ND_coord_i(n);
+                double x = PS2INCH(pos.x) * dpi.x;
+                double y = - PS2INCH(pos.y) * dpi.y;
+                wxPoint pt = fixed->GetPosition();
+                offsetX = pt.x - x;
+                offsetY = pt.y - y;
+            }
+        }
 
         for (Agnode_t *n = agfstnode(graph); n; n = agnxtnode(graph, n))
         {
             point pos = ND_coord_i(n);
-            double x = PS2INCH(pos.x) * dpi.x;
-            double y = top - PS2INCH(pos.y) * dpi.y;
+            double x = offsetX + PS2INCH(pos.x) * dpi.x;
+            double y = offsetY - PS2INCH(pos.y) * dpi.y;
             GraphNode *node;
             if (sscanf(n->name, "n%p", &node) == 1)
                 node->GetShape()->Move(dc, x, y, false);
@@ -1605,8 +1664,7 @@ void GraphEdge::SetStyle() { }
 bool GraphEdge::Serialize(wxOutputStream& out) { wxFAIL; return false; }
 bool GraphEdge::Deserialize(wxInputStream& in) { wxFAIL; return false; }
 
-pair<GraphEdge::iterator, GraphEdge::iterator>
-GraphEdge::GetNodes()
+GraphEdge::iterator_pair GraphEdge::GetNodes()
 {
     wxLineShape *line = GetShape();
 
@@ -1614,8 +1672,7 @@ GraphEdge::GetNodes()
                      iterator(new PairIterImpl(line, true)));
 }
 
-pair<GraphEdge::const_iterator, GraphEdge::const_iterator>
-GraphEdge::GetNodes() const
+GraphEdge::const_iterator_pair GraphEdge::GetNodes() const
 {
     wxLineShape *line = GetShape();
 
@@ -1740,8 +1797,7 @@ void GraphNode::UpdateShapeTextColour()
 
 void GraphNode::SetStyle() { wxFAIL; }
 
-pair<GraphNode::iterator, GraphNode::iterator>
-GraphNode::GetEdges()
+GraphNode::iterator_pair GraphNode::GetEdges()
 {
     wxList& list = GetShape()->GetLines();
     wxList::iterator begin = list.begin(), end = list.end();
@@ -1750,8 +1806,7 @@ GraphNode::GetEdges()
                      iterator(new ListIterImpl(end)));
 }
 
-pair<GraphNode::const_iterator, GraphNode::const_iterator>
-GraphNode::GetEdges() const
+GraphNode::const_iterator_pair GraphNode::GetEdges() const
 {
     wxList& list = GetShape()->GetLines();
     wxList::iterator begin = list.begin(), end = list.end();

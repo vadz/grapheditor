@@ -354,7 +354,7 @@ void MyFrame::OnSelectAll(wxCommandEvent&)
 
 void MyFrame::OnLayout(wxCommandEvent&)
 {
-    m_graphctrl->GetGraph()->Layout();
+    m_graph->Layout(m_graph->GetSelectionNodes());
 }
 
 void MyFrame::OnZoomIn(wxCommandEvent&)

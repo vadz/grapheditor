@@ -87,7 +87,7 @@ public:
 
     wxIcon GetIcon() const { return m_icon; }
     void SetIcon(const wxIcon& icon) { m_icon = icon; }
- 
+
 private:
     GraphCtrl *m_target;
     wxPoint m_pos;

@@ -120,7 +120,7 @@ namespace impl
  * Iterator class template for graph elements
  */
 template <class T>
-class GraphIterator : private impl::GraphIteratorBase
+class GraphIterator : public impl::GraphIteratorBase
 {
 public:
     typedef std::bidirectional_iterator_tag iterator_category;
@@ -132,7 +132,9 @@ public:
     GraphIterator() : Base() { }
 
     template <class U>
-    GraphIterator(const GraphIterator<U>& it) : Base(it) { }
+    GraphIterator(const GraphIterator<U>& it) : Base(it) {
+        CheckAssignable(static_cast<U*>(0));
+    }
 
     GraphIterator(impl::GraphIteratorImpl *impl) : Base(impl) { }
 
@@ -183,6 +185,8 @@ public:
 
 private:
     typedef impl::GraphIteratorBase Base;
+
+    void CheckAssignable(T*) { }
 };
 
 template <class A, class B>
@@ -288,6 +292,11 @@ public:
     typedef GraphIterator<GraphNode> iterator;
     /** @brief An iterator type for returning the edge's two nodes. */
     typedef GraphIterator<const GraphNode> const_iterator;
+    /** @brief A begin/end pair of iterators. */
+    typedef std::pair<iterator, iterator> iterator_pair;
+    /** @brief A begin/end pair of iterators. */
+    typedef std::pair<const_iterator, const_iterator> const_iterator_pair;
+
 
     /** @brief An enumeration of predefined appearances for edges. */
     enum Style { style_line, style_arrow };
@@ -312,11 +321,11 @@ public:
     /**
      * @brief An interator range returning the two nodes this edge connects.
      */
-    std::pair<iterator, iterator> GetNodes();
+    iterator_pair GetNodes();
     /**
      * @brief An interator range returning the two nodes this edge connects.
      */
-    std::pair<const_iterator, const_iterator> GetNodes() const;
+    const_iterator_pair GetNodes() const;
 
     bool Serialize(wxOutputStream& out);
     bool Deserialize(wxInputStream& in);
@@ -351,6 +360,10 @@ public:
     typedef GraphIterator<GraphEdge> iterator;
     /** @brief An iterator type for returning the node's list of edges. */
     typedef GraphIterator<const GraphEdge> const_iterator;
+    /** @brief A begin/end pair of iterators. */
+    typedef std::pair<iterator, iterator> iterator_pair;
+    /** @brief A begin/end pair of iterators. */
+    typedef std::pair<const_iterator, const_iterator> const_iterator_pair;
 
     /** @brief An enumeration of predefined appearances for nodes. */
     enum Style { style_rectangle };
@@ -399,11 +412,11 @@ public:
     /**
      * @brief An interator range returning the edges connecting to this node.
      */
-    std::pair<iterator, iterator> GetEdges();
+    iterator_pair GetEdges();
     /**
      * @brief An interator range returning the edges connecting to this node.
      */
-    std::pair<const_iterator, const_iterator> GetEdges() const;
+    const_iterator_pair GetEdges() const;
 
     bool Serialize(wxOutputStream& out);
     bool Deserialize(wxInputStream& in);
@@ -561,12 +574,12 @@ public:
     void Delete(const iterator_pair& range);
 
     /** @brief Invokes a layout engine to layout the graph. */
-    bool Layout() { return Layout(GetElements()); }
+    bool Layout() { return Layout(GetNodes()); }
     /**
      * @brief Invokes a layout engine to layout the subset of the graph
      * specified by the given iterator range.
      */
-    bool Layout(const iterator_pair& range);
+    bool Layout(const node_iterator_pair& range);
 
     /**
      * @brief Adds the nodes and edges specified by the given iterator range

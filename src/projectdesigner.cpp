@@ -284,7 +284,7 @@ void ProjectNode::OnLayout(wxDC &dc)
         dc.GetMultiLineTextExtent(GetResult(), &w, &h);
         m_rcResult = wxRect(spacing + iconHSpace, 0, w, h);
     }
-    
+
     m_minSize.x = max(m_rcText.GetRight(), m_rcResult.GetRight()) +
                   spacing + 1;
 
@@ -312,7 +312,7 @@ void ProjectNode::OnDraw(wxDC& dc)
     wxRect bounds = GetBounds();
     wxRect rc = bounds;
     rc.Deflate(m_borderThickness / 2);
-    
+
     wxPen pen(GetColour(), m_borderThickness);
     wxBrush brush(GetBackgroundColour());
 

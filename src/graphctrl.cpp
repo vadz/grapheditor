@@ -308,12 +308,16 @@ void GraphCanvas::OnIdle(wxIdleEvent& event)
         if (y != current.y)
             size.y = y;
 
+        viewX /= unitX;
+        viewY /= unitY;
+
+        if (m_xScrollPosition != viewX)
+            SetScrollPos(wxHORIZONTAL, m_xScrollPosition = viewX);
+        if (m_yScrollPosition != viewY)
+            SetScrollPos(wxVERTICAL, m_yScrollPosition = viewY);
+
         if (current != size)
             SetVirtualSize(size);
-        if (m_xScrollPosition != viewX / unitX)
-            SetScrollPos(wxHORIZONTAL, m_xScrollPosition = viewX / unitX);
-        if (m_yScrollPosition != viewY / unitY)
-            SetScrollPos(wxVERTICAL, m_yScrollPosition = viewY / unitY);
     }
 }
 

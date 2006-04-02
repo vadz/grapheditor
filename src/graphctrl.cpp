@@ -311,13 +311,16 @@ void GraphCanvas::OnIdle(wxIdleEvent& event)
         viewX /= unitX;
         viewY /= unitY;
 
-        if (m_xScrollPosition != viewX)
-            SetScrollPos(wxHORIZONTAL, m_xScrollPosition = viewX);
-        if (m_yScrollPosition != viewY)
-            SetScrollPos(wxVERTICAL, m_yScrollPosition = viewY);
+#ifdef __WXMSW__
+        m_xScrollPosition = viewX;
+        m_yScrollPosition = viewY;
+#endif
 
         if (current != size)
             SetVirtualSize(size);
+
+        SetScrollPos(wxHORIZONTAL, m_xScrollPosition = viewX);
+        SetScrollPos(wxVERTICAL, m_yScrollPosition = viewY);
     }
 }
 
@@ -1410,7 +1413,6 @@ bool Graph::Layout(const node_iterator_pair& range)
         }
 
         gvFreeLayout(context, graph);
-        RefreshBounds();
     }
     else {
         wxLogError(_(

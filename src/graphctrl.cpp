@@ -428,6 +428,7 @@ public:
     GraphHandler(wxShapeEvtHandler *prev);
 
     void OnErase(wxDC& dc);
+    void OnMoveLink(wxDC& dc, bool moveControlPoints);
 };
 
 GraphHandler::GraphHandler(wxShapeEvtHandler *prev)
@@ -461,6 +462,39 @@ void GraphHandler::OnErase(wxDC& dc)
 
         canvas->RefreshRect(rc);
     }
+}
+
+void GraphHandler::OnMoveLink(wxDC& dc, bool moveControlPoints)
+{
+    wxShape *shape = GetShape();
+    shape->Show(false);
+    wxShapeEvtHandler::OnMoveLink(dc, moveControlPoints);
+    shape->Show(true);
+}
+
+// ----------------------------------------------------------------------------
+// Handler for control points
+// ----------------------------------------------------------------------------
+
+class ControlPointHandler: public GraphHandler
+{
+public:
+    ControlPointHandler(wxShapeEvtHandler *prev);
+
+    void OnErase(wxDC& dc);
+};
+
+ControlPointHandler::ControlPointHandler(wxShapeEvtHandler *prev)
+  : GraphHandler(prev)
+{
+}
+
+void ControlPointHandler::OnErase(wxDC& dc)
+{
+    wxControlPoint *control = wxStaticCast(GetShape(), wxControlPoint);
+    control->SetX(control->m_shape->GetX() + control->m_xoffset);
+    control->SetY(control->m_shape->GetY() + control->m_yoffset);
+    GraphHandler::OnErase(dc);
 }
 
 // ----------------------------------------------------------------------------
@@ -701,18 +735,31 @@ class GraphDiagram : public wxDiagram
 {
 public:
     void AddShape(wxShape *shape, wxShape *addAfter = NULL);
-    void InsertShape(wxShape *object);
+    void InsertShape(wxShape *shape);
+    void SetEventHandler(wxShape *shape);
 };
+
+void GraphDiagram::SetEventHandler(wxShape *shape)
+{
+    wxShapeEvtHandler *handler;
+
+    if (shape->GetClassInfo() == CLASSINFO(wxControlPoint))
+        handler = new ControlPointHandler(shape);
+    else
+        handler = new GraphHandler(shape);
+
+    shape->SetEventHandler(handler);
+}
 
 void GraphDiagram::AddShape(wxShape *shape, wxShape *addAfter)
 {
-    shape->SetEventHandler(new GraphHandler(shape));
+    SetEventHandler(shape);
     wxDiagram::AddShape(shape, addAfter);
 }
 
 void GraphDiagram::InsertShape(wxShape *shape)
 {
-    shape->SetEventHandler(new GraphHandler(shape));
+    SetEventHandler(shape);
     wxDiagram::InsertShape(shape);
 }
 
@@ -1355,16 +1402,14 @@ bool Graph::Layout(const node_iterator_pair& range)
         for (Agnode_t *n = agfstnode(graph); n; n = agnxtnode(graph, n))
         {
             point pos = ND_coord_i(n);
-            double x = offsetX + PS2INCH(pos.x) * dpi.x;
-            double y = offsetY - PS2INCH(pos.y) * dpi.y;
+            int x = int(offsetX + PS2INCH(pos.x) * dpi.x);
+            int y = int(offsetY - PS2INCH(pos.y) * dpi.y);
             GraphNode *node;
             if (sscanf(n->name, "n%p", &node) == 1)
-                node->GetShape()->Move(dc, x, y, false);
+                node->SetPosition(wxPoint(x, y));
         }
 
         gvFreeLayout(context, graph);
-
-        canvas->Refresh();
         RefreshBounds();
     }
     else {

@@ -32,6 +32,7 @@ void GraphTreeCtrl::OnBeginDrag(wxTreeEvent& event)
 
     if (GetChildrenCount(item, false) == 0) {
         m_dragItem = item;
+        SelectItem(item);
         int image = GetItemImage(item);
         wxSize size;
 

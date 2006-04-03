@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        graphtest.cpp
-// Purpose:     Example program for the wxGraph graph editor
+// Purpose:     Example program for the graph editor
 // Author:      Mike Wetherell
 // Modified by:
 // Created:     March 2006
@@ -52,6 +52,7 @@ using datactics::ProjectDesigner;
 using datactics::ProjectNode;
 using tt_solutions::GraphTreeEvent;
 using tt_solutions::GraphTreeCtrl;
+using tt_solutions::GraphEvent;
 using tt_solutions::Graph;
 
 // ----------------------------------------------------------------------------
@@ -81,6 +82,11 @@ public:
     ~MyFrame();
 
     void OnGraphTreeDrop(GraphTreeEvent& event);
+    void OnAddNode(GraphEvent& event);
+    void OnAddEdge(GraphEvent& event);
+    void OnAddingEdge(GraphEvent& event);
+    void OnDeleteNode(GraphEvent& event);
+    void OnDeleteEdge(GraphEvent& event);
 
     // file menu
     void OnOpen(wxCommandEvent &event);
@@ -132,20 +138,25 @@ enum {
 // handlers) which process them. It can be also done at run-time, but for the
 // simple menu events like this the static method is much simpler.
 BEGIN_EVENT_TABLE(MyFrame, wxFrame)
-    EVT_MENU(wxID_EXIT,  MyFrame::OnQuit)
+    EVT_MENU(wxID_EXIT, MyFrame::OnQuit)
     EVT_MENU(wxID_ABOUT, MyFrame::OnAbout)
     EVT_MENU(wxID_OPEN, MyFrame::OnOpen)
-    EVT_MENU(wxID_SAVE,  MyFrame::OnSave)
-    EVT_MENU(wxID_SAVEAS,  MyFrame::OnSaveAs)
-    EVT_MENU(wxID_CUT,  MyFrame::OnCut)
-    EVT_MENU(wxID_COPY,  MyFrame::OnCopy)
-    EVT_MENU(wxID_PASTE,  MyFrame::OnPaste)
-    EVT_MENU(wxID_CLEAR,  MyFrame::OnClear)
+    EVT_MENU(wxID_SAVE, MyFrame::OnSave)
+    EVT_MENU(wxID_SAVEAS, MyFrame::OnSaveAs)
+    EVT_MENU(wxID_CUT, MyFrame::OnCut)
+    EVT_MENU(wxID_COPY, MyFrame::OnCopy)
+    EVT_MENU(wxID_PASTE, MyFrame::OnPaste)
+    EVT_MENU(wxID_CLEAR, MyFrame::OnClear)
     EVT_MENU(wxID_SELECTALL, MyFrame::OnSelectAll)
     EVT_MENU(ID_LAYOUT, MyFrame::OnLayout)
     EVT_MENU(wxID_ZOOM_IN, MyFrame::OnZoomIn)
     EVT_MENU(wxID_ZOOM_OUT, MyFrame::OnZoomOut)
-    EVT_GRAPHTREE_DROP(wxID_ANY,  MyFrame::OnGraphTreeDrop)
+    EVT_GRAPHTREE_DROP(wxID_ANY, MyFrame::OnGraphTreeDrop)
+    EVT_GRAPH_ADD_NODE(wxID_ANY, MyFrame::OnAddNode)
+    EVT_GRAPH_ADD_EDGE(wxID_ANY, MyFrame::OnAddEdge)
+    EVT_GRAPH_ADDING_EDGE(wxID_ANY, MyFrame::OnAddingEdge)
+    EVT_GRAPH_DELETE_NODE(wxID_ANY, MyFrame::OnDeleteNode)
+    EVT_GRAPH_DELETE_EDGE(wxID_ANY, MyFrame::OnDeleteEdge)
 END_EVENT_TABLE()
 
 // Create a new application object: this macro will allow wxWidgets to create
@@ -167,7 +178,7 @@ IMPLEMENT_APP(MyApp)
 bool MyApp::OnInit()
 {
     // create the main application window
-    MyFrame *frame = new MyFrame(_T("wxGraph Example"));
+    MyFrame *frame = new MyFrame(_T("GraphTest Example"));
 
     // and show it (the frames, unlike simple controls, are not shown when
     // created initially)
@@ -258,7 +269,7 @@ MyFrame::MyFrame(const wxString& title)
 
     // create a status bar just for fun (by default with 1 pane only)
     CreateStatusBar(2);
-    SetStatusText(_T("Welcome to wxGraph!"));
+    SetStatusText(_T("Welcome to GraphTest!"));
 }
 
 MyFrame::~MyFrame()
@@ -281,6 +292,38 @@ void MyFrame::OnGraphTreeDrop(GraphTreeEvent& event)
     event.GetTarget()->GetGraph()->Add(node, event.GetPosition());
 }
 
+void MyFrame::OnAddNode(GraphEvent& event)
+{
+    wxLogDebug(_T("OnAddNode"));
+}
+
+void MyFrame::OnAddEdge(GraphEvent& event)
+{
+    wxLogDebug(_T("OnAddEdge"));
+}
+
+void MyFrame::OnAddingEdge(GraphEvent& event)
+{
+    wxLogDebug(_T("OnAddingEdge"));
+
+    wxString src = event.GetNode()->GetText();
+    wxString dest = event.GetTarget()->GetText();
+
+    if (dest.find(_T("Import")) != wxString::npos
+            || src.find(_T("Export")) != wxString::npos)
+        event.Veto();
+}
+
+void MyFrame::OnDeleteNode(GraphEvent& event)
+{
+    wxLogDebug(_T("OnDeleteNode"));
+}
+
+void MyFrame::OnDeleteEdge(GraphEvent& event)
+{
+    wxLogDebug(_T("OnDeleteEdge"));
+}
+
 void MyFrame::OnQuit(wxCommandEvent&)
 {
     // true is to force the frame to close
@@ -289,8 +332,8 @@ void MyFrame::OnQuit(wxCommandEvent&)
 
 void MyFrame::OnAbout(wxCommandEvent&)
 {
-    wxMessageBox(_T("Example program for the wxGraph graph editor\n\n"),
-                 _T("About wxGraph sample"),
+    wxMessageBox(_T("Example program for the graph editor\n\n"),
+                 _T("About the GraphTest sample"),
                  wxOK | wxICON_INFORMATION,
                  this);
 }

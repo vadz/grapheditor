@@ -34,10 +34,11 @@ using namespace impl;
 DEFINE_EVENT_TYPE(Evt_Graph_Add_Node)
 DEFINE_EVENT_TYPE(Evt_Graph_Add_Edge)
 DEFINE_EVENT_TYPE(Evt_Graph_Adding_Edge)
+DEFINE_EVENT_TYPE(Evt_Graph_Delete_Node)
+DEFINE_EVENT_TYPE(Evt_Graph_Delete_Edge)
 DEFINE_EVENT_TYPE(Evt_Graph_Left_Click)
 DEFINE_EVENT_TYPE(Evt_Graph_Left_Double_Click)
 DEFINE_EVENT_TYPE(Evt_Graph_Right_Click)
-DEFINE_EVENT_TYPE(Evt_Graph_Delete_Item)
 DEFINE_EVENT_TYPE(Evt_Graph_Node_Activated)
 DEFINE_EVENT_TYPE(Evt_Graph_Node_Menu)
 
@@ -59,6 +60,18 @@ GraphNode *GetNode(wxShape *shape)
 {
     void *data = shape->GetClientData();
     return data ? wxStaticCast(data, GraphNode) : NULL;
+}
+
+WX_DECLARE_HASH_SET(GraphNode*, wxPointerHash, wxPointerEqual, NodeSet);
+
+bool operator<(const wxPoint& pt1, const wxPoint &pt2)
+{
+    return pt1.y < pt2.y || (pt1.y == pt2.y && pt1.x < pt2.x);
+}
+
+wxString NodeName(const GraphNode& node)
+{
+    return wxString::Format(_T("n%p"), &node);
 }
 
 } // namespace
@@ -116,6 +129,8 @@ public:
 
     void ScrollTo(const wxPoint& ptGraph, bool draw = true);
     wxPoint ScrollByOffset(int x, int y, bool draw = true);
+
+    void EnsureVisible(const wxRect& rc);
 
 private:
     Graph *m_graph;
@@ -231,7 +246,7 @@ void GraphCanvas::OnEndDragLeft(double x, double y, int key)
         wxClientDC dc(this);
         PrepareDC(dc);
 
-        for (unpair(it, end) = graph->GetElements(); it != end; ++it)
+        for (tie(it, end) = graph->GetElements(); it != end; ++it)
         {
             wxShape *shape = it->GetShape();
 
@@ -336,6 +351,7 @@ void GraphCanvas::OnPaint(wxPaintEvent&)
 void GraphCanvas::OnSize(wxSizeEvent& event)
 {
     Refresh();
+    //SetCheckBounds();
     event.Skip();
 }
 
@@ -415,6 +431,34 @@ wxPoint GraphCanvas::ScrollByOffset(int x, int y, bool draw)
     }
 
     return wxPoint(x, y);
+}
+
+void GraphCanvas::EnsureVisible(const wxRect& rcGraph)
+{
+    wxClientDC dc(this);
+    PrepareDC(dc);
+
+    wxRect rc(dc.LogicalToDeviceX(rcGraph.x),
+              dc.LogicalToDeviceY(rcGraph.y),
+              dc.LogicalToDeviceXRel(rcGraph.width),
+              dc.LogicalToDeviceYRel(rcGraph.height));
+
+    wxRect rcClient = GetClientSize();
+
+    int x = 0, y = 0;
+
+    if (rc.x < rcClient.x)
+        x = rc.x - rcClient.x;
+    else if (rc.GetRight() > rcClient.GetRight())
+        x = rc.GetRight() - rcClient.GetRight();
+
+    if (rc.y < rcClient.y)
+        y = rc.y - rcClient.y;
+    else if (rc.GetBottom() > rcClient.GetBottom())
+        y = rc.GetBottom() - rcClient.GetBottom();
+
+    if (x || y)
+        ScrollByOffset(x, y);
 }
 
 } // namespace impl
@@ -537,7 +581,7 @@ void GraphElementHandler::Select(wxShape *shape, bool select, int keys)
         Graph *graph = element->GetGraph();
         Graph::iterator it, end;
 
-        for (unpair(it, end) = graph->GetSelection(); it != end; ++it) {
+        for (tie(it, end) = graph->GetSelection(); it != end; ++it) {
             if (&*it != element) {
                 it->GetShape()->Select(false, &dc);
                 select = true;
@@ -576,6 +620,7 @@ public:
     inline GraphNode *GetNode() const;
 
 private:
+    bool m_connect;
     GraphNode *m_target;
     bool m_multiple;
     wxPoint m_offset;
@@ -583,6 +628,7 @@ private:
 
 GraphNodeHandler::GraphNodeHandler(wxShapeEvtHandler *prev)
   : GraphElementHandler(prev),
+    m_connect(false),
     m_target(NULL),
     m_multiple(false)
 {
@@ -600,6 +646,7 @@ void GraphNodeHandler::OnBeginDragLeft(double x, double y,
     GraphCanvas *canvas = wxStaticCast(shape->GetCanvas(), GraphCanvas);
     Graph *graph = canvas->GetGraph();
 
+    m_connect = false;
     m_target = NULL;
     m_offset = wxPoint(int(shape->GetX() - x), int(shape->GetY() - y));
 
@@ -607,7 +654,7 @@ void GraphNodeHandler::OnBeginDragLeft(double x, double y,
         Select(shape, true, keys);
 
     Graph::node_iterator it, end;
-    unpair(it, end) = graph->GetSelectionNodes();
+    tie(it, end) = graph->GetSelectionNodes();
     m_multiple = it != end && ++it != end;
 
     OnDragLeft(true, x, y, keys, attachment);
@@ -624,13 +671,30 @@ void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
 
     if (!m_multiple && draw) {
         int new_attachment;
-        wxShape *target =
+        wxShape *sh =
             canvas->FindFirstSensitiveShape(x, y, &new_attachment, OP_ALL);
+        GraphNode *target;
 
-        if (target != NULL && target != shape)
-            m_target = wxDynamicCast(GetElement(target), GraphNode);
+        if (sh != NULL && sh != shape)
+            target = wxDynamicCast(GetElement(sh), GraphNode);
         else
-            m_target = NULL;
+            target = NULL;
+
+        if (target == NULL) {
+            m_connect = false;
+        }
+        else if (target != m_target) {
+            GraphEvent event(Evt_Graph_Adding_Edge);
+            event.SetNode(GetNode());
+            event.SetTarget(target);
+            event.SetPoint(wxPoint(int(x), int(y)));
+            Graph *graph = canvas->GetGraph();
+            event.SetEventObject(graph);
+            graph->GetEventHandler()->ProcessEvent(event);
+            m_connect = event.IsAllowed();
+        }
+
+        m_target = target;
     }
 
     wxClientDC dc(canvas);
@@ -640,7 +704,7 @@ void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
     dc.SetLogicalFunction(OGLRBLF);
     dc.SetPen(dottedPen);
 
-    if (m_target) {
+    if (m_connect) {
         double xp, yp;
         shape->GetAttachmentPosition(attachment, &xp, &yp);
         dc.DrawLine(wxCoord(xp), wxCoord(yp), wxCoord(x), wxCoord(y));
@@ -652,7 +716,7 @@ void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
         double shapeX = shape->GetX();
         double shapeY = shape->GetY();
 
-        for (unpair(it, end) = graph->GetSelectionNodes(); it != end; ++it) {
+        for (tie(it, end) = graph->GetSelectionNodes(); it != end; ++it) {
             wxShape *sh = it->GetShape();
             double xx = x - shapeX + sh->GetX() + m_offset.x;
             double yy = y - shapeY + sh->GetY() + m_offset.y;
@@ -672,9 +736,11 @@ void GraphNodeHandler::OnEndDragLeft(double x, double y,
     GraphCanvas *canvas = wxStaticCast(shape->GetCanvas(), GraphCanvas);
     canvas->ReleaseMouse();
 
-    if (m_target) {
+    if (m_connect) {
         Graph *graph = canvas->GetGraph();
         graph->Add(*GetNode(), *m_target);
+        m_target = NULL;
+        m_connect = false;
     }
     else {
         Graph *graph = canvas->GetGraph();
@@ -682,7 +748,7 @@ void GraphNodeHandler::OnEndDragLeft(double x, double y,
                            GetNode()->GetPosition();
         Graph::node_iterator it, end;
 
-        for (unpair(it, end) = graph->GetSelectionNodes(); it != end; ++it)
+        for (tie(it, end) = graph->GetSelectionNodes(); it != end; ++it)
             it->SetPosition(it->GetPosition() + ptOffset);
     }
 }
@@ -1000,6 +1066,7 @@ Graph::Graph()
         wxOGLInitialize();
 
     m_diagram = new GraphDiagram;
+    m_handler = NULL;
 }
 
 Graph::~Graph()
@@ -1016,12 +1083,22 @@ Graph::~Graph()
         wxOGLCleanUp();
 }
 
+void Graph::SetEventHandler(wxEvtHandler *handler)
+{
+    m_handler = handler;
+}
+
+wxEvtHandler *Graph::GetEventHandler() const
+{
+    return m_handler ? m_handler : GetCanvas();
+}
+
 wxRect Graph::GetBounds() const
 {
     if (m_rcBounds.IsEmpty()) {
         const_node_iterator it, end;
 
-        for (unpair(it, end) = GetNodes(); it != end; ++it)
+        for (tie(it, end) = GetNodes(); it != end; ++it)
             m_rcBounds += it->GetBounds();
     }
 
@@ -1086,7 +1163,7 @@ GraphNode *Graph::Add(GraphNode *node, wxPoint pt)
     event.SetNode(node);
     event.SetPoint(pt);
     event.SetEventObject(this);
-    ProcessEvent(event);
+    GetEventHandler()->ProcessEvent(event);
 
     if (event.IsAllowed()) {
         wxShape *shape = node->GetShape();
@@ -1116,7 +1193,7 @@ GraphEdge *Graph::Add(GraphNode& from, GraphNode& to, GraphEdge *edge)
     event.SetTarget(&to);
     event.SetEdge(edge);
     event.SetEventObject(this);
-    ProcessEvent(event);
+    GetEventHandler()->ProcessEvent(event);
 
     if (event.IsAllowed()) {
         wxLineShape *line = (wxLineShape*)edge->GetShape();
@@ -1142,9 +1219,91 @@ GraphEdge *Graph::Add(GraphNode& from, GraphNode& to, GraphEdge *edge)
     return NULL;
 }
 
-int Graph::GetGridSpacing() const
+void Graph::Delete(GraphElement *element)
 {
-    return int(m_diagram->GetGridSpacing());
+    GraphNode *node = wxDynamicCast(element, GraphNode);
+    wxEvtHandler *handler = GetEventHandler();
+
+    if (node) {
+        GraphEvent event(Evt_Graph_Delete_Node);
+        event.SetNode(node);
+        event.SetEventObject(this);
+        if (handler)
+            handler->ProcessEvent(event);
+
+        if (event.IsAllowed()) {
+            GraphNode::iterator it, end;
+
+            for (tie(it, end) = node->GetEdges(); it != end; ++it)
+                Delete(&*it);
+
+            if (node->GetEdges().first == end) {
+                DoDelete(node);
+                RefreshBounds();
+            }
+        }
+    }
+    else {
+        GraphEdge *edge = wxStaticCast(element, GraphEdge);
+
+        GraphEvent event(Evt_Graph_Delete_Edge);
+        event.SetEdge(edge);
+        event.SetEventObject(this);
+        if (handler)
+            handler->ProcessEvent(event);
+
+        if (event.IsAllowed()) {
+            edge->GetShape()->Unlink();
+            DoDelete(edge);
+        }
+    }
+}
+
+void Graph::DoDelete(GraphElement *element)
+{
+    wxShape *shape = element->GetShape();
+    if (shape->GetCanvas()) {
+        element->Refresh();
+        if (shape->Selected())
+            shape->Select(false);
+    }
+    m_diagram->RemoveShape(shape);
+    delete element;
+}
+
+void Graph::Delete(const iterator_pair& range)
+{
+    iterator i, endi;
+    tie(i, endi) = range;
+
+    while (i != endi)
+    {
+        GraphElement *element = &*i;
+        ++i;
+        GraphNode *node = wxDynamicCast(element, GraphNode);
+
+        if (node) {
+            GraphNode::iterator j, endj;
+            tie(j, endj) = node->GetEdges();
+
+            while (j != endj)
+            {
+                GraphEdge *edge = &*j;
+                ++j;
+                if (i != endi && edge == &*i)
+                    ++i;
+                Delete(edge);
+            }
+
+            if (node->GetEdges().first == endj) {
+                DoDelete(node);
+                RefreshBounds();
+            }
+        }
+        else {
+            Delete(wxStaticCast(element, GraphEdge));
+        }
+    }
 }
 
 Graph::iterator_pair Graph::GetElements()
@@ -1227,92 +1386,6 @@ Graph::const_node_iterator_pair Graph::GetSelectionNodes() const
             const_node_iterator(new ListIterImpl(end, end, flags, true)));
 }
 
-void Graph::Delete(GraphElement *element)
-{
-    GraphNode *node = wxDynamicCast(element, GraphNode);
-    if (node)
-        Delete(node);
-    else
-        Delete(wxStaticCast(element, GraphEdge));
-}
-
-void Graph::Delete(GraphEdge *edge)
-{
-    edge->GetShape()->Unlink();
-    DoDelete(edge);
-}
-
-void Graph::Delete(GraphNode *node)
-{
-    GraphNode::iterator it, end;
-
-    for (unpair(it, end) = node->GetEdges(); it != end; ++it)
-        Delete(&*it);
-
-    DoDelete(node);
-    RefreshBounds();
-}
-
-void Graph::DoDelete(GraphElement *element)
-{
-    wxShape *shape = element->GetShape();
-    if (shape->GetCanvas()) {
-        element->Refresh();
-        if (shape->Selected())
-            shape->Select(false);
-    }
-    m_diagram->RemoveShape(shape);
-    delete element;
-}
-
-void Graph::Delete(const iterator_pair& range)
-{
-    iterator i, end;
-    unpair(i, end) = range;
-
-    while (i != end)
-    {
-        GraphElement *element = &*i;
-        ++i;
-        GraphNode *node = wxDynamicCast(element, GraphNode);
-
-        if (node) {
-            GraphNode::iterator j, end_edges;
-            unpair(j, end_edges) = node->GetEdges();
-
-            while (j != end_edges)
-            {
-                GraphEdge *edge = &*j;
-                ++j;
-                if (i != end && edge == &*i)
-                    ++i;
-                Delete(edge);
-            }
-
-            DoDelete(node);
-            RefreshBounds();
-        }
-        else {
-            Delete(wxStaticCast(element, GraphEdge));
-        }
-    }
-}
-
-namespace
-{
-    WX_DECLARE_HASH_SET(GraphNode*, wxPointerHash, wxPointerEqual, NodeSet);
-
-    bool operator<(const wxPoint& pt1, const wxPoint &pt2)
-    {
-        return pt1.y < pt1.y || (pt1.y == pt2.y && pt1.x < pt2.x);
-    }
-
-    wxString NodeName(const GraphNode& node)
-    {
-        return wxString::Format(_T("n%p"), &node);
-    }
-}
-
 bool Graph::Layout(const node_iterator_pair& range)
 {
     wxString dot;
@@ -1329,7 +1402,7 @@ bool Graph::Layout(const node_iterator_pair& range)
     node_iterator i, endi;
     NodeSet nodeset;
 
-    for (unpair(i, endi) = range; i != endi; ++i)
+    for (tie(i, endi) = range; i != endi; ++i)
         nodeset.insert(&*i);
 
     for (i = range.first; i != endi; ++i)
@@ -1338,7 +1411,7 @@ bool Graph::Layout(const node_iterator_pair& range)
         GraphNode::iterator j, endj;
         bool extCon = false;
 
-        for (unpair(j, endj) = node->GetEdges(); j != endj; ++j)
+        for (tie(j, endj) = node->GetEdges(); j != endj; ++j)
         {
             GraphEdge::iterator it = j->GetNodes().first;
             GraphNode *n1 = &*it, *n2 = &*++it;
@@ -1435,7 +1508,7 @@ void Graph::Select(const iterator_pair& range)
     canvas->PrepareDC(dc);
     iterator it, end;
 
-    for (unpair(it, end) = range; it != end; ++it)
+    for (tie(it, end) = range; it != end; ++it)
         if (!it->GetShape()->Selected())
             it->GetShape()->Select(true, &dc);
 }
@@ -1447,9 +1520,54 @@ void Graph::Unselect(const iterator_pair& range)
     canvas->PrepareDC(dc);
     iterator it, end;
 
-    for (unpair(it, end) = range; it != end; ++it)
+    for (tie(it, end) = range; it != end; ++it)
         if (it->GetShape()->Selected())
             it->GetShape()->Select(false, &dc);
+}
+
+void Graph::SetSnapToGrid(bool snap)
+{
+    m_diagram->SetSnapToGrid(snap);
+}
+
+bool Graph::GetSnapToGrid() const
+{
+    return m_diagram->GetSnapToGrid();
+}
+
+void Graph::SetGridSpacing(int spacing)
+{
+    m_diagram->SetGridSpacing(spacing);
+}
+
+int Graph::GetGridSpacing() const
+{
+    return int(m_diagram->GetGridSpacing());
+}
+
+bool Graph::CanClear() const
+{
+    const_iterator_pair its = GetSelection();
+    return its.first == its.second;
+}
+
+bool Graph::Serialize(wxOutputStream& out) const
+{
+    wxFAIL;
+    return false;
+}
+
+bool Graph::Serialize(wxOutputStream& out,
+                      const const_iterator_pair& range) const
+{
+    wxFAIL;
+    return false;
+}
+
+bool Graph::Deserialize(wxInputStream& in)
+{
+    wxFAIL;
+    return false;
 }
 
 // ----------------------------------------------------------------------------
@@ -1532,6 +1650,11 @@ int GraphCtrl::GetZoom()
 void GraphCtrl::ScrollTo(const GraphElement& element)
 {
     m_canvas->ScrollTo(element.GetPosition());
+}
+
+void GraphCtrl::EnsureVisible(const GraphElement& element)
+{
+    m_canvas->EnsureVisible(element.GetBounds());
 }
 
 wxPoint GraphCtrl::ScreenToGraph(const wxPoint& ptScreen) const
@@ -1712,8 +1835,17 @@ GraphEdge::~GraphEdge()
 
 void GraphEdge::SetStyle() { }
 
-bool GraphEdge::Serialize(wxOutputStream& out) { wxFAIL; return false; }
-bool GraphEdge::Deserialize(wxInputStream& in) { wxFAIL; return false; }
+bool GraphEdge::Serialize(wxOutputStream& out) const
+{
+    wxFAIL;
+    return false;
+}
+
+bool GraphEdge::Deserialize(wxInputStream& in)
+{
+    wxFAIL;
+    return false;
+}
 
 GraphEdge::iterator_pair GraphEdge::GetNodes()
 {
@@ -1733,7 +1865,7 @@ GraphEdge::const_iterator_pair GraphEdge::GetNodes() const
 
 wxLineShape *GraphEdge::GetShape() const
 {
-    return static_cast<wxLineShape*>(GraphElement::GetShape());
+    return static_cast<wxLineShape*>(GraphElement::DoGetShape());
 }
 
 void GraphEdge::SetShape(wxLineShape *line)
@@ -1866,7 +1998,16 @@ GraphNode::const_iterator_pair GraphNode::GetEdges() const
                      const_iterator(new ListIterImpl(end)));
 }
 
-bool GraphNode::Serialize(wxOutputStream& out) { wxFAIL; return false; }
-bool GraphNode::Deserialize(wxInputStream& in) { wxFAIL; return false; }
+bool GraphNode::Serialize(wxOutputStream& out) const
+{
+    wxFAIL;
+    return false;
+}
+
+bool GraphNode::Deserialize(wxInputStream& in)
+{
+    wxFAIL;
+    return false;
+}
 
 } // namespace tt_solutions

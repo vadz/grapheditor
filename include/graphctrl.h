@@ -27,6 +27,9 @@ class wxLineShape;
 
 namespace tt_solutions {
 
+typedef wxShape GraphShape;
+typedef wxLineShape GraphLineShape;
+
 class Graph;
 class GraphElement;
 class GraphNode;
@@ -133,7 +136,8 @@ public:
 
     template <class U>
     GraphIterator(const GraphIterator<U>& it) : Base(it) {
-        CheckAssignable(static_cast<U*>(0));
+        U *u = 0;
+        CheckAssignable(u);
     }
 
     GraphIterator(impl::GraphIteratorImpl *impl) : Base(impl) { }
@@ -190,7 +194,7 @@ private:
 };
 
 template <class A, class B>
-impl::RefPair<A, B> unpair(A& a, B& b)
+impl::RefPair<A, B> tie(A& a, B& b)
 {
     return impl::RefPair<A, B>(a, b);
 }
@@ -242,7 +246,7 @@ public:
     virtual bool IsSelected() const;
 
     /** @brief Write a text representation of this element's attributes. */
-    virtual bool Serialize(wxOutputStream& out) = 0;
+    virtual bool Serialize(wxOutputStream& out) const = 0;
     /**
      * @brief Restore this element's attributes from text written by
      * Serialize.
@@ -251,10 +255,10 @@ public:
 
     virtual void OnDraw(wxDC& dc);
 
-    wxShape *GetShape() const { return m_shape; }
-    void SetShape(wxShape *shape);
+    GraphShape *GetShape() const { return DoGetShape(); }
+    virtual void SetShape(GraphShape *shape);
 
-    Graph *GetGraph() const;
+    virtual Graph *GetGraph() const;
     virtual wxSize GetSize() const;
     virtual wxRect GetBounds() const;
     virtual void Refresh();
@@ -264,12 +268,13 @@ protected:
     virtual void DoSelect(bool select);
     virtual void UpdateShape() = 0;
     virtual void OnLayout(wxDC& WXUNUSED(dc)) { }
+    virtual GraphShape *DoGetShape() const { return m_shape; }
 
 private:
     wxColour m_colour;
     wxColour m_bgcolour;
 
-    wxShape *m_shape;
+    GraphShape *m_shape;
 
     DECLARE_ABSTRACT_CLASS(GraphElement)
 };
@@ -297,7 +302,6 @@ public:
     /** @brief A begin/end pair of iterators. */
     typedef std::pair<const_iterator, const_iterator> const_iterator_pair;
 
-
     /** @brief An enumeration of predefined appearances for edges. */
     enum Style { style_line, style_arrow };
 
@@ -310,13 +314,13 @@ public:
      * @brief A number from the Style enumeration indicating the edge's
      * appearance.
      */
-    int GetStyle() const                 { return m_style; }
+    virtual int GetStyle() const { return m_style; }
 
     /**
      * @brief A number from the Style enumeration indicating the edge's
      * appearance.
      */
-    void SetStyle();
+    virtual void SetStyle();
 
     /**
      * @brief An interator range returning the two nodes this edge connects.
@@ -327,11 +331,11 @@ public:
      */
     const_iterator_pair GetNodes() const;
 
-    bool Serialize(wxOutputStream& out);
+    bool Serialize(wxOutputStream& out) const;
     bool Deserialize(wxInputStream& in);
 
-    wxLineShape *GetShape() const;
-    void SetShape(wxLineShape *shape);
+    GraphLineShape *GetShape() const;
+    virtual void SetShape(GraphLineShape *shape);
 
 protected:
     void UpdateShape() { }
@@ -371,7 +375,7 @@ public:
      * @brief An enumeration for indicating what part of a node is at a given
      * point, for example the text label or image.
      */
-    enum Zone { ZONE_NONE, ZONE_ALL, ZONE_INTERIOR, ZONE_IMAGE, ZONE_TEXT };
+    //enum Zone { ZONE_NONE, ZONE_ALL, ZONE_INTERIOR, ZONE_IMAGE, ZONE_TEXT };
 
     /** @brief Constructor. */
     GraphNode();
@@ -379,16 +383,16 @@ public:
     ~GraphNode();
 
     /** @brief The node's main text label. */
-    wxString GetText() const             { return m_text; }
+    virtual wxString GetText() const        { return m_text; }
     /** @brief The node's font. */
-    wxFont GetFont() const               { return m_font; }
+    virtual wxFont GetFont() const          { return m_font; }
     /**
      * @brief A number from the Style enumeration indicating the node's
      * appearance.
      */
-    int GetStyle() const                 { return m_style; }
+    virtual int GetStyle() const            { return m_style; }
     /** @brief The colour of the node's text. */
-    wxColour GetTextColour() const       { return m_textcolour; }
+    virtual wxColour GetTextColour() const  { return m_textcolour; }
 
     /** @brief The node's main text label. */
     virtual void SetText(const wxString& text);
@@ -398,16 +402,16 @@ public:
      * @brief A number from the Style enumeration indicating the node's
      * appearance.
      */
-    void SetStyle();
+    virtual void SetStyle();
     /** @brief The colour of the node's text. */
-    void SetTextColour(const wxColour& colour);
+    virtual void SetTextColour(const wxColour& colour);
 
     /**
      * @brief Indicates what part of the node is at the given point, for
      * example the text label or image. Returns a value from the Zone
      * enumeration.
      */
-    int HitTest(const wxPoint& pt) const;
+    //int HitTest(const wxPoint& pt) const;
 
     /**
      * @brief An interator range returning the edges connecting to this node.
@@ -418,7 +422,7 @@ public:
      */
     const_iterator_pair GetEdges() const;
 
-    bool Serialize(wxOutputStream& out);
+    bool Serialize(wxOutputStream& out) const;
     bool Deserialize(wxInputStream& in);
 
     virtual void OnConstrainSize(int&, int&) { }
@@ -479,37 +483,37 @@ public:
     /**
      * @brief Scales the image by the given percantage.
      */
-    void SetZoom(int percent);
+    virtual void SetZoom(int percent);
     /**
      * @brief Returns the current scaling as a percentage.
      */
-    int GetZoom();
+    virtual int GetZoom();
 
     /**
      * @brief Sets the Graph object that this GraphCtrl will operate on.
      * The GraphCtrl does not take ownership.
      */
-    void SetGraph(Graph *graph);
+    virtual void SetGraph(Graph *graph);
     /**
      * @brief Returns the Graph object assoicated with this GraphCtrl.
      */
-    Graph *GetGraph() const { return m_graph; }
+    virtual Graph *GetGraph() const { return m_graph; }
 
     /**
      * @brief Scroll the Graph so that the node is within the area visible.
      * Has no effect if the node is already visible.
      */
-    void EnsureVisible(const GraphNode& node);
+    virtual void EnsureVisible(const GraphElement& element);
     /** @brief Scroll the Graph, centering on the element. */
-    void ScrollTo(const GraphElement& element);
+    virtual void ScrollTo(const GraphElement& element);
 
-    wxPoint ScreenToGraph(const wxPoint& pt) const;
+    virtual wxPoint ScreenToGraph(const wxPoint& pt) const;
+
+    virtual wxWindow *GetCanvas() const;
 
     void OnSize(wxSizeEvent& event);
 
     static const wxChar DefaultName[];
-
-    wxWindow *GetCanvas() const;
 
 private:
     impl::GraphCanvas *m_canvas;
@@ -525,7 +529,7 @@ private:
  *
  * @see GraphCtrl
  */
-class Graph : public wxEvtHandler
+class Graph : public wxObject
 {
 public:
     /** @brief An iterator type for returning the graph's nodes and edges. */
@@ -553,7 +557,7 @@ public:
     ~Graph();
 
     /** @brief Adds a node to the graph. The Graph object takes ownership. */
-    GraphNode *Add(GraphNode *node, wxPoint pt = wxDefaultPosition);
+    virtual GraphNode *Add(GraphNode *node, wxPoint pt);
     /**
      * @brief Adds an edge to the Graph, between the two nodes.
      *
@@ -561,39 +565,39 @@ public:
      * ownership of it; if the edge parameter is omitted an edge object is
      * created implicitly.
      */
-    GraphEdge *Add(GraphNode& from, GraphNode& to, GraphEdge *edge = NULL);
+    virtual GraphEdge *Add(GraphNode& from,
+                           GraphNode& to,
+                           GraphEdge *edge = NULL);
 
     /** @brief Deletes the given node or edge. */
-    void Delete(GraphElement *element);
-    void Delete(GraphEdge *edge);
-    void Delete(GraphNode *node);
+    virtual void Delete(GraphElement *element);
     /**
      * @brief Deletes the nodes and edges specified by the given iterator
      * range.
      */
-    void Delete(const iterator_pair& range);
+    virtual void Delete(const iterator_pair& range);
 
     /** @brief Invokes a layout engine to layout the graph. */
-    bool Layout() { return Layout(GetNodes()); }
+    virtual bool LayoutAll() { return Layout(GetNodes()); }
     /**
      * @brief Invokes a layout engine to layout the subset of the graph
      * specified by the given iterator range.
      */
-    bool Layout(const node_iterator_pair& range);
+    virtual bool Layout(const node_iterator_pair& range);
 
     /**
      * @brief Adds the nodes and edges specified by the given iterator range
      * to the current selection.
      */
-    void Select(const iterator_pair& range);
-    void SelectAll() { Select(GetElements()); }
+    virtual void Select(const iterator_pair& range);
+    virtual void SelectAll() { Select(GetElements()); }
 
     /**
      * @brief Removes the nodes and edges specified by the given iterator
      * range from the current selection.
      */
-    void Unselect(const iterator_pair& range);
-    void UnselectAll() { Unselect(GetSelection()); }
+    virtual void Unselect(const iterator_pair& range);
+    virtual void UnselectAll() { Unselect(GetSelection()); }
 
     /** @brief An interator range returning all the nodes in the graph. */
     node_iterator_pair GetNodes();
@@ -632,59 +636,60 @@ public:
     /**
      * @brief Write a text representation of the graph and all its elements.
      */
-    bool Serialize(wxOutputStream& out) const;
+    virtual bool Serialize(wxOutputStream& out) const;
     /**
      * @brief Write a text representation of the graph elements specified by
      * the given iterator range.
      */
-    bool Serialize(wxOutputStream& out, const_iterator_pair range) const;
+    virtual bool Serialize(wxOutputStream& out,
+                           const const_iterator_pair& range) const;
     /** @brief Restore the elements from text written by Serialize. */
-    bool Deserialize(wxInputStream& in);
+    virtual bool Deserialize(wxInputStream& in);
 
     /**
      * @brief The positions of any nodes added or moved are adjusted so that
      * they lie on a fixed spaced grid.
      */
-    void SetSnapToGrid(bool snap);
+    virtual void SetSnapToGrid(bool snap);
     /**
      * @brief The positions of any nodes added or moved are adjusted so that
      * they lie on a fixed spaced grid.
      */
-    bool GetSnapToGrid() const;
+    virtual bool GetSnapToGrid() const;
     /**
      * @brief The spacing of the grid used when SetSnapToGrid is switched on.
      */
-    void SetGridSpacing(int spacing);
+    virtual void SetGridSpacing(int spacing);
     /**
      * @brief The spacing of the grid used when SetSnapToGrid is switched on.
      */
-    int GetGridSpacing() const;
+    virtual int GetGridSpacing() const;
 
     /** @brief Undo the last operation. */
-    void Undo();
+    virtual void Undo() { wxFAIL; }
     /** @brief Redo the last Undo. */
-    void Redo();
+    virtual void Redo() { wxFAIL; }
 
     /** @brief Indicates the previous operation could be undone with Undo. */
-    bool CanUndo() const;
+    virtual bool CanUndo() const { wxFAIL; return false; }
     /** @brief Indicates the previous Undo could be redone with Redo. */
-    bool CanRedo() const;
+    virtual bool CanRedo() const { wxFAIL; return false; }
 
     /** @brief Cut the current selection to the clipboard. */
-    bool Cut();
+    virtual bool Cut() { wxFAIL; return false; }
     /** @brief Copy the current selection to the clipboard. */
-    bool Copy();
+    virtual bool Copy() { wxFAIL; return false; }
     /** @brief Paste from the clipboard, replacing the current selection. */
-    bool Paste();
+    virtual bool Paste() { wxFAIL; return false; }
     /** @brief Delete the nodes and edges in the current selection. */
     void Clear() { Delete(GetSelection()); }
 
-    bool CanCut() const;
+    virtual bool CanCut() const { wxFAIL; return false; }
     /** @brief Indicates that the current selection is non-empty. */
-    bool CanCopy() const;
+    virtual bool CanCopy() const { wxFAIL; return false; }
     /** @brief Indicates that there is graph data in the clipboard. */
-    bool CanPaste() const;
-    bool CanClear() const;
+    virtual bool CanPaste() const { wxFAIL; return false; }
+    virtual bool CanClear() const;
 
     /**
      * @brief Returns a bounding rectange for the graph
@@ -692,8 +697,11 @@ public:
     wxRect GetBounds() const;
     void RefreshBounds();
 
-    virtual wxShape *DefaultShape(GraphNode *node);
-    virtual wxLineShape *DefaultLineShape(GraphEdge *edge);
+    virtual GraphShape *DefaultShape(GraphNode *node);
+    virtual GraphLineShape *DefaultLineShape(GraphEdge *edge);
+
+    virtual void SetEventHandler(wxEvtHandler *handler);
+    virtual wxEvtHandler *GetEventHandler() const;
 
 private:
     friend void GraphCtrl::SetGraph(Graph *graph);
@@ -703,9 +711,9 @@ private:
 
     impl::GraphDiagram *m_diagram;
     mutable wxRect m_rcBounds;
+    wxEvtHandler *m_handler;
     static int m_initalise;
 
-    //DECLARE_EVENT_TABLE()
     DECLARE_DYNAMIC_CLASS(Graph)
     DECLARE_NO_COPY_CLASS(Graph)
 };
@@ -746,12 +754,13 @@ BEGIN_DECLARE_EVENT_TYPES()
     DECLARE_EVENT_TYPE(Evt_Graph_Add_Node, wxEVT_USER_FIRST + 1100)
     DECLARE_EVENT_TYPE(Evt_Graph_Add_Edge, wxEVT_USER_FIRST + 1101)
     DECLARE_EVENT_TYPE(Evt_Graph_Adding_Edge, wxEVT_USER_FIRST + 1102)
-    DECLARE_EVENT_TYPE(Evt_Graph_Left_Click, wxEVT_USER_FIRST + 1103)
-    DECLARE_EVENT_TYPE(Evt_Graph_Left_Double_Click, wxEVT_USER_FIRST + 1104)
-    DECLARE_EVENT_TYPE(Evt_Graph_Right_Click, wxEVT_USER_FIRST + 1105)
-    DECLARE_EVENT_TYPE(Evt_Graph_Delete_Item, wxEVT_USER_FIRST + 1106)
-    DECLARE_EVENT_TYPE(Evt_Graph_Node_Activated, wxEVT_USER_FIRST + 1107)
-    DECLARE_EVENT_TYPE(Evt_Graph_Node_Menu, wxEVT_USER_FIRST + 1108)
+    DECLARE_EVENT_TYPE(Evt_Graph_Delete_Node, wxEVT_USER_FIRST + 1103)
+    DECLARE_EVENT_TYPE(Evt_Graph_Delete_Edge, wxEVT_USER_FIRST + 1104)
+    DECLARE_EVENT_TYPE(Evt_Graph_Left_Click, wxEVT_USER_FIRST + 1105)
+    DECLARE_EVENT_TYPE(Evt_Graph_Left_Double_Click, wxEVT_USER_FIRST + 1106)
+    DECLARE_EVENT_TYPE(Evt_Graph_Right_Click, wxEVT_USER_FIRST + 1107)
+    DECLARE_EVENT_TYPE(Evt_Graph_Node_Activated, wxEVT_USER_FIRST + 1108)
+    DECLARE_EVENT_TYPE(Evt_Graph_Node_Menu, wxEVT_USER_FIRST + 1109)
 END_DECLARE_EVENT_TYPES()
 
 } // namespace tt_solutions
@@ -762,17 +771,17 @@ END_DECLARE_EVENT_TYPES()
 
 #define DECLARE_GRAPH_EVT_(evt, id, fn) \
     DECLARE_EVENT_TABLE_ENTRY(tt_solutions::Evt_Graph_ ## evt, id, \
-                              wxID_ANY, GraphEventHandler(fn), NULL)
+                              wxID_ANY, GraphEventHandler(fn), NULL),
 
 #define EVT_GRAPH_ADD_NODE(id, fn) DECLARE_GRAPH_EVT_(Add_Node, id, fn)
 #define EVT_GRAPH_ADD_EDGE(id, fn) DECLARE_GRAPH_EVT_(Add_Edge, id, fn)
 #define EVT_GRAPH_ADDING_EDGE(id, fn) DECLARE_GRAPH_EVT_(Adding_Edge, id, fn)
+#define EVT_GRAPH_DELETE_NODE(id, fn) DECLARE_GRAPH_EVT_(Delete_Node, id, fn)
+#define EVT_GRAPH_DELETE_EDGE(id, fn) DECLARE_GRAPH_EVT_(Delete_Edge, id, fn)
 
 #define EVT_GRAPH_NODE_LEFT_CLICK(id, fn) DECLARE_GRAPH_EVT_(Node_Left_Click, id, fn)
 #define EVT_GRAPH_NODE_LEFT_DOUBLE_CLICK(id, fn) DECLARE_GRAPH_EVT_(Node_Left_Double_Click, id, fn)
 #define EVT_GRAPH_NODE_RIGHT_CLICK(id, fn) DECLARE_GRAPH_EVT_(Node_Right_Click, id, fn)
-
-#define EVT_GRAPH_DELETE_ITEM(id, fn) DECLARE_GRAPH_EVT_(Delete_Item, id, fn)
 
 #define EVT_GRAPH_NODE_ACTIVATED(id, fn) DECLARE_GRAPH_EVT_(Node_Activated, id, fn)
 #define EVT_GRAPH_NODE_MENU(id, fn) DECLARE_GRAPH_EVT_(Node_Menu, id, fn)

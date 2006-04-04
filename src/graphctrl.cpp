@@ -688,9 +688,7 @@ void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
             event.SetNode(GetNode());
             event.SetTarget(target);
             event.SetPoint(wxPoint(int(x), int(y)));
-            Graph *graph = canvas->GetGraph();
-            event.SetEventObject(graph);
-            graph->GetEventHandler()->ProcessEvent(event);
+            canvas->GetGraph()->SendEvent(event);
             m_connect = event.IsAllowed();
         }
 
@@ -1090,7 +1088,15 @@ void Graph::SetEventHandler(wxEvtHandler *handler)
 
 wxEvtHandler *Graph::GetEventHandler() const
 {
-    return m_handler ? m_handler : GetCanvas();
+    return m_handler;
+}
+
+void Graph::SendEvent(wxEvent& event)
+{
+    if (m_handler) {
+        event.SetEventObject(this);
+        m_handler->ProcessEvent(event);
+    }
 }
 
 wxRect Graph::GetBounds() const
@@ -1162,8 +1168,7 @@ GraphNode *Graph::Add(GraphNode *node, wxPoint pt)
     GraphEvent event(Evt_Graph_Add_Node);
     event.SetNode(node);
     event.SetPoint(pt);
-    event.SetEventObject(this);
-    GetEventHandler()->ProcessEvent(event);
+    SendEvent(event);
 
     if (event.IsAllowed()) {
         wxShape *shape = node->GetShape();
@@ -1192,8 +1197,7 @@ GraphEdge *Graph::Add(GraphNode& from, GraphNode& to, GraphEdge *edge)
     event.SetNode(&from);
     event.SetTarget(&to);
     event.SetEdge(edge);
-    event.SetEventObject(this);
-    GetEventHandler()->ProcessEvent(event);
+    SendEvent(event);
 
     if (event.IsAllowed()) {
         wxLineShape *line = (wxLineShape*)edge->GetShape();
@@ -1222,14 +1226,11 @@ GraphEdge *Graph::Add(GraphNode& from, GraphNode& to, GraphEdge *edge)
 void Graph::Delete(GraphElement *element)
 {
     GraphNode *node = wxDynamicCast(element, GraphNode);
-    wxEvtHandler *handler = GetEventHandler();
 
     if (node) {
         GraphEvent event(Evt_Graph_Delete_Node);
         event.SetNode(node);
-        event.SetEventObject(this);
-        if (handler)
-            handler->ProcessEvent(event);
+        SendEvent(event);
 
         if (event.IsAllowed()) {
             GraphNode::iterator it, end;
@@ -1248,9 +1249,7 @@ void Graph::Delete(GraphElement *element)
 
         GraphEvent event(Evt_Graph_Delete_Edge);
         event.SetEdge(edge);
-        event.SetEventObject(this);
-        if (handler)
-            handler->ProcessEvent(event);
+        SendEvent(event);
 
         if (event.IsAllowed()) {
             edge->GetShape()->Unlink();

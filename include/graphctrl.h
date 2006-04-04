@@ -702,6 +702,7 @@ public:
 
     virtual void SetEventHandler(wxEvtHandler *handler);
     virtual wxEvtHandler *GetEventHandler() const;
+    void SendEvent(wxEvent& event);
 
 private:
     friend void GraphCtrl::SetGraph(Graph *graph);

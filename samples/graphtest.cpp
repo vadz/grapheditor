@@ -34,6 +34,8 @@
 #include <wx/numdlg.h>
 #include <wx/colordlg.h>
 #include <wx/fontdlg.h>
+#include <wx/filename.h>
+#include <wx/wxhtml.h>
 
 #include "graphtree.h"
 #include "projectdesigner.h"
@@ -47,6 +49,8 @@
 #if !defined(__WXMSW__) && !defined(__WXPM__)
     #include "graphtest.xpm"
 #endif
+
+const wxChar *helptext = _T("<html><head></head><body></body></html>");
 
 // ----------------------------------------------------------------------------
 // types
@@ -125,6 +129,7 @@ public:
     void OnSetGrid(wxCommandEvent&);
 
     // help menu
+    void OnHelp(wxCommandEvent&);
     void OnAbout(wxCommandEvent& event);
 
     // context menu
@@ -179,7 +184,6 @@ enum {
 // simple menu events like this the static method is much simpler.
 BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(wxID_EXIT, MyFrame::OnQuit)
-    EVT_MENU(wxID_ABOUT, MyFrame::OnAbout)
     EVT_MENU(wxID_OPEN, MyFrame::OnOpen)
     EVT_MENU(wxID_SAVE, MyFrame::OnSave)
     EVT_MENU(wxID_SAVEAS, MyFrame::OnSaveAs)
@@ -202,6 +206,9 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(ID_SETCOLOUR, MyFrame::OnSetColour)
     EVT_MENU(ID_SETBGCOLOUR, MyFrame::OnSetBgColour)
     EVT_MENU(ID_SETTEXTCOLOUR, MyFrame::OnSetTextColour)
+
+    EVT_MENU(wxID_HELP, MyFrame::OnHelp)
+    EVT_MENU(wxID_ABOUT, MyFrame::OnAbout)
 
     EVT_GRAPHTREE_DROP(wxID_ANY, MyFrame::OnGraphTreeDrop)
 
@@ -262,7 +269,7 @@ int MyApp::OnExit()
 
 // frame constructor
 MyFrame::MyFrame(const wxString& title)
-  : wxFrame(NULL, wxID_ANY, title, wxDefaultPosition, wxSize(800, 600)),
+  : wxFrame(NULL, wxID_ANY, title, wxDefaultPosition, wxSize(1024, 768)),
     m_element(NULL),
     m_node(NULL)
 {
@@ -305,7 +312,9 @@ MyFrame::MyFrame(const wxString& title)
 
     // help menu
     wxMenu *helpMenu = new wxMenu;
-    helpMenu->Append(wxID_ABOUT, _T("&About...\tF1"), _T("Show about dialog"));
+    helpMenu->Append(wxID_HELP, _T("&Help...\tF1"), _T("Show help"));
+    helpMenu->AppendSeparator();
+    helpMenu->Append(wxID_ABOUT, _T("&About..."), _T("Show about dialog"));
 
     // menu bar
     wxMenuBar *menuBar = new wxMenuBar();
@@ -323,7 +332,7 @@ MyFrame::MyFrame(const wxString& title)
     m_graph = new Graph;
     m_graph->SetEventHandler(this);
     m_graphctrl->SetGraph(m_graph);
-    splitter->SplitVertically(tree, m_graphctrl, 210);
+    splitter->SplitVertically(tree, m_graphctrl, 240);
 
     m_graphctrl->SetBackgroundGradient(*wxWHITE, wxColour(0x1f97f6));
     m_graphctrl->SetForegroundColour(*wxWHITE);
@@ -334,10 +343,35 @@ MyFrame::MyFrame(const wxString& title)
 
     wxTreeItemId id, idRoot = tree->AddRoot(_T("Root"));
     id = tree->AppendItem(idRoot, _T("Import"));
-    tree->AppendItem(id, _T("Flat File Import"), 0, 0, NULL);
+    tree->AppendItem(id, _T("Flat File Import"), 0, 0);
+    tree->AppendItem(id, _T("Fixed Width Import"), 0, 0, NULL);
+    tree->AppendItem(id, _T("ODBC Import"), 0, 0, NULL);
     tree->Expand(id);
     id = tree->AppendItem(idRoot, _T("Export"));
     tree->AppendItem(id, _T("File Export"), 0, 0, NULL);
+    tree->AppendItem(id, _T("ODBC Export"), 0, 0, NULL);
+    tree->Expand(id);
+    id = tree->AppendItem(idRoot, _T("Clean"));
+    tree->AppendItem(id, _T("Insert"), 0, 0, NULL);
+    tree->AppendItem(id, _T("Delete"), 0, 0, NULL);
+    tree->AppendItem(id, _T("Unite"), 0, 0, NULL);
+    tree->AppendItem(id, _T("Append"), 0, 0, NULL);
+    tree->AppendItem(id, _T("Clean"), 0, 0, NULL);
+    tree->AppendItem(id, _T("Sort"), 0, 0, NULL);
+    tree->AppendItem(id, _T("Split"), 0, 0, NULL);
+    tree->AppendItem(id, _T("Sample"), 0, 0, NULL);
+    tree->Expand(id);
+    id = tree->AppendItem(idRoot, _T("Match"));
+    tree->AppendItem(id, _T("Match"), 0, 0, NULL);
+    tree->AppendItem(id, _T("Match export"), 0, 0, NULL);
+    tree->Expand(id);
+    id = tree->AppendItem(idRoot, _T("Merge"));
+    tree->AppendItem(id, _T("Merge"), 0, 0, NULL);
+    tree->Expand(id);
+    id = tree->AppendItem(idRoot, _T("Profile"));
+    tree->AppendItem(id, _T("Validate"), 0, 0, NULL);
+    tree->AppendItem(id, _T("SQL Query"), 0, 0, NULL);
+    tree->AppendItem(id, _T("Search"), 0, 0, NULL);
     tree->Expand(id);
 
     // create a status bar just for fun (by default with 1 pane only)
@@ -363,17 +397,17 @@ void MyFrame::OnGraphTreeDrop(GraphTreeEvent& event)
     event.GetTarget()->GetGraph()->Add(node, event.GetPosition());
 }
 
-void MyFrame::OnAddNode(GraphEvent& event)
+void MyFrame::OnAddNode(GraphEvent&)
 {
     wxLogDebug(_T("OnAddNode"));
 }
 
-void MyFrame::OnDeleteNode(GraphEvent& event)
+void MyFrame::OnDeleteNode(GraphEvent&)
 {
     wxLogDebug(_T("OnDeleteNode"));
 }
 
-void MyFrame::OnClickNode(GraphEvent& event)
+void MyFrame::OnClickNode(GraphEvent&)
 {
     wxLogDebug(_T("OnClickNode"));
 }
@@ -426,7 +460,7 @@ void MyFrame::OnMenuNode(GraphEvent& event)
     m_element = m_node = NULL;
 }
 
-void MyFrame::OnAddEdge(GraphEvent& event)
+void MyFrame::OnAddEdge(GraphEvent&)
 {
     wxLogDebug(_T("OnAddEdge"));
 }
@@ -443,17 +477,17 @@ void MyFrame::OnAddingEdge(GraphEvent& event)
         event.Veto();
 }
 
-void MyFrame::OnDeleteEdge(GraphEvent& event)
+void MyFrame::OnDeleteEdge(GraphEvent&)
 {
     wxLogDebug(_T("OnDeleteEdge"));
 }
 
-void MyFrame::OnClickEdge(GraphEvent& event)
+void MyFrame::OnClickEdge(GraphEvent&)
 {
     wxLogDebug(_T("OnClickEdge"));
 }
 
-void MyFrame::OnActivateEdge(GraphEvent& event)
+void MyFrame::OnActivateEdge(GraphEvent&)
 {
     wxLogDebug(_T("OnActivateEdge"));
 }
@@ -479,6 +513,12 @@ void MyFrame::OnQuit(wxCommandEvent&)
 {
     // true is to force the frame to close
     Close(true);
+}
+
+void MyFrame::OnHelp(wxCommandEvent&)
+{
+    wxHtmlWindow *html = new wxHtmlWindow(this);
+    html->SetPage(helptext);
 }
 
 void MyFrame::OnAbout(wxCommandEvent&)
@@ -514,7 +554,7 @@ void MyFrame::OnSetSize(wxCommandEvent&)
 void MyFrame::OnSetFont(wxCommandEvent&)
 {
     wxFont font = wxGetFontFromUser(this, m_node->GetFont());
- 
+
     if (font.Ok()) {
         Graph::node_iterator it, end;
 
@@ -526,7 +566,7 @@ void MyFrame::OnSetFont(wxCommandEvent&)
 void MyFrame::OnSetColour(wxCommandEvent&)
 {
     wxColour colour = wxGetColourFromUser(this, m_element->GetColour());
-    
+
     if (colour.Ok()) {
         Graph::iterator it, end;
 
@@ -539,7 +579,7 @@ void MyFrame::OnSetBgColour(wxCommandEvent&)
 {
     wxColour colour = m_element->GetBackgroundColour();
     colour = wxGetColourFromUser(this, colour);
-    
+
     if (colour.Ok()) {
         Graph::iterator it, end;
 
@@ -551,7 +591,7 @@ void MyFrame::OnSetBgColour(wxCommandEvent&)
 void MyFrame::OnSetTextColour(wxCommandEvent&)
 {
     wxColour colour = wxGetColourFromUser(this, m_node->GetTextColour());
-    
+
     if (colour.Ok()) {
         Graph::node_iterator it, end;
 

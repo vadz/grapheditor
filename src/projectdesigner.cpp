@@ -272,7 +272,7 @@ int ProjectNode::HitTest(const wxPoint& pt) const
         return Hit_No;
 
     wxPoint ptNode = pt - bounds.GetTopLeft();
-    
+
     if (m_rcText.Inside(ptNode))
         return Hit_Operation;
     if (m_rcResult.Inside(ptNode))

@@ -119,8 +119,8 @@ namespace impl
 
 } // namespace impl
 
-/*
- * Iterator class template for graph elements
+/**
+ * @brief Iterator class template for graph elements.
  */
 template <class T>
 class GraphIterator : public impl::GraphIteratorBase
@@ -193,6 +193,17 @@ private:
     void CheckAssignable(T*) { }
 };
 
+/**
+ * @brief A helper to allow a std::pair to be assigned to two variables.
+ *
+ * For example:
+ * @code
+ *  Graph::iterator it, end;
+ *
+ *  for (tie(it, end) = m_graph->GetSelection(); it != end; ++it)
+ *      it->SetColour(colour);
+ * @endcode
+ */
 template <class A, class B>
 impl::RefPair<A, B> tie(A& a, B& b)
 {
@@ -413,16 +424,22 @@ public:
     bool Serialize(wxOutputStream& out) const;
     bool Deserialize(wxInputStream& in);
 
-    virtual void OnConstrainSize(int&, int&) { }
-    virtual void Layout();
-
+    /**
+     * @brief Move the node, centering it on the given point.
+     */
     virtual void SetPosition(const wxPoint& pt);
+    /**
+     * @brief Resize the node.
+     */
     virtual void SetSize(const wxSize& size);
+
+    virtual void OnConstrainSize(int&, int&) { }
 
 protected:
     virtual void UpdateShape();
     virtual void UpdateShapeTextColour();
     virtual void OnLayout(wxDC&) { }
+    virtual void Layout();
 
 private:
     int m_style;
@@ -497,13 +514,28 @@ public:
     /** @brief Scroll the Graph, centering on the element. */
     virtual void ScrollTo(const GraphElement& element);
 
+    /**
+     * @brief Converts a point from screen coordinates to the coordinate
+     * system used by the graph.
+     */
     virtual wxPoint ScreenToGraph(const wxPoint& ptScreen) const;
+    /**
+     * @brief Converts a point from the coordinate system used by the graph
+     * to screen coordinates.
+     */
     virtual wxPoint GraphToScreen(const wxPoint& ptGraph) const;
 
+    /**
+     * @brief Returns the canvas window which is a child of the GraphCtrl
+     * window.
+     */
     virtual wxWindow *GetCanvas() const;
 
     void OnSize(wxSizeEvent& event);
 
+    /**
+     * @brief A default value for the constructor's name parameter.
+     */
     static const wxChar DefaultName[];
 
 private:
@@ -686,17 +718,29 @@ public:
      * @brief Returns a bounding rectange for the graph
      */
     wxRect GetBounds() const;
+    /**
+     * @brief Marks the graph bounds invalid, so that they are recalculated
+     * the next time GetBounds() is called.
+     */
     void RefreshBounds();
 
     virtual GraphShape *DefaultShape(GraphNode *node);
     virtual GraphLineShape *DefaultLineShape(GraphEdge *edge);
 
+    /**
+     * @brief Set an event handler to handle events from the Graph.
+     */
     virtual void SetEventHandler(wxEvtHandler *handler);
+    /**
+     * @brief Returns the current event handler.
+     */
     virtual wxEvtHandler *GetEventHandler() const;
+ 
     void SendEvent(wxEvent& event);
 
 private:
     friend void GraphCtrl::SetGraph(Graph *graph);
+
     void SetCanvas(impl::GraphCanvas *canvas);
     impl::GraphCanvas *GetCanvas() const;
     void DoDelete(GraphElement *element);

@@ -194,7 +194,7 @@ GraphCanvas::GraphCanvas(
     SetScrollRate(1, 1);
 }
 
-void GraphCanvas::OnLeftClick(double x, double y, int keys)
+void GraphCanvas::OnLeftClick(double, double, int)
 {
     GetGraph()->UnselectAll();
 }
@@ -292,7 +292,7 @@ void GraphCanvas::OnScroll(wxScrollWinEvent& event)
     event.Skip();
 }
 
-void GraphCanvas::OnIdle(wxIdleEvent& event)
+void GraphCanvas::OnIdle(wxIdleEvent&)
 {
     if (m_checkBounds && !wxGetMouseState().LeftDown())
     {
@@ -772,7 +772,7 @@ void GraphNodeHandler::OnBeginDragLeft(double x, double y,
 }
 
 void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
-                                  int keys, int attachment)
+                                  int, int attachment)
 {
     attachment = 0;
 
@@ -837,8 +837,7 @@ void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
     }
 }
 
-void GraphNodeHandler::OnEndDragLeft(double x, double y,
-                                     int keys, int attachment)
+void GraphNodeHandler::OnEndDragLeft(double x, double y, int, int)
 {
     wxShape *shape = GetShape();
     GraphCanvas *canvas = wxStaticCast(shape->GetCanvas(), GraphCanvas);
@@ -1247,16 +1246,17 @@ GraphCanvas *Graph::GetCanvas() const
     return canvas ? wxStaticCast(canvas, GraphCanvas) : NULL;
 }
 
-wxShape *Graph::DefaultShape(GraphNode *node)
+wxShape *Graph::DefaultShape(GraphNode*)
 {
     wxShape *shape;
 
-    switch (node->GetStyle())
+    /*switch (node->GetStyle())
     {
         default:
             shape = new wxRectangleShape;
             break;
-    }
+    }*/
+    shape = new wxRectangleShape;
 
     shape->SetSize(100, 50);
     shape->Show(true);
@@ -1668,20 +1668,19 @@ bool Graph::CanClear() const
     return its.first == its.second;
 }
 
-bool Graph::Serialize(wxOutputStream& out) const
+bool Graph::Serialize(wxOutputStream&) const
 {
     wxFAIL;
     return false;
 }
 
-bool Graph::Serialize(wxOutputStream& out,
-                      const const_iterator_pair& range) const
+bool Graph::Serialize(wxOutputStream&, const const_iterator_pair&) const
 {
     wxFAIL;
     return false;
 }
 
-bool Graph::Deserialize(wxInputStream& in)
+bool Graph::Deserialize(wxInputStream&)
 {
     wxFAIL;
     return false;
@@ -1798,7 +1797,7 @@ wxWindow *GraphCtrl::GetCanvas() const
     return m_canvas;
 }
 
-void GraphCtrl::OnSize(wxSizeEvent& event)
+void GraphCtrl::OnSize(wxSizeEvent&)
 {
     m_canvas->SetSize(GetClientSize());
 }
@@ -1956,13 +1955,13 @@ void GraphEdge::SetStyle()
 {
 }
 
-bool GraphEdge::Serialize(wxOutputStream& out) const
+bool GraphEdge::Serialize(wxOutputStream&) const
 {
     wxFAIL;
     return false;
 }
 
-bool GraphEdge::Deserialize(wxInputStream& in)
+bool GraphEdge::Deserialize(wxInputStream&)
 {
     wxFAIL;
     return false;
@@ -2138,13 +2137,13 @@ GraphNode::const_iterator_pair GraphNode::GetEdges() const
                      const_iterator(new ListIterImpl(end)));
 }
 
-bool GraphNode::Serialize(wxOutputStream& out) const
+bool GraphNode::Serialize(wxOutputStream&) const
 {
     wxFAIL;
     return false;
 }
 
-bool GraphNode::Deserialize(wxInputStream& in)
+bool GraphNode::Deserialize(wxInputStream&)
 {
     wxFAIL;
     return false;

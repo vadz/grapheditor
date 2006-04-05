@@ -115,6 +115,7 @@ public:
     void OnLayoutAll(wxCommandEvent& event);
     void OnZoomIn(wxCommandEvent& event);
     void OnZoomOut(wxCommandEvent& event);
+    void OnShowGrid(wxCommandEvent& event);
 
     // help menu
     void OnAbout(wxCommandEvent& event);
@@ -146,7 +147,8 @@ private:
 enum {
     ID_LAYOUT,
     ID_LAYOUTALL,
-    ID_SETSIZE
+    ID_SETSIZE,
+    ID_SHOWGRID
 };
 
 // ----------------------------------------------------------------------------
@@ -172,6 +174,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(ID_LAYOUTALL, MyFrame::OnLayoutAll)
     EVT_MENU(wxID_ZOOM_IN, MyFrame::OnZoomIn)
     EVT_MENU(wxID_ZOOM_OUT, MyFrame::OnZoomOut)
+    EVT_MENU(ID_SHOWGRID, MyFrame::OnShowGrid)
 
     EVT_MENU(ID_SETSIZE, MyFrame::OnSetSize)
     EVT_MENU(ID_LAYOUT, MyFrame::OnLayout)
@@ -243,31 +246,34 @@ MyFrame::MyFrame(const wxString& title)
 
     // file menu
     wxMenu *fileMenu = new wxMenu;
-    fileMenu->Append(wxID_OPEN, _T("&Open\tCtrl+O"), _T("Open a file"));
-    fileMenu->Append(wxID_SAVE, _T("&Save\tCtrl+S"), _T("Save a file"));
-    fileMenu->Append(wxID_SAVEAS, _T("&Save As...\tF12"), _T("Save to a new file"));
+    fileMenu->Append(wxID_OPEN, _T("&Open\tCtrl+O"), _T("Open a file"))->Enable(false);
+    fileMenu->Append(wxID_SAVE, _T("&Save\tCtrl+S"), _T("Save a file"))->Enable(false);
+    fileMenu->Append(wxID_SAVEAS, _T("&Save As...\tF12"), _T("Save to a new file"))->Enable(false);
     fileMenu->AppendSeparator();
     fileMenu->Append(wxID_EXIT, _T("E&xit\tAlt-X"), _T("Quit this program"));
 
     // edit menu
     wxMenu *editMenu = new wxMenu;
-    editMenu->Append(wxID_UNDO, _("&Undo\tCtrl+Z"));
-    editMenu->Append(wxID_REDO, _("&Redo\tCtrl+Y"));
+    editMenu->Append(wxID_UNDO, _T("&Undo\tCtrl+Z"))->Enable(false);
+    editMenu->Append(wxID_REDO, _T("&Redo\tCtrl+Y"))->Enable(false);
     editMenu->AppendSeparator();
-    editMenu->Append(wxID_CUT, _("Cu&t\tCtrl+X"));
-    editMenu->Append(wxID_COPY, _("&Copy\tCtrl+C"));
-    editMenu->Append(wxID_PASTE, _("&Paste\tCtrl+V"));
-    editMenu->Append(wxID_CLEAR, _("&Delete\tDel"));
+    editMenu->Append(wxID_CUT, _T("Cu&t\tCtrl+X"))->Enable(false);
+    editMenu->Append(wxID_COPY, _T("&Copy\tCtrl+C"))->Enable(false);
+    editMenu->Append(wxID_PASTE, _T("&Paste\tCtrl+V"))->Enable(false);
+    editMenu->Append(wxID_CLEAR, _T("&Delete\tDel"));
     editMenu->AppendSeparator();
-    editMenu->Append(wxID_SELECTALL, _("Select &All\tCtrl+A"));
+    editMenu->Append(wxID_SELECTALL, _T("Select &All\tCtrl+A"));
 
     // test menu
     wxMenu *testMenu = new wxMenu;
-    testMenu->Append(ID_LAYOUTALL, _("&Layout All\tCtrl+L"));
+    testMenu->Append(ID_LAYOUTALL, _T("&Layout All\tCtrl+L"));
+    testMenu->AppendSeparator();
+    testMenu->AppendCheckItem(ID_SHOWGRID, _T("&Show Grid\tCtrl+G"))->Check();
+
 #ifndef __WXMSW__
     testMenu->AppendSeparator();
-    testMenu->Append(wxID_ZOOM_IN, _("Zoom&In\t+"));
-    testMenu->Append(wxID_ZOOM_OUT, _("Zoom&Out\t-"));
+    testMenu->Append(wxID_ZOOM_IN, _T("Zoom&In\t+"));
+    testMenu->Append(wxID_ZOOM_OUT, _T("Zoom&Out\t-"));
 #endif
 
     // help menu
@@ -350,6 +356,26 @@ void MyFrame::OnClickNode(GraphEvent& event)
 void MyFrame::OnActivateNode(GraphEvent& event)
 {
     wxLogDebug(_T("OnActivateNode"));
+
+    ProjectNode *node = wxDynamicCast(event.GetNode(), ProjectNode);
+    int hit = node->HitTest(event.GetPosition());
+
+    if (hit == ProjectNode::Hit_Operation) {
+        wxString str = wxGetTextFromUser(_T("Operation:"),
+                                         _T("Operation"),
+                                         node->GetOperation(),
+                                         this);
+        if (!str.empty())
+            node->SetOperation(str);
+    }
+    else if (hit == ProjectNode::Hit_Result) {
+        wxString str = wxGetTextFromUser(_T("Result:"),
+                                         _T("Result"),
+                                         node->GetResult(),
+                                         this);
+        if (!str.empty())
+            node->SetResult(str);
+    }
 }
 
 void MyFrame::OnMenuNode(GraphEvent& event)
@@ -412,7 +438,7 @@ void MyFrame::OnAbout(wxCommandEvent&)
 void MyFrame::DoPopupMenu(const wxPoint& pt)
 {
     wxMenu menu;
-    menu.Append(ID_SETSIZE, _T("&SetSize"));
+    menu.Append(ID_SETSIZE, _T("&SetSize..."));
     menu.Append(ID_LAYOUT, _T("&Layout"));
     wxPoint ptClient = ScreenToClient(m_graphctrl->GraphToScreen(pt));
 
@@ -440,7 +466,7 @@ void MyFrame::OnOpen(wxCommandEvent&)
     wxString path;
     wxString filename;
 
-    wxFileDialog dialog(this, _("Choose a filename"), path, filename,
+    wxFileDialog dialog(this, _T("Choose a filename"), path, filename,
             _T("Project Designer files (*.des)|*.des|All files (*.*)|*.*"),
             wxOPEN);
 
@@ -459,7 +485,7 @@ void MyFrame::OnSaveAs(wxCommandEvent&)
     wxString path;
     wxString filename;
 
-    wxFileDialog dialog(this, _("Choose a filename"), path, filename,
+    wxFileDialog dialog(this, _T("Choose a filename"), path, filename,
                         _T("*.des"), wxSAVE);
 
     if (dialog.ShowModal() == wxID_OK)
@@ -469,27 +495,27 @@ void MyFrame::OnSaveAs(wxCommandEvent&)
 
 void MyFrame::OnCut(wxCommandEvent&)
 {
-    //m_graphctrl->GetGraph()->Cut();
+    m_graph->Cut();
 }
 
 void MyFrame::OnCopy(wxCommandEvent&)
 {
-    //m_graphctrl->GetGraph()->Copy();
+    m_graph->Copy();
 }
 
 void MyFrame::OnPaste(wxCommandEvent&)
 {
-    //m_graphctrl->GetGraph()->Paste();
+    m_graph->Paste();
 }
 
 void MyFrame::OnClear(wxCommandEvent&)
 {
-    m_graphctrl->GetGraph()->Clear();
+    m_graph->Clear();
 }
 
 void MyFrame::OnSelectAll(wxCommandEvent&)
 {
-    m_graphctrl->GetGraph()->SelectAll();
+    m_graph->SelectAll();
 }
 
 void MyFrame::OnLayout(wxCommandEvent&)
@@ -516,4 +542,9 @@ void MyFrame::OnZoomOut(wxCommandEvent&)
     zoom -= ZoomStep;
     if (zoom >= ZoomMin)
         m_graphctrl->SetZoom(zoom);
+}
+
+void MyFrame::OnShowGrid(wxCommandEvent&)
+{
+    m_graphctrl->SetShowGrid(!m_graphctrl->IsGridShown());
 }

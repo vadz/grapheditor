@@ -74,11 +74,10 @@ public:
      */
     int HitTest(const wxPoint& pt) const;
 
-    void OnDraw(wxDC& dc);
-
     int GetBorderThickness()                { return m_borderThickness; }
     int GetCornerRadius()                   { return m_cornerRadius; }
 
+    void OnDraw(wxDC& dc);
     void OnConstrainSize(int& x, int& y);
     void OnLayout(wxDC &dc);
 
@@ -86,7 +85,6 @@ private:
     wxString m_id;
     wxString m_result;
     wxIcon m_icon;
-    wxString m_operation;
     int m_cornerRadius;
     int m_borderThickness;
     wxRect m_rcIcon;

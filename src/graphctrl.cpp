@@ -625,11 +625,10 @@ void GraphElementHandler::HandleDClick(wxEventType cmd,
                                        double x, double y,
                                        int keys)
 {
-    if (SendEvent(cmd, x, y)) {
-        wxShape *shape = GetShape();
-        if (!shape->Selected())
-            Select(shape, true, keys);
-    }
+    wxShape *shape = GetShape();
+    if (!shape->Selected())
+        Select(shape, true, keys);
+    SendEvent(cmd, x, y);
 }
 
 void GraphElementHandler::HandleRClick(wxEventType cmd,
@@ -637,7 +636,8 @@ void GraphElementHandler::HandleRClick(wxEventType cmd,
                                        int keys)
 {
     wxShape *shape = GetShape();
-    Select(shape, !shape->Selected(), keys);
+    if (!shape->Selected())
+        Select(shape, true, keys);
     SendEvent(cmd, x, y);
 }
 
@@ -2075,6 +2075,7 @@ void GraphNode::SetText(const wxString& text)
 
     if (shape) {
         shape->AddText(m_text);
+        Layout();
         Refresh();
     }
 }
@@ -2087,6 +2088,7 @@ void GraphNode::SetFont(const wxFont& font)
 
     if (shape) {
         shape->SetFont(&m_font);
+        Layout();
         Refresh();
     }
 }

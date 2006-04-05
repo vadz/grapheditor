@@ -243,12 +243,16 @@ void ProjectNode::SetId(const wxString& text)
 void ProjectNode::SetResult(const wxString& text)
 {
     m_result = text;
+    m_rcResult = wxRect();
+    Layout();
     Refresh();
 }
 
 void ProjectNode::SetIcon(const wxIcon& icon)
 {
     m_icon = icon;
+    m_rcIcon = wxRect();
+    Layout();
     Refresh();
 }
 
@@ -258,6 +262,25 @@ void ProjectNode::OnConstrainSize(int& x, int& y)
         x = m_minSize.x;
     if (y < m_minSize.y)
         y = m_minSize.y;
+}
+
+int ProjectNode::HitTest(const wxPoint& pt) const
+{
+    wxRect bounds = GetBounds();
+
+    if (!bounds.Inside(pt))
+        return Hit_No;
+
+    wxPoint ptNode = pt - bounds.GetTopLeft();
+    
+    if (m_rcText.Inside(ptNode))
+        return Hit_Operation;
+    if (m_rcResult.Inside(ptNode))
+        return Hit_Result;
+    if (m_rcIcon.Inside(ptNode))
+        return Hit_Image;
+
+    return Hit_Yes;
 }
 
 void ProjectNode::OnLayout(wxDC &dc)

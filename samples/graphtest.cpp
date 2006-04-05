@@ -82,11 +82,21 @@ public:
     ~MyFrame();
 
     void OnGraphTreeDrop(GraphTreeEvent& event);
+
     void OnAddNode(GraphEvent& event);
+    void OnDeleteNode(GraphEvent& event);
+
     void OnAddEdge(GraphEvent& event);
     void OnAddingEdge(GraphEvent& event);
-    void OnDeleteNode(GraphEvent& event);
     void OnDeleteEdge(GraphEvent& event);
+
+    void OnClickNode(GraphEvent& event);
+    void OnActivateNode(GraphEvent& event);
+    void OnMenuNode(GraphEvent& event);
+
+    void OnClickEdge(GraphEvent& event);
+    void OnActivateEdge(GraphEvent& event);
+    void OnMenuEdge(GraphEvent& event);
 
     // file menu
     void OnOpen(wxCommandEvent &event);
@@ -100,12 +110,19 @@ public:
     void OnPaste(wxCommandEvent& event);
     void OnClear(wxCommandEvent& event);
     void OnSelectAll(wxCommandEvent& event);
-    void OnLayout(wxCommandEvent& event);
+
+    // test menu
+    void OnLayoutAll(wxCommandEvent& event);
     void OnZoomIn(wxCommandEvent& event);
     void OnZoomOut(wxCommandEvent& event);
 
     // help menu
     void OnAbout(wxCommandEvent& event);
+
+    // context menu
+    void DoPopupMenu(const wxPoint& pt);
+    void OnSetSize(wxCommandEvent& event);
+    void OnLayout(wxCommandEvent& event);
 
     enum {
         ZoomMin = 25,
@@ -127,7 +144,9 @@ private:
 
 // IDs for the controls and the menu commands
 enum {
-    ID_LAYOUT
+    ID_LAYOUT,
+    ID_LAYOUTALL,
+    ID_SETSIZE
 };
 
 // ----------------------------------------------------------------------------
@@ -143,20 +162,35 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(wxID_OPEN, MyFrame::OnOpen)
     EVT_MENU(wxID_SAVE, MyFrame::OnSave)
     EVT_MENU(wxID_SAVEAS, MyFrame::OnSaveAs)
+
     EVT_MENU(wxID_CUT, MyFrame::OnCut)
     EVT_MENU(wxID_COPY, MyFrame::OnCopy)
     EVT_MENU(wxID_PASTE, MyFrame::OnPaste)
     EVT_MENU(wxID_CLEAR, MyFrame::OnClear)
     EVT_MENU(wxID_SELECTALL, MyFrame::OnSelectAll)
-    EVT_MENU(ID_LAYOUT, MyFrame::OnLayout)
+
+    EVT_MENU(ID_LAYOUTALL, MyFrame::OnLayoutAll)
     EVT_MENU(wxID_ZOOM_IN, MyFrame::OnZoomIn)
     EVT_MENU(wxID_ZOOM_OUT, MyFrame::OnZoomOut)
+
+    EVT_MENU(ID_SETSIZE, MyFrame::OnSetSize)
+    EVT_MENU(ID_LAYOUT, MyFrame::OnLayout)
+
     EVT_GRAPHTREE_DROP(wxID_ANY, MyFrame::OnGraphTreeDrop)
-    EVT_GRAPH_ADD_NODE(wxID_ANY, MyFrame::OnAddNode)
-    EVT_GRAPH_ADD_EDGE(wxID_ANY, MyFrame::OnAddEdge)
-    EVT_GRAPH_ADDING_EDGE(wxID_ANY, MyFrame::OnAddingEdge)
-    EVT_GRAPH_DELETE_NODE(wxID_ANY, MyFrame::OnDeleteNode)
-    EVT_GRAPH_DELETE_EDGE(wxID_ANY, MyFrame::OnDeleteEdge)
+
+    EVT_GRAPH_NODE_ADD(MyFrame::OnAddNode)
+    EVT_GRAPH_NODE_DELETE(MyFrame::OnDeleteNode)
+
+    EVT_GRAPH_EDGE_ADD(MyFrame::OnAddEdge)
+    EVT_GRAPH_EDGE_ADDING(MyFrame::OnAddingEdge)
+    EVT_GRAPH_EDGE_DELETE(MyFrame::OnDeleteEdge)
+
+    EVT_GRAPH_NODE_CLICK(wxID_ANY, MyFrame::OnClickNode)
+    EVT_GRAPH_NODE_ACTIVATE(wxID_ANY, MyFrame::OnActivateNode)
+    EVT_GRAPH_NODE_MENU(wxID_ANY, MyFrame::OnMenuNode)
+    EVT_GRAPH_EDGE_CLICK(wxID_ANY, MyFrame::OnClickEdge)
+    EVT_GRAPH_EDGE_ACTIVATE(wxID_ANY, MyFrame::OnActivateEdge)
+    EVT_GRAPH_EDGE_MENU(wxID_ANY, MyFrame::OnMenuEdge)
 END_EVENT_TABLE()
 
 // Create a new application object: this macro will allow wxWidgets to create
@@ -226,11 +260,15 @@ MyFrame::MyFrame(const wxString& title)
     editMenu->Append(wxID_CLEAR, _("&Delete\tDel"));
     editMenu->AppendSeparator();
     editMenu->Append(wxID_SELECTALL, _("Select &All\tCtrl+A"));
-    editMenu->AppendSeparator();
-    editMenu->Append(ID_LAYOUT, _("&Layout\tCtrl+L"));
-    editMenu->AppendSeparator();
-    editMenu->Append(wxID_ZOOM_IN, _("Zoom&In\t+"));
-    editMenu->Append(wxID_ZOOM_OUT, _("Zoom&Out\t-"));
+
+    // test menu
+    wxMenu *testMenu = new wxMenu;
+    testMenu->Append(ID_LAYOUTALL, _("&Layout All\tCtrl+L"));
+#ifndef __WXMSW__
+    testMenu->AppendSeparator();
+    testMenu->Append(wxID_ZOOM_IN, _("Zoom&In\t+"));
+    testMenu->Append(wxID_ZOOM_OUT, _("Zoom&Out\t-"));
+#endif
 
     // help menu
     wxMenu *helpMenu = new wxMenu;
@@ -240,6 +278,7 @@ MyFrame::MyFrame(const wxString& title)
     wxMenuBar *menuBar = new wxMenuBar();
     menuBar->Append(fileMenu, _T("&File"));
     menuBar->Append(editMenu, _T("&Edit"));
+    menuBar->Append(testMenu, _T("&Test"));
     menuBar->Append(helpMenu, _T("&Help"));
 
     // ... and attach this menu bar to the frame
@@ -249,6 +288,7 @@ MyFrame::MyFrame(const wxString& title)
     GraphTreeCtrl *tree = new GraphTreeCtrl(splitter);
     m_graphctrl = new ProjectDesigner(splitter);
     m_graph = new Graph;
+    m_graph->SetEventHandler(this);
     m_graphctrl->SetGraph(m_graph);
     splitter->SplitVertically(tree, m_graphctrl, 210);
 
@@ -297,6 +337,27 @@ void MyFrame::OnAddNode(GraphEvent& event)
     wxLogDebug(_T("OnAddNode"));
 }
 
+void MyFrame::OnDeleteNode(GraphEvent& event)
+{
+    wxLogDebug(_T("OnDeleteNode"));
+}
+
+void MyFrame::OnClickNode(GraphEvent& event)
+{
+    wxLogDebug(_T("OnClickNode"));
+}
+
+void MyFrame::OnActivateNode(GraphEvent& event)
+{
+    wxLogDebug(_T("OnActivateNode"));
+}
+
+void MyFrame::OnMenuNode(GraphEvent& event)
+{
+    wxLogDebug(_T("OnMenuNode"));
+    DoPopupMenu(event.GetPosition());
+}
+
 void MyFrame::OnAddEdge(GraphEvent& event)
 {
     wxLogDebug(_T("OnAddEdge"));
@@ -314,14 +375,24 @@ void MyFrame::OnAddingEdge(GraphEvent& event)
         event.Veto();
 }
 
-void MyFrame::OnDeleteNode(GraphEvent& event)
-{
-    wxLogDebug(_T("OnDeleteNode"));
-}
-
 void MyFrame::OnDeleteEdge(GraphEvent& event)
 {
     wxLogDebug(_T("OnDeleteEdge"));
+}
+
+void MyFrame::OnClickEdge(GraphEvent& event)
+{
+    wxLogDebug(_T("OnClickEdge"));
+}
+
+void MyFrame::OnActivateEdge(GraphEvent& event)
+{
+    wxLogDebug(_T("OnActivateEdge"));
+}
+
+void MyFrame::OnMenuEdge(GraphEvent& event)
+{
+    wxLogDebug(_T("OnMenuEdge"));
 }
 
 void MyFrame::OnQuit(wxCommandEvent&)
@@ -336,6 +407,32 @@ void MyFrame::OnAbout(wxCommandEvent&)
                  _T("About the GraphTest sample"),
                  wxOK | wxICON_INFORMATION,
                  this);
+}
+
+void MyFrame::DoPopupMenu(const wxPoint& pt)
+{
+    wxMenu menu;
+    menu.Append(ID_SETSIZE, _T("&SetSize"));
+    menu.Append(ID_LAYOUT, _T("&Layout"));
+    wxPoint ptClient = ScreenToClient(m_graphctrl->GraphToScreen(pt));
+
+    PopupMenu(&menu, ptClient.x, ptClient.y);
+}
+
+void MyFrame::OnSetSize(wxCommandEvent&)
+{
+    wxString str = wxGetTextFromUser(
+            _T("Enter a new size for the selected nodes (x, y):"),
+            _T("SetSize"), _T("200, 100"), this);
+
+    wxChar sep = _T(',');
+    wxSize size(atoi(str.BeforeFirst(sep).mb_str()),
+                atoi(str.AfterFirst(sep).mb_str()));
+
+    Graph::node_iterator it, end;
+
+    for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it)
+        it->SetSize(size);
 }
 
 void MyFrame::OnOpen(wxCommandEvent&)
@@ -398,6 +495,11 @@ void MyFrame::OnSelectAll(wxCommandEvent&)
 void MyFrame::OnLayout(wxCommandEvent&)
 {
     m_graph->Layout(m_graph->GetSelectionNodes());
+}
+
+void MyFrame::OnLayoutAll(wxCommandEvent&)
+{
+    m_graph->LayoutAll();
 }
 
 void MyFrame::OnZoomIn(wxCommandEvent&)

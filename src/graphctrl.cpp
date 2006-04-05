@@ -31,16 +31,28 @@ using namespace impl;
 // Events
 // ----------------------------------------------------------------------------
 
-DEFINE_EVENT_TYPE(Evt_Graph_Add_Node)
-DEFINE_EVENT_TYPE(Evt_Graph_Add_Edge)
-DEFINE_EVENT_TYPE(Evt_Graph_Adding_Edge)
-DEFINE_EVENT_TYPE(Evt_Graph_Delete_Node)
-DEFINE_EVENT_TYPE(Evt_Graph_Delete_Edge)
-DEFINE_EVENT_TYPE(Evt_Graph_Left_Click)
+/*DEFINE_EVENT_TYPE(Evt_Graph_Left_Click)
 DEFINE_EVENT_TYPE(Evt_Graph_Left_Double_Click)
-DEFINE_EVENT_TYPE(Evt_Graph_Right_Click)
-DEFINE_EVENT_TYPE(Evt_Graph_Node_Activated)
+DEFINE_EVENT_TYPE(Evt_Graph_Right_Click)*/
+
+// Graph Events
+
+DEFINE_EVENT_TYPE(Evt_Graph_Node_Add)
+DEFINE_EVENT_TYPE(Evt_Graph_Node_Delete)
+
+DEFINE_EVENT_TYPE(Evt_Graph_Edge_Add)
+DEFINE_EVENT_TYPE(Evt_Graph_Edge_Adding)
+DEFINE_EVENT_TYPE(Evt_Graph_Edge_Delete)
+
+// GraphCtrl Events
+
+DEFINE_EVENT_TYPE(Evt_Graph_Node_Click)
+DEFINE_EVENT_TYPE(Evt_Graph_Node_Activate)
 DEFINE_EVENT_TYPE(Evt_Graph_Node_Menu)
+
+DEFINE_EVENT_TYPE(Evt_Graph_Edge_Click)
+DEFINE_EVENT_TYPE(Evt_Graph_Edge_Activate)
+DEFINE_EVENT_TYPE(Evt_Graph_Edge_Menu)
 
 namespace {
 
@@ -74,6 +86,11 @@ wxString NodeName(const GraphNode& node)
     return wxString::Format(_T("n%p"), &node);
 }
 
+wxShapeCanvas *GetCanvas(wxShape *shape)
+{
+    return shape ? shape->GetCanvas() : NULL;
+}
+
 } // namespace
 
 // ----------------------------------------------------------------------------
@@ -82,13 +99,20 @@ wxString NodeName(const GraphNode& node)
 
 IMPLEMENT_DYNAMIC_CLASS(GraphEvent, wxNotifyEvent)
 
-GraphEvent::GraphEvent(wxEventType commandType)
-  : wxNotifyEvent(commandType)
+GraphEvent::GraphEvent(wxEventType commandType, int winid)
+  : wxNotifyEvent(commandType, winid),
+    m_node(NULL),
+    m_target(NULL),
+    m_edge(NULL)
 {
 }
 
 GraphEvent::GraphEvent(const GraphEvent& event)
-  : wxNotifyEvent(event)
+  : wxNotifyEvent(event),
+    m_pos(event.m_pos),
+    m_node(event.m_node),
+    m_target(event.m_target),
+    m_edge(event.m_edge)
 {
 }
 
@@ -552,9 +576,18 @@ class GraphElementHandler: public GraphHandler
 {
 public:
     GraphElementHandler(wxShapeEvtHandler *prev);
+
     void OnLeftClick(double x, double y, int keys, int attachment);
+    void OnLeftDoubleClick(double x, double y, int keys, int attachment);
+    void OnRightClick(double x, double y, int keys, int attachment);
 
 protected:
+    void HandleClick(wxEventType cmd, double x, double y, int keys);
+    void HandleDClick(wxEventType cmd, double x, double y, int keys);
+    void HandleRClick(wxEventType cmd, double x, double y, int keys);
+
+    bool SendEvent(wxEventType cmd, double x, double y);
+
     void Select(wxShape *shape, bool select, int keys);
 };
 
@@ -563,10 +596,68 @@ GraphElementHandler::GraphElementHandler(wxShapeEvtHandler *prev)
 {
 }
 
-void GraphElementHandler::OnLeftClick(double, double, int keys, int)
+void GraphElementHandler::OnLeftClick(double x, double y, int keys, int)
+{
+    HandleClick(Evt_Graph_Edge_Click, x, y, keys);
+}
+
+void GraphElementHandler::OnLeftDoubleClick(double x, double y,
+                                            int keys, int)
+{
+    HandleDClick(Evt_Graph_Edge_Activate, x, y, keys);
+}
+
+void GraphElementHandler::OnRightClick(double x, double y, int keys, int)
+{
+    HandleRClick(Evt_Graph_Edge_Menu, x, y, keys);
+}
+
+void GraphElementHandler::HandleClick(wxEventType cmd,
+                                      double x, double y,
+                                      int keys)
 {
     wxShape *shape = GetShape();
     Select(shape, !shape->Selected(), keys);
+    SendEvent(cmd, x, y);
+}
+
+void GraphElementHandler::HandleDClick(wxEventType cmd,
+                                       double x, double y,
+                                       int keys)
+{
+    if (SendEvent(cmd, x, y)) {
+        wxShape *shape = GetShape();
+        if (!shape->Selected())
+            Select(shape, true, keys);
+    }
+}
+
+void GraphElementHandler::HandleRClick(wxEventType cmd,
+                                       double x, double y,
+                                       int keys)
+{
+    wxShape *shape = GetShape();
+    Select(shape, !shape->Selected(), keys);
+    SendEvent(cmd, x, y);
+}
+
+bool GraphElementHandler::SendEvent(wxEventType cmd, double x, double y)
+{
+    wxShape *shape = GetShape();
+    wxShapeCanvas *canvas = shape->GetCanvas();
+
+    GraphElement *element = GetElement(shape);
+    GraphNode *node = wxDynamicCast(element, GraphNode);
+    GraphEdge *edge = node ? NULL : wxDynamicCast(element, GraphEdge);
+
+    GraphEvent event(cmd, canvas->GetId());
+    event.SetNode(node);
+    event.SetEdge(edge);
+    event.SetPosition(wxPoint(int(x), int(y)));
+    event.SetEventObject(canvas);
+    canvas->GetEventHandler()->ProcessEvent(event);
+
+    return event.IsAllowed();
 }
 
 void GraphElementHandler::Select(wxShape *shape, bool select, int keys)
@@ -602,6 +693,10 @@ class GraphNodeHandler: public GraphElementHandler
 public:
     GraphNodeHandler(wxShapeEvtHandler *prev);
 
+    void OnLeftClick(double x, double y, int keys, int attachment);
+    void OnLeftDoubleClick(double x, double y, int keys, int attachment);
+    void OnRightClick(double x, double y, int keys, int attachment);
+
     void OnBeginDragLeft(double x, double y, int keys, int attachment);
     void OnDragLeft(bool draw, double x, double y, int keys, int attachment);
     void OnEndDragLeft(double x, double y, int keys, int attachment);
@@ -632,6 +727,21 @@ GraphNodeHandler::GraphNodeHandler(wxShapeEvtHandler *prev)
     m_target(NULL),
     m_multiple(false)
 {
+}
+
+void GraphNodeHandler::OnLeftClick(double x, double y, int keys, int)
+{
+    HandleClick(Evt_Graph_Node_Click, x, y, keys);
+}
+
+void GraphNodeHandler::OnLeftDoubleClick(double x, double y, int keys, int)
+{
+    HandleDClick(Evt_Graph_Node_Activate, x, y, keys);
+}
+
+void GraphNodeHandler::OnRightClick(double x, double y, int keys, int)
+{
+    HandleRClick(Evt_Graph_Node_Menu, x, y, keys);
 }
 
 GraphNode *GraphNodeHandler::GetNode() const
@@ -684,10 +794,10 @@ void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
             m_connect = false;
         }
         else if (target != m_target) {
-            GraphEvent event(Evt_Graph_Adding_Edge);
+            GraphEvent event(Evt_Graph_Edge_Adding);
             event.SetNode(GetNode());
             event.SetTarget(target);
-            event.SetPoint(wxPoint(int(x), int(y)));
+            event.SetPosition(wxPoint(int(x), int(y)));
             canvas->GetGraph()->SendEvent(event);
             m_connect = event.IsAllowed();
         }
@@ -770,7 +880,8 @@ void GraphNodeHandler::OnSizingEndDragLeft(wxControlPoint* pt,
 {
     CallOnSize(x, y);
     GraphElementHandler::OnSizingEndDragLeft(pt, x, y, keys, attachment);
-    GetNode()->GetGraph()->RefreshBounds();
+    GraphNode *node = GetNode();
+    node->SetSize(node->GetSize());
 }
 
 void GraphNodeHandler::CallOnSize(double& x, double& y)
@@ -1165,9 +1276,9 @@ wxLineShape *Graph::DefaultLineShape(GraphEdge*)
 
 GraphNode *Graph::Add(GraphNode *node, wxPoint pt)
 {
-    GraphEvent event(Evt_Graph_Add_Node);
+    GraphEvent event(Evt_Graph_Node_Add);
     event.SetNode(node);
-    event.SetPoint(pt);
+    event.SetPosition(pt);
     SendEvent(event);
 
     if (event.IsAllowed()) {
@@ -1177,10 +1288,7 @@ GraphNode *Graph::Add(GraphNode *node, wxPoint pt)
 
         shape->SetEventHandler(new GraphNodeHandler(shape));
         m_diagram->wxDiagram::AddShape(shape);
-        shape->SetX(pt.x);
-        shape->SetY(pt.y);
-        node->Refresh();
-        RefreshBounds();
+        node->SetPosition(pt);
         return node;
     }
 
@@ -1190,16 +1298,17 @@ GraphNode *Graph::Add(GraphNode *node, wxPoint pt)
 
 GraphEdge *Graph::Add(GraphNode& from, GraphNode& to, GraphEdge *edge)
 {
-    if (!edge)
-        edge = new GraphEdge;
-
-    GraphEvent event(Evt_Graph_Add_Edge);
+    GraphEvent event(Evt_Graph_Edge_Add);
     event.SetNode(&from);
     event.SetTarget(&to);
     event.SetEdge(edge);
     SendEvent(event);
+    edge = event.GetEdge();
 
     if (event.IsAllowed()) {
+        if (!edge)
+            edge = new GraphEdge;
+
         wxLineShape *line = (wxLineShape*)edge->GetShape();
         if (!line)
             edge->SetShape(line = DefaultLineShape(edge));
@@ -1228,7 +1337,7 @@ void Graph::Delete(GraphElement *element)
     GraphNode *node = wxDynamicCast(element, GraphNode);
 
     if (node) {
-        GraphEvent event(Evt_Graph_Delete_Node);
+        GraphEvent event(Evt_Graph_Node_Delete);
         event.SetNode(node);
         SendEvent(event);
 
@@ -1247,7 +1356,7 @@ void Graph::Delete(GraphElement *element)
     else {
         GraphEdge *edge = wxStaticCast(element, GraphEdge);
 
-        GraphEvent event(Evt_Graph_Delete_Edge);
+        GraphEvent event(Evt_Graph_Edge_Delete);
         event.SetEdge(edge);
         SendEvent(event);
 
@@ -1282,21 +1391,27 @@ void Graph::Delete(const iterator_pair& range)
         GraphNode *node = wxDynamicCast(element, GraphNode);
 
         if (node) {
-            GraphNode::iterator j, endj;
-            tie(j, endj) = node->GetEdges();
+            GraphEvent event(Evt_Graph_Node_Delete);
+            event.SetNode(node);
+            SendEvent(event);
 
-            while (j != endj)
-            {
-                GraphEdge *edge = &*j;
-                ++j;
-                if (i != endi && edge == &*i)
-                    ++i;
-                Delete(edge);
-            }
+            if (event.IsAllowed()) {
+                GraphNode::iterator j, endj;
+                tie(j, endj) = node->GetEdges();
 
-            if (node->GetEdges().first == endj) {
-                DoDelete(node);
-                RefreshBounds();
+                while (j != endj)
+                {
+                    GraphEdge *edge = &*j;
+                    ++j;
+                    if (i != endi && edge == &*i)
+                        ++i;
+                    Delete(edge);
+                }
+
+                if (node->GetEdges().first == endj) {
+                    DoDelete(node);
+                    RefreshBounds();
+                }
             }
         }
         else {
@@ -1666,6 +1781,15 @@ wxPoint GraphCtrl::ScreenToGraph(const wxPoint& ptScreen) const
     return pt;
 }
 
+wxPoint GraphCtrl::GraphToScreen(const wxPoint& ptGraph) const
+{
+    wxClientDC dc(m_canvas);
+    m_canvas->PrepareDC(dc);
+    wxPoint pt(dc.LogicalToDeviceX(ptGraph.x),
+               dc.LogicalToDeviceY(ptGraph.y));
+    return m_canvas->ClientToScreen(pt);
+}
+
 wxWindow *GraphCtrl::GetCanvas() const
 {
     return m_canvas;
@@ -1694,27 +1818,20 @@ GraphElement::~GraphElement()
     delete m_shape;
 }
 
-void GraphElement::Refresh()
-{
-    if (m_shape) {
-        wxShapeCanvas *canvas = m_shape->GetCanvas();
-        if (canvas) {
-            wxClientDC dc(canvas);
-            canvas->PrepareDC(dc);
-            OnLayout(dc);
-            m_shape->Erase(dc);
-        }
-    }
-}
-
 Graph *GraphElement::GetGraph() const
 {
-    if (m_shape) {
-        wxShapeCanvas *canvas = m_shape->GetCanvas();
-        if (canvas)
-            return wxStaticCast(canvas, GraphCanvas)->GetGraph();
+    wxShapeCanvas *canvas = GetCanvas(m_shape);
+    return canvas ? wxStaticCast(canvas, GraphCanvas)->GetGraph() : NULL;
+}
+
+void GraphElement::Refresh()
+{
+    wxShapeCanvas *canvas = GetCanvas(m_shape);
+    if (canvas) {
+        wxClientDC dc(canvas);
+        canvas->PrepareDC(dc);
+        m_shape->Erase(dc);
     }
-    return NULL;
 }
 
 void GraphElement::OnDraw(wxDC& dc)
@@ -1746,15 +1863,15 @@ void GraphElement::SetBackgroundColour(const wxColour& colour)
 
 void GraphElement::DoSelect(bool select)
 {
-    if (m_shape && m_shape->Selected() != select) {
-        wxShapeCanvas *canvas = m_shape->GetCanvas();
+    if (m_shape && m_shape->Selected() != select)
+    {
+        m_shape->Select(select);
+        wxShapeCanvas *canvas = GetCanvas(m_shape);
+
         if (canvas) {
             wxClientDC dc(canvas);
             canvas->PrepareDC(dc);
-            m_shape->Select(select, &dc);
-        }
-        else {
-            m_shape->Select(select);
+            m_shape->OnEraseControlPoints(dc);
         }
     }
 }
@@ -1832,7 +1949,9 @@ GraphEdge::~GraphEdge()
 {
 }
 
-void GraphEdge::SetStyle() { }
+void GraphEdge::SetStyle()
+{
+}
 
 bool GraphEdge::Serialize(wxOutputStream& out) const
 {
@@ -1888,35 +2007,50 @@ GraphNode::~GraphNode()
 {
 }
 
+void GraphNode::Layout()
+{
+    wxShapeCanvas *canvas = GetCanvas(GetShape());
+
+    if (canvas) {
+        wxClientDC dc(canvas);
+        canvas->PrepareDC(dc);
+        OnLayout(dc);
+    }
+}
+
 void GraphNode::SetPosition(const wxPoint& pt)
 {
     wxShape *shape = GetShape();
+    wxShapeCanvas *canvas = GetCanvas(shape);
 
-    if (shape) {
-        wxShapeCanvas *canvas = shape->GetCanvas();
-        if (canvas) {
-            double x = pt.x, y = pt.y;
-            canvas->Snap(&x, &y);
-            wxClientDC dc(canvas);
-            canvas->PrepareDC(dc);
-            shape->Erase(dc);
-            shape->Move(dc, x, y, false);
-            shape->Erase(dc);
-            GetGraph()->RefreshBounds();
-        }
+    if (canvas) {
+        double x = pt.x, y = pt.y;
+        canvas->Snap(&x, &y);
+        wxClientDC dc(canvas);
+        canvas->PrepareDC(dc);
+        shape->Erase(dc);
+        shape->Move(dc, x, y, false);
+        shape->Erase(dc);
+        OnLayout(dc);
+        GetGraph()->RefreshBounds();
     }
 }
 
 void GraphNode::SetSize(const wxSize& size)
 {
     wxShape *shape = GetShape();
+    wxShapeCanvas *canvas = GetCanvas(shape);
 
-    if (shape) {
+    if (canvas) {
+        wxClientDC dc(canvas);
+        canvas->PrepareDC(dc);
+        shape->Erase(dc);
         shape->SetSize(size.x, size.y);
-
-        Graph *graph = GetGraph();
-        if (graph)
-            graph->RefreshBounds();
+        shape->ResetControlPoints();
+        shape->MoveLinks(dc);
+        shape->Erase(dc);
+        OnLayout(dc);
+        GetGraph()->RefreshBounds();
     }
 }
 
@@ -1928,6 +2062,8 @@ void GraphNode::UpdateShape()
         shape->AddText(m_text);
         shape->SetFont(&m_font);
         UpdateShapeTextColour();
+        Layout();
+        Refresh();
     }
 }
 

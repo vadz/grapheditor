@@ -267,10 +267,10 @@ public:
 protected:
     virtual void DoSelect(bool select);
     virtual void UpdateShape() = 0;
-    virtual void OnLayout(wxDC& WXUNUSED(dc)) { }
     virtual GraphShape *DoGetShape() const { return m_shape; }
 
 private:
+
     wxColour m_colour;
     wxColour m_bgcolour;
 
@@ -371,11 +371,6 @@ public:
 
     /** @brief An enumeration of predefined appearances for nodes. */
     enum Style { style_rectangle };
-    /**
-     * @brief An enumeration for indicating what part of a node is at a given
-     * point, for example the text label or image.
-     */
-    //enum Zone { ZONE_NONE, ZONE_ALL, ZONE_INTERIOR, ZONE_IMAGE, ZONE_TEXT };
 
     /** @brief Constructor. */
     GraphNode();
@@ -407,13 +402,6 @@ public:
     virtual void SetTextColour(const wxColour& colour);
 
     /**
-     * @brief Indicates what part of the node is at the given point, for
-     * example the text label or image. Returns a value from the Zone
-     * enumeration.
-     */
-    //int HitTest(const wxPoint& pt) const;
-
-    /**
      * @brief An interator range returning the edges connecting to this node.
      */
     iterator_pair GetEdges();
@@ -426,13 +414,15 @@ public:
     bool Deserialize(wxInputStream& in);
 
     virtual void OnConstrainSize(int&, int&) { }
+    virtual void Layout();
 
     virtual void SetPosition(const wxPoint& pt);
     virtual void SetSize(const wxSize& size);
 
 protected:
-    void UpdateShape();
-    void UpdateShapeTextColour();
+    virtual void UpdateShape();
+    virtual void UpdateShapeTextColour();
+    virtual void OnLayout(wxDC&) { }
 
 private:
     int m_style;
@@ -507,7 +497,8 @@ public:
     /** @brief Scroll the Graph, centering on the element. */
     virtual void ScrollTo(const GraphElement& element);
 
-    virtual wxPoint ScreenToGraph(const wxPoint& pt) const;
+    virtual wxPoint ScreenToGraph(const wxPoint& ptScreen) const;
+    virtual wxPoint GraphToScreen(const wxPoint& ptGraph) const;
 
     virtual wxWindow *GetCanvas() const;
 
@@ -725,7 +716,7 @@ private:
 class GraphEvent : public wxNotifyEvent
 {
 public:
-    GraphEvent(wxEventType commandType = wxEVT_NULL);
+    GraphEvent(wxEventType commandType = wxEVT_NULL, int winid = 0);
     GraphEvent(const GraphEvent& event);
 
     virtual wxEvent *Clone() const      { return new GraphEvent(*this); }
@@ -733,15 +724,15 @@ public:
     void SetNode(GraphNode *node)       { m_node = node; }
     void SetTarget(GraphNode *node)     { m_target = node; }
     void SetEdge(GraphEdge *edge)       { m_edge = edge; }
-    void SetPoint(const wxPoint& pt)    { m_point = pt; }
+    void SetPosition(const wxPoint& pt) { m_pos = pt; }
 
     GraphNode *GetNode() const          { return m_node; }
     GraphNode *GetTarget() const        { return m_target; }
     GraphEdge *GetEdge() const          { return m_edge; }
-    wxPoint GetPoint() const            { return m_point; }
+    wxPoint GetPosition() const         { return m_pos; }
 
 private:
-    wxPoint m_point;
+    wxPoint m_pos;
     GraphNode *m_node;
     GraphNode *m_target;
     GraphEdge *m_edge;
@@ -752,16 +743,28 @@ private:
 typedef void (wxEvtHandler::*GraphEventFunction)(GraphEvent&);
 
 BEGIN_DECLARE_EVENT_TYPES()
-    DECLARE_EVENT_TYPE(Evt_Graph_Add_Node, wxEVT_USER_FIRST + 1100)
-    DECLARE_EVENT_TYPE(Evt_Graph_Add_Edge, wxEVT_USER_FIRST + 1101)
-    DECLARE_EVENT_TYPE(Evt_Graph_Adding_Edge, wxEVT_USER_FIRST + 1102)
-    DECLARE_EVENT_TYPE(Evt_Graph_Delete_Node, wxEVT_USER_FIRST + 1103)
-    DECLARE_EVENT_TYPE(Evt_Graph_Delete_Edge, wxEVT_USER_FIRST + 1104)
-    DECLARE_EVENT_TYPE(Evt_Graph_Left_Click, wxEVT_USER_FIRST + 1105)
-    DECLARE_EVENT_TYPE(Evt_Graph_Left_Double_Click, wxEVT_USER_FIRST + 1106)
-    DECLARE_EVENT_TYPE(Evt_Graph_Right_Click, wxEVT_USER_FIRST + 1107)
-    DECLARE_EVENT_TYPE(Evt_Graph_Node_Activated, wxEVT_USER_FIRST + 1108)
-    DECLARE_EVENT_TYPE(Evt_Graph_Node_Menu, wxEVT_USER_FIRST + 1109)
+    /*DECLARE_EVENT_TYPE(Evt_Graph_Left_Click, wxEVT_USER_FIRST + 1101)
+    DECLARE_EVENT_TYPE(Evt_Graph_Left_Double_Click, wxEVT_USER_FIRST + 1102)
+    DECLARE_EVENT_TYPE(Evt_Graph_Right_Click, wxEVT_USER_FIRST + 1103)*/
+
+    // Graph Events
+
+    DECLARE_EVENT_TYPE(Evt_Graph_Node_Add, wxEVT_USER_FIRST + 1104)
+    DECLARE_EVENT_TYPE(Evt_Graph_Node_Delete, wxEVT_USER_FIRST + 1105)
+
+    DECLARE_EVENT_TYPE(Evt_Graph_Edge_Add, wxEVT_USER_FIRST + 1109)
+    DECLARE_EVENT_TYPE(Evt_Graph_Edge_Adding, wxEVT_USER_FIRST + 1110)
+    DECLARE_EVENT_TYPE(Evt_Graph_Edge_Delete, wxEVT_USER_FIRST + 1111)
+
+    // GraphCtrl Events
+
+    DECLARE_EVENT_TYPE(Evt_Graph_Node_Click, wxEVT_USER_FIRST + 1106)
+    DECLARE_EVENT_TYPE(Evt_Graph_Node_Activate, wxEVT_USER_FIRST + 1107)
+    DECLARE_EVENT_TYPE(Evt_Graph_Node_Menu, wxEVT_USER_FIRST + 1108)
+
+    DECLARE_EVENT_TYPE(Evt_Graph_Edge_Click, wxEVT_USER_FIRST + 1112)
+    DECLARE_EVENT_TYPE(Evt_Graph_Edge_Activate, wxEVT_USER_FIRST + 1113)
+    DECLARE_EVENT_TYPE(Evt_Graph_Edge_Menu, wxEVT_USER_FIRST + 1114)
 END_DECLARE_EVENT_TYPES()
 
 } // namespace tt_solutions
@@ -770,21 +773,38 @@ END_DECLARE_EVENT_TYPES()
     (wxObjectEventFunction)(wxEventFunction) \
         wxStaticCastEvent(tt_solutions::GraphEventFunction, &func)
 
-#define DECLARE_GRAPH_EVT_(evt, id, fn) \
+#define DECLARE_GRAPH_EVT1(evt, id, fn) \
     DECLARE_EVENT_TABLE_ENTRY(tt_solutions::Evt_Graph_ ## evt, id, \
                               wxID_ANY, GraphEventHandler(fn), NULL),
+#define DECLARE_GRAPH_EVT0(evt, fn) DECLARE_GRAPH_EVT1(evt, wxID_ANY, fn)
 
-#define EVT_GRAPH_ADD_NODE(id, fn) DECLARE_GRAPH_EVT_(Add_Node, id, fn)
-#define EVT_GRAPH_ADD_EDGE(id, fn) DECLARE_GRAPH_EVT_(Add_Edge, id, fn)
-#define EVT_GRAPH_ADDING_EDGE(id, fn) DECLARE_GRAPH_EVT_(Adding_Edge, id, fn)
-#define EVT_GRAPH_DELETE_NODE(id, fn) DECLARE_GRAPH_EVT_(Delete_Node, id, fn)
-#define EVT_GRAPH_DELETE_EDGE(id, fn) DECLARE_GRAPH_EVT_(Delete_Edge, id, fn)
+// Graph events
 
-#define EVT_GRAPH_NODE_LEFT_CLICK(id, fn) DECLARE_GRAPH_EVT_(Node_Left_Click, id, fn)
-#define EVT_GRAPH_NODE_LEFT_DOUBLE_CLICK(id, fn) DECLARE_GRAPH_EVT_(Node_Left_Double_Click, id, fn)
-#define EVT_GRAPH_NODE_RIGHT_CLICK(id, fn) DECLARE_GRAPH_EVT_(Node_Right_Click, id, fn)
+#define EVT_GRAPH_NODE_ADD(fn) DECLARE_GRAPH_EVT0(Node_Add, fn)
+#define EVT_GRAPH_NODE_DELETE(fn) DECLARE_GRAPH_EVT0(Node_Delete, fn)
 
-#define EVT_GRAPH_NODE_ACTIVATED(id, fn) DECLARE_GRAPH_EVT_(Node_Activated, id, fn)
-#define EVT_GRAPH_NODE_MENU(id, fn) DECLARE_GRAPH_EVT_(Node_Menu, id, fn)
+#define EVT_GRAPH_EDGE_ADD(fn) DECLARE_GRAPH_EVT0(Edge_Add, fn)
+#define EVT_GRAPH_EDGE_ADDING(fn) DECLARE_GRAPH_EVT0(Edge_Adding, fn)
+#define EVT_GRAPH_EDGE_DELETE(fn) DECLARE_GRAPH_EVT0(Edge_Delete, fn)
+
+#define EVT_GRAPH_ELEMENT_ADD(fn) EVT_GRAPH_NODE_ADD(fn) EVT_GRAPH_EDGE_ADD(fn)
+#define EVT_GRAPH_ELEMENT_DELETE(fn) EVT_GRAPH_NODE_DELETE(fn) EVT_GRAPH_EDGE_DELETE(fn)
+
+// GraphCtrl Events
+
+//#define EVT_GRAPH_LEFT_CLICK(id, fn) DECLARE_GRAPH_EVT1(Left_Click, id, fn)
+//#define EVT_GRAPH_LEFT_DOUBLE_CLICK(id, fn) DECLARE_GRAPH_EVT1(Left_Double_Click, id, fn)
+//#define EVT_GRAPH_RIGHT_CLICK(id, fn) DECLARE_GRAPH_EVT1(Right_Click, id, fn)
+
+#define EVT_GRAPH_NODE_CLICK(id, fn) DECLARE_GRAPH_EVT1(Node_Click, id, fn)
+#define EVT_GRAPH_NODE_ACTIVATE(id, fn) DECLARE_GRAPH_EVT1(Node_Activate, id, fn)
+#define EVT_GRAPH_NODE_MENU(id, fn) DECLARE_GRAPH_EVT1(Node_Menu, id, fn)
+
+#define EVT_GRAPH_EDGE_CLICK(id, fn) DECLARE_GRAPH_EVT1(Edge_Click, id, fn)
+#define EVT_GRAPH_EDGE_ACTIVATE(id, fn) DECLARE_GRAPH_EVT1(Edge_Activate, id, fn)
+#define EVT_GRAPH_EDGE_MENU(id, fn) DECLARE_GRAPH_EVT1(Edge_Menu, id, fn)
+
+#define EVT_GRAPH_ELEMENT_ACTIVATE(id, fn) EVT_GRAPH_NODE_ACTIVATE(id, fn) EVT_GRAPH_EDGE_ACTIVATE(id, fn)
+#define EVT_GRAPH_ELEMENT_MENU(id, fn) EVT_GRAPH_NODE_MENU(id, fn) EVT_GRAPH_EDGE_MENU(id, fn)
 
 #endif // GRAPHCTRL_H

@@ -29,6 +29,18 @@ namespace datactics {
 class ProjectNode : public tt_solutions::GraphNode
 {
 public:
+    /**
+     * @brief An enumeration for indicating what part of a node is at a given
+     * point, for example the text label or image.
+     */
+    enum HitValue {
+        Hit_No,
+        Hit_Yes,
+        Hit_Operation,
+        Hit_Result,
+        Hit_Image
+    };
+
     /** @brief Constructor. */
     ProjectNode();
     /** @brief Destructor. */
@@ -54,6 +66,13 @@ public:
 
     //bool Serialize(wxOutputStream& out);
     //bool Deserialize(wxInputStream& in);
+
+    /**
+     * @brief Indicates what part of the node is at the given point, for
+     * example the text label or image. Returns a value from the HitValue
+     * enumeration.
+     */
+    int HitTest(const wxPoint& pt) const;
 
     void OnDraw(wxDC& dc);
 

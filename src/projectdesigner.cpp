@@ -296,7 +296,7 @@ void ProjectNode::OnLayout(wxDC &dc)
     if (bounds.width < m_minSize.x || bounds.height < m_minSize.y) {
         if (bounds.width < m_minSize.x)
             bounds.width = m_minSize.x;
-        if (bounds.height< m_minSize.y)
+        if (bounds.height < m_minSize.y)
             bounds.height = m_minSize.y;
         SetSize(bounds.GetSize());
     }

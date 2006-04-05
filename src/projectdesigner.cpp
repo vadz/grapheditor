@@ -289,6 +289,9 @@ void ProjectNode::OnLayout(wxDC &dc)
                   (m_cornerRadius - m_borderThickness / 2)
                   * 1000000 / 1414214;
 
+    if (m_rcText.IsEmpty() || m_rcResult.IsEmpty())
+        dc.SetFont(GetFont());
+
     if (m_rcText.IsEmpty()) {
         wxCoord h, w;
         dc.GetMultiLineTextExtent(GetText(), &w, &h);
@@ -335,11 +338,10 @@ void ProjectNode::OnDraw(wxDC& dc)
     wxRect rc = bounds;
     rc.Deflate(m_borderThickness / 2);
 
-    wxPen pen(GetColour(), m_borderThickness);
-    wxBrush brush(GetBackgroundColour());
-
-    dc.SetPen(pen);
-    dc.SetBrush(brush);
+    dc.SetPen(wxPen(GetColour(), m_borderThickness));
+    dc.SetBrush(GetBackgroundColour());
+    dc.SetFont(GetFont());
+    dc.SetTextForeground(GetTextColour());
 
     dc.DrawRoundedRectangle(rc, GetCornerRadius());
     rc.height = m_divide;

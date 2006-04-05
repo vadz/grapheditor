@@ -33,8 +33,10 @@
 #include <wx/splitter.h>
 #include <wx/numdlg.h>
 #include <wx/colordlg.h>
-#include <graphtree.h>
-#include <projectdesigner.h>
+#include <wx/fontdlg.h>
+
+#include "graphtree.h"
+#include "projectdesigner.h"
 
 // ----------------------------------------------------------------------------
 // resources
@@ -55,6 +57,7 @@ using datactics::ProjectNode;
 using tt_solutions::GraphTreeEvent;
 using tt_solutions::GraphTreeCtrl;
 using tt_solutions::GraphElement;
+using tt_solutions::GraphNode;
 using tt_solutions::GraphEvent;
 using tt_solutions::Graph;
 
@@ -142,7 +145,8 @@ public:
 
 private:
     ProjectDesigner *m_graphctrl;
-    GraphElement *m_context;
+    GraphElement *m_element;
+    GraphNode *m_node;
     Graph *m_graph;
 
     // any class wishing to process wxWidgets events must use this macro
@@ -259,7 +263,8 @@ int MyApp::OnExit()
 // frame constructor
 MyFrame::MyFrame(const wxString& title)
   : wxFrame(NULL, wxID_ANY, title, wxDefaultPosition, wxSize(800, 600)),
-    m_context(NULL)
+    m_element(NULL),
+    m_node(NULL)
 {
     // set the frame icon
     wxIcon icon = wxICON(graphtest);
@@ -354,8 +359,6 @@ void MyFrame::OnGraphTreeDrop(GraphTreeEvent& event)
     node->SetText(event.GetString());
     node->SetResult(_T("this is a multi-\nline test"));
     node->SetColour(0x16a8fa);
-    node->SetTextColour(0xfaa816);
-    node->SetBackgroundColour(*wxCYAN);
     node->SetIcon(event.GetIcon());
     event.GetTarget()->GetGraph()->Add(node, event.GetPosition());
 }
@@ -379,7 +382,7 @@ void MyFrame::OnActivateNode(GraphEvent& event)
 {
     wxLogDebug(_T("OnActivateNode"));
 
-    ProjectNode *node = wxDynamicCast(event.GetNode(), ProjectNode);
+    ProjectNode *node = wxStaticCast(event.GetNode(), ProjectNode);
     int hit = node->HitTest(event.GetPosition());
 
     if (hit == ProjectNode::Hit_Operation) {
@@ -418,9 +421,9 @@ void MyFrame::OnMenuNode(GraphEvent& event)
     wxPoint pt = event.GetPosition();
     wxPoint ptClient = ScreenToClient(m_graphctrl->GraphToScreen(pt));
 
-    m_context = event.GetNode();
+    m_element = m_node = event.GetNode();
     PopupMenu(&menu, ptClient.x, ptClient.y);
-    m_context = NULL;
+    m_element = m_node = NULL;
 }
 
 void MyFrame::OnAddEdge(GraphEvent& event)
@@ -467,9 +470,9 @@ void MyFrame::OnMenuEdge(GraphEvent& event)
     wxPoint pt = event.GetPosition();
     wxPoint ptClient = ScreenToClient(m_graphctrl->GraphToScreen(pt));
 
-    m_context = event.GetEdge();
+    m_element = event.GetEdge();
     PopupMenu(&menu, ptClient.x, ptClient.y);
-    m_context = NULL;
+    m_element = NULL;
 }
 
 void MyFrame::OnQuit(wxCommandEvent&)
@@ -489,31 +492,40 @@ void MyFrame::OnAbout(wxCommandEvent&)
 void MyFrame::OnSetSize(wxCommandEvent&)
 {
     wxString str;
-    wxSize size = m_context->GetSize();
+    wxSize size = m_element->GetSize();
 
     str << size.x << _T(", ") << size.y;
 
     str = wxGetTextFromUser(_T("Enter a new size for the selected nodes:"),
                             _T("Set Size"), str, this);
 
-    wxChar sep = _T(',');
-    size.x = atoi(str.BeforeFirst(sep).mb_str());
-    size.y = atoi(str.AfterFirst(sep).mb_str());
+    if (!str.empty()) {
+        wxChar sep = _T(',');
+        size.x = atoi(str.BeforeFirst(sep).mb_str());
+        size.y = atoi(str.AfterFirst(sep).mb_str());
 
-    Graph::node_iterator it, end;
+        Graph::node_iterator it, end;
 
-    for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it)
-        it->SetSize(size);
+        for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it)
+            it->SetSize(size);
+    }
 }
 
 void MyFrame::OnSetFont(wxCommandEvent&)
 {
+    wxFont font = wxGetFontFromUser(this, m_node->GetFont());
+ 
+    if (font.Ok()) {
+        Graph::node_iterator it, end;
+
+        for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it)
+            it->SetFont(font);
+    }
 }
 
 void MyFrame::OnSetColour(wxCommandEvent&)
 {
-    wxColour colour = wxGetColourFromUser(this, m_context->GetColour(),
-                                          _T("Select element colour"));
+    wxColour colour = wxGetColourFromUser(this, m_element->GetColour());
     
     if (colour.Ok()) {
         Graph::iterator it, end;
@@ -525,9 +537,8 @@ void MyFrame::OnSetColour(wxCommandEvent&)
 
 void MyFrame::OnSetBgColour(wxCommandEvent&)
 {
-    wxColour colour = wxGetColourFromUser(
-                            this, m_context->GetBackgroundColour(),
-                            _T("Select element background colour"));
+    wxColour colour = m_element->GetBackgroundColour();
+    colour = wxGetColourFromUser(this, colour);
     
     if (colour.Ok()) {
         Graph::iterator it, end;
@@ -539,10 +550,7 @@ void MyFrame::OnSetBgColour(wxCommandEvent&)
 
 void MyFrame::OnSetTextColour(wxCommandEvent&)
 {
-    ProjectNode *node = wxStaticCast(m_context, ProjectNode);
-
-    wxColour colour = wxGetColourFromUser(this, node->GetTextColour(),
-                                          _T("Select node text colour"));
+    wxColour colour = wxGetColourFromUser(this, m_node->GetTextColour());
     
     if (colour.Ok()) {
         Graph::node_iterator it, end;

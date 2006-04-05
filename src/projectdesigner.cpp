@@ -295,12 +295,11 @@ void ProjectNode::OnLayout(wxDC &dc)
         m_rcText = wxRect(spacing, spacing, w, h);
     }
 
-    int iconHSpace = 0;
-
     if (m_icon.Ok() && m_rcIcon.IsEmpty()) {
         m_rcIcon = wxRect(spacing, 0, m_icon.GetWidth(), m_icon.GetHeight());
-        iconHSpace = m_rcIcon.width + spacing;
     }
+
+    int iconHSpace = m_rcIcon.width + spacing;
 
     if (m_rcResult.IsEmpty()) {
         wxCoord h, w;

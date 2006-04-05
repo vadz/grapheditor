@@ -1652,6 +1652,9 @@ bool Graph::GetSnapToGrid() const
 void Graph::SetGridSpacing(int spacing)
 {
     m_diagram->SetGridSpacing(spacing);
+    wxShapeCanvas *canvas = m_diagram->GetCanvas();
+    if (canvas)
+        canvas->Refresh();
 }
 
 int Graph::GetGridSpacing() const

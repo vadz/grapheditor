@@ -31,6 +31,8 @@
 #endif
 
 #include <wx/splitter.h>
+#include <wx/numdlg.h>
+#include <wx/colordlg.h>
 #include <graphtree.h>
 #include <projectdesigner.h>
 
@@ -52,6 +54,7 @@ using datactics::ProjectDesigner;
 using datactics::ProjectNode;
 using tt_solutions::GraphTreeEvent;
 using tt_solutions::GraphTreeCtrl;
+using tt_solutions::GraphElement;
 using tt_solutions::GraphEvent;
 using tt_solutions::Graph;
 
@@ -116,14 +119,20 @@ public:
     void OnZoomIn(wxCommandEvent& event);
     void OnZoomOut(wxCommandEvent& event);
     void OnShowGrid(wxCommandEvent& event);
+    void OnSetGrid(wxCommandEvent&);
 
     // help menu
     void OnAbout(wxCommandEvent& event);
 
     // context menu
-    void DoPopupMenu(const wxPoint& pt);
     void OnSetSize(wxCommandEvent& event);
     void OnLayout(wxCommandEvent& event);
+    void OnSetFont(wxCommandEvent& event);
+    void OnSetColour(wxCommandEvent& event);
+    void OnSetBgColour(wxCommandEvent& event);
+    void OnSetTextColour(wxCommandEvent& event);
+
+    wxString TextPrompt(const wxString& prompt, const wxString& value);
 
     enum {
         ZoomMin = 25,
@@ -133,6 +142,7 @@ public:
 
 private:
     ProjectDesigner *m_graphctrl;
+    GraphElement *m_context;
     Graph *m_graph;
 
     // any class wishing to process wxWidgets events must use this macro
@@ -145,10 +155,15 @@ private:
 
 // IDs for the controls and the menu commands
 enum {
-    ID_LAYOUT,
     ID_LAYOUTALL,
+    ID_SHOWGRID,
+    ID_SETGRID,
+    ID_LAYOUT,
     ID_SETSIZE,
-    ID_SHOWGRID
+    ID_SETFONT,
+    ID_SETCOLOUR,
+    ID_SETBGCOLOUR,
+    ID_SETTEXTCOLOUR
 };
 
 // ----------------------------------------------------------------------------
@@ -175,9 +190,14 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(wxID_ZOOM_IN, MyFrame::OnZoomIn)
     EVT_MENU(wxID_ZOOM_OUT, MyFrame::OnZoomOut)
     EVT_MENU(ID_SHOWGRID, MyFrame::OnShowGrid)
+    EVT_MENU(ID_SETGRID, MyFrame::OnSetGrid)
 
-    EVT_MENU(ID_SETSIZE, MyFrame::OnSetSize)
     EVT_MENU(ID_LAYOUT, MyFrame::OnLayout)
+    EVT_MENU(ID_SETSIZE, MyFrame::OnSetSize)
+    EVT_MENU(ID_SETFONT, MyFrame::OnSetFont)
+    EVT_MENU(ID_SETCOLOUR, MyFrame::OnSetColour)
+    EVT_MENU(ID_SETBGCOLOUR, MyFrame::OnSetBgColour)
+    EVT_MENU(ID_SETTEXTCOLOUR, MyFrame::OnSetTextColour)
 
     EVT_GRAPHTREE_DROP(wxID_ANY, MyFrame::OnGraphTreeDrop)
 
@@ -238,7 +258,8 @@ int MyApp::OnExit()
 
 // frame constructor
 MyFrame::MyFrame(const wxString& title)
-       : wxFrame(NULL, wxID_ANY, title, wxDefaultPosition, wxSize(800, 600))
+  : wxFrame(NULL, wxID_ANY, title, wxDefaultPosition, wxSize(800, 600)),
+    m_context(NULL)
 {
     // set the frame icon
     wxIcon icon = wxICON(graphtest);
@@ -269,6 +290,7 @@ MyFrame::MyFrame(const wxString& title)
     testMenu->Append(ID_LAYOUTALL, _T("&Layout All\tCtrl+L"));
     testMenu->AppendSeparator();
     testMenu->AppendCheckItem(ID_SHOWGRID, _T("&Show Grid\tCtrl+G"))->Check();
+    testMenu->Append(ID_SETGRID, _T("&Set Grid Spacing..."));
 
 #ifndef __WXMSW__
     testMenu->AppendSeparator();
@@ -361,27 +383,44 @@ void MyFrame::OnActivateNode(GraphEvent& event)
     int hit = node->HitTest(event.GetPosition());
 
     if (hit == ProjectNode::Hit_Operation) {
-        wxString str = wxGetTextFromUser(_T("Operation:"),
-                                         _T("Operation"),
-                                         node->GetOperation(),
-                                         this);
+        wxString str = TextPrompt(_T("Operation"), node->GetOperation());
         if (!str.empty())
             node->SetOperation(str);
     }
     else if (hit == ProjectNode::Hit_Result) {
-        wxString str = wxGetTextFromUser(_T("Result:"),
-                                         _T("Result"),
-                                         node->GetResult(),
-                                         this);
+        wxString str = TextPrompt(_T("Result"), node->GetResult());
         if (!str.empty())
             node->SetResult(str);
     }
 }
 
+wxString MyFrame::TextPrompt(const wxString& prompt, const wxString& value)
+{
+    wxString str = value;
+    str.Replace(_T("\n"), _T("\\n"));
+    str = wxGetTextFromUser(prompt + _T(":"), prompt, str, this);
+    str.Replace(_T("\\n"), _T("\n"));
+    return str;
+}
+
 void MyFrame::OnMenuNode(GraphEvent& event)
 {
     wxLogDebug(_T("OnMenuNode"));
-    DoPopupMenu(event.GetPosition());
+
+    wxMenu menu;
+    menu.Append(ID_LAYOUT, _T("&Layout Selection"));
+    menu.Append(ID_SETSIZE, _T("Set &Size..."));
+    menu.Append(ID_SETFONT, _T("Set &Font..."));
+    menu.Append(ID_SETCOLOUR, _T("Set &Colour..."));
+    menu.Append(ID_SETBGCOLOUR, _T("Set &Background Colour..."));
+    menu.Append(ID_SETTEXTCOLOUR, _T("Set &Text Colour..."));
+
+    wxPoint pt = event.GetPosition();
+    wxPoint ptClient = ScreenToClient(m_graphctrl->GraphToScreen(pt));
+
+    m_context = event.GetNode();
+    PopupMenu(&menu, ptClient.x, ptClient.y);
+    m_context = NULL;
 }
 
 void MyFrame::OnAddEdge(GraphEvent& event)
@@ -419,6 +458,18 @@ void MyFrame::OnActivateEdge(GraphEvent& event)
 void MyFrame::OnMenuEdge(GraphEvent& event)
 {
     wxLogDebug(_T("OnMenuEdge"));
+
+    wxMenu menu;
+    menu.Append(ID_LAYOUT, _T("&Layout Selection"));
+    menu.Append(ID_SETCOLOUR, _T("Set &Colour..."));
+    menu.Append(ID_SETBGCOLOUR, _T("Set &Background Colour..."));
+
+    wxPoint pt = event.GetPosition();
+    wxPoint ptClient = ScreenToClient(m_graphctrl->GraphToScreen(pt));
+
+    m_context = event.GetEdge();
+    PopupMenu(&menu, ptClient.x, ptClient.y);
+    m_context = NULL;
 }
 
 void MyFrame::OnQuit(wxCommandEvent&)
@@ -435,30 +486,70 @@ void MyFrame::OnAbout(wxCommandEvent&)
                  this);
 }
 
-void MyFrame::DoPopupMenu(const wxPoint& pt)
-{
-    wxMenu menu;
-    menu.Append(ID_SETSIZE, _T("&SetSize..."));
-    menu.Append(ID_LAYOUT, _T("&Layout"));
-    wxPoint ptClient = ScreenToClient(m_graphctrl->GraphToScreen(pt));
-
-    PopupMenu(&menu, ptClient.x, ptClient.y);
-}
-
 void MyFrame::OnSetSize(wxCommandEvent&)
 {
-    wxString str = wxGetTextFromUser(
-            _T("Enter a new size for the selected nodes (x, y):"),
-            _T("SetSize"), _T("200, 100"), this);
+    wxString str;
+    wxSize size = m_context->GetSize();
+
+    str << size.x << _T(", ") << size.y;
+
+    str = wxGetTextFromUser(_T("Enter a new size for the selected nodes:"),
+                            _T("Set Size"), str, this);
 
     wxChar sep = _T(',');
-    wxSize size(atoi(str.BeforeFirst(sep).mb_str()),
-                atoi(str.AfterFirst(sep).mb_str()));
+    size.x = atoi(str.BeforeFirst(sep).mb_str());
+    size.y = atoi(str.AfterFirst(sep).mb_str());
 
     Graph::node_iterator it, end;
 
     for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it)
         it->SetSize(size);
+}
+
+void MyFrame::OnSetFont(wxCommandEvent&)
+{
+}
+
+void MyFrame::OnSetColour(wxCommandEvent&)
+{
+    wxColour colour = wxGetColourFromUser(this, m_context->GetColour(),
+                                          _T("Select element colour"));
+    
+    if (colour.Ok()) {
+        Graph::iterator it, end;
+
+        for (tie(it, end) = m_graph->GetSelection(); it != end; ++it)
+            it->SetColour(colour);
+    }
+}
+
+void MyFrame::OnSetBgColour(wxCommandEvent&)
+{
+    wxColour colour = wxGetColourFromUser(
+                            this, m_context->GetBackgroundColour(),
+                            _T("Select element background colour"));
+    
+    if (colour.Ok()) {
+        Graph::iterator it, end;
+
+        for (tie(it, end) = m_graph->GetSelection(); it != end; ++it)
+            it->SetBackgroundColour(colour);
+    }
+}
+
+void MyFrame::OnSetTextColour(wxCommandEvent&)
+{
+    ProjectNode *node = wxStaticCast(m_context, ProjectNode);
+
+    wxColour colour = wxGetColourFromUser(this, node->GetTextColour(),
+                                          _T("Select node text colour"));
+    
+    if (colour.Ok()) {
+        Graph::node_iterator it, end;
+
+        for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it)
+            it->SetTextColour(colour);
+    }
 }
 
 void MyFrame::OnOpen(wxCommandEvent&)
@@ -547,4 +638,14 @@ void MyFrame::OnZoomOut(wxCommandEvent&)
 void MyFrame::OnShowGrid(wxCommandEvent&)
 {
     m_graphctrl->SetShowGrid(!m_graphctrl->IsGridShown());
+}
+
+void MyFrame::OnSetGrid(wxCommandEvent&)
+{
+    long spacing = wxGetNumberFromUser(_T(""), _T("Grid Spacing:"),
+                                       _T("Grid Spacing"),
+                                       m_graph->GetGridSpacing(),
+                                       1, 100, this);
+    if (spacing >= 1)
+        m_graph->SetGridSpacing(spacing);
 }

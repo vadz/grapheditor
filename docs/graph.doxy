@@ -3,7 +3,7 @@
 # Purpose:      Doxygen config file for Graph Editor
 # Author:       Vadim Zeitlin
 # Created:      2006-03-10
-# RCS-ID:       $Id:$
+# RCS-ID:       $Id$
 # Copyright:    (c) 2006 TT-Solutions SARL
 ##############################################################################
 
@@ -21,7 +21,7 @@ INTERNAL_DOCS          = NO
 SOURCE_BROWSER         = yes
 CASE_SENSE_NAMES       = no
 VERBATIM_HEADERS       = no
-JAVADOC_AUTOBRIEF      = yes
+JAVADOC_AUTOBRIEF      = no
 
 #---------------------------------------------------------------------------
 # configuration options related to warning and progress messages

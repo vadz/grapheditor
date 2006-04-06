@@ -68,6 +68,7 @@ Makefile: grapheditor.bkl
 
         <wx-lib>base</wx-lib>
         <wx-lib>core</wx-lib>
+        <wx-lib>html</wx-lib>
         <wx-lib>ogl</wx-lib>
 
         <ldflags>$(GRAPHVIZ_LDFLAGS)</ldflags>

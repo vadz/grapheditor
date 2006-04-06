@@ -34,7 +34,7 @@ public:
     GraphTreeCtrl(wxWindow *parent, wxWindowID id = wxID_ANY,
                const wxPoint& pos = wxDefaultPosition,
                const wxSize& size = wxDefaultSize,
-               long style = wxTR_DEFAULT_STYLE | wxTR_HIDE_ROOT,
+               long style = wxTR_HAS_BUTTONS | wxTR_NO_LINES | wxTR_HIDE_ROOT,
                const wxValidator &validator = wxDefaultValidator,
                const wxString& name = DefaultName)
         : wxTreeCtrl(parent, id, pos, size, style, validator, name)

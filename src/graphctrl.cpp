@@ -91,6 +91,11 @@ wxShapeCanvas *GetCanvas(wxShape *shape)
     return shape ? shape->GetCanvas() : NULL;
 }
 
+char *unconst(const char *str)
+{
+    return const_cast<char*>(str);
+}
+
 } // namespace
 
 // ----------------------------------------------------------------------------
@@ -1566,7 +1571,7 @@ bool Graph::Layout(const node_iterator_pair& range)
 #else
     GVC_t *context = gvContext();
 
-    Agraph_t *graph = agmemread(wx_const_cast(char*, dot.mb_str()));
+    Agraph_t *graph = agmemread(unconst(dot.mb_str()));
     wxCHECK(graph, false);
 
     bool ok = gvLayout(context, graph, "dot") == 0;
@@ -1577,8 +1582,7 @@ bool Graph::Layout(const node_iterator_pair& range)
         double offsetY = 0;
 
         if (fixed) {
-            Agnode_t *n = agfindnode(graph,
-                           const_cast<char*>(NodeName(*fixed).mb_str()));
+            Agnode_t *n = agfindnode(graph, unconst(NodeName(*fixed).mb_str()));
             if (n) {
                 point pos = ND_coord_i(n);
                 double x = PS2INCH(pos.x) * dpi.x;
@@ -2109,8 +2113,8 @@ void GraphNode::UpdateShapeTextColour()
     if (shape) {
         wxString name = wxTheColourDatabase->FindName(m_textcolour);
         if (name.empty()) {
-            name << _T("RGB-") << m_textcolour.Red() << "-"
-                 << m_textcolour.Green() << "-" << m_textcolour.Blue();
+            name.Printf(_T("RGB-%d-%d-%d"), m_textcolour.Red(),
+                        m_textcolour.Green(), m_textcolour.Blue());
             wxTheColourDatabase->AddColour(name, m_textcolour);
         }
         shape->SetTextColour(name);

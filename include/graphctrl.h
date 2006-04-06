@@ -460,6 +460,7 @@ private:
  *  m_graph = new Graph;
  *  m_graphctrl = new GraphCtrl(this);
  *  m_graphctrl->SetGraph(m_graph);
+ *  m_graph->SetEventHandler(this);
  * @endcode
  *
  * Note that it does not take ownership of the Graph.

@@ -9,6 +9,65 @@
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
+// Notes:
+//
+// This code from MyFrame::MyFrame() shows how to create graph control:
+// 
+//  m_graphctrl = new ProjectDesigner(splitter);
+//  m_graph = new Graph;
+//  m_graphctrl->SetGraph(m_graph);
+//  m_graph->SetEventHandler(this);
+//
+// You create a GraphCtrl (or ProjectDesigner in this case, derived from
+// GraphCtrl), a Graph and associate the two with SetGraph().
+//
+// The reason for the spit is so that (potentially at least) in a doc/view
+// application the doc could own a Graph while multiple views could use
+// multiple GraphCtrl to allow editing of it. This isn't supported at the
+// moment, and the two must be used in a one-to-one pair.
+//
+// Both the Graph and the GraphCtrl can fire events. The GraphCtrl ones can
+// be handled by the GraphCtrl's parent as usual, but for the Graph (which is
+// not a window and does not have a parent) it is necessary to call
+// SetEventHandler() as shown to select the class that will handle its
+// events.
+//
+// Nodes (these are of type GraphNode or derived from it), can be added to
+// the graph using Graph::Add(). In this program this is done in response to
+// EVT_GRAPHTREE_DROP events from the tree control, see OnGraphTreeDrop()
+// below for an example.
+//
+// Edges are of type GraphEdge, and there is also an overload of Graph::Add()
+// for adding these, however it's not usually necessary to use it since the
+// GraphCtrl will add edges itself when the user drags one node onto another.
+// This processes can be controlled using the EVT_GRAPH_EDGE_ADDING event,
+// which is fired using dragging, and vetoing it disallows a connection from
+// being made.
+//
+// The cursor positions returned by the event object's GetPosition() are in
+// the coordinate system of the Graph, and so can be passed to Graph's
+// methods without conversion. To use the position with other classes, for
+// example to display a popup menu in response to a EVT_GRAPH_NODE_MENU
+// event, you can convert it using GraphCtrl::GraphToScreen(). See
+// OnMenuNode() below for an example of this. Given a cursor position it is
+// possible to tell which part of a ProjectNode has been clicked using its
+// HitTest() method, see OnActivateNode() below for an example of this.
+//
+// The classes GraphNode and GraphEdge have a common base class GraphElement.
+// Graph elements are enumerated using iterators. The iterators are
+// assignable if references to the types they point to would be assignable.
+// E.g. if a method needs a pair of GraphElement iterators, then you can pass
+// a pair of GraphNode iterators (since a GraphNode is-a GraphElement).
+//
+// Methods that return iterators return a begin/end pair in a std::pair.
+// These can be assigned to a pair of variables using the 'tie' function, so
+// the usual idiom for using them is:
+//
+//  Graph::node_iterator it, end;
+//
+//  for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it)
+//      it->SetSize(size);
+
 // ============================================================================
 // declarations
 // ============================================================================
@@ -50,7 +109,54 @@
     #include "graphtest.xpm"
 #endif
 
-const wxChar *helptext = _T("<html><head></head><body></body></html>");
+const wxChar *helptext = _T("                                           \
+<html>                                                                  \
+  <head>                                                                \
+    <title>graphtest</title>                                            \
+  </head>                                                               \
+  <body>                                                                \
+    <h3>Adding Nodes</h3>                                               \
+                                                                        \
+    <p>To add a node drag a leaf from the tree control onto the graph   \
+    editor.                                                             \
+                                                                        \
+    <h3>Adding Links</h3>                                               \
+                                                                        \
+    <p>Links can be created between two nodes by dragging one node      \
+    onto the other. During dragging the outline rectangle will become   \
+    a line if dropping here is allowed and will create a link.          \
+                                                                        \
+    <p>This example program disallows incoming links to 'Import' nodes  \
+    and outgoing links from 'Export' nodes.                             \
+                                                                        \
+    <h3>Panning</h3>                                                    \
+                                                                        \
+    <p>The graph control can pan over the graph by shift dragging the   \
+    background.                                                         \
+                                                                        \
+    <h3>Selection</h3>                                                  \
+                                                                        \
+    <p>Mutliple selection is possible by rubber-banding (dragging a     \
+    rectangle over the background), or by ctrl+clicking graph           \
+    elements.                                                           \
+                                                                        \
+    <h3>Context Menu</h3>                                               \
+                                                                        \
+    <p>Right clicking a graph element brings up a context menu for the  \
+    current selection.                                                  \
+                                                                        \
+    <h3>Activation</h3>                                                 \
+                                                                        \
+    <p>Nodes can be activated by double clicking them.                  \
+                                                                        \
+    <h3>Grid Spacing</h3>                                               \
+                                                                        \
+    <p>When the graph control displays a grid, it draws one line for    \
+    every five gridlines of the associated graph.                       \
+                                                                        \
+  </body>                                                               \
+</html>                                                                 \
+");
 
 // ----------------------------------------------------------------------------
 // types
@@ -91,19 +197,20 @@ public:
     MyFrame(const wxString& title);
     ~MyFrame();
 
+    // tree control events
     void OnGraphTreeDrop(GraphTreeEvent& event);
 
+    // graph events
     void OnAddNode(GraphEvent& event);
     void OnDeleteNode(GraphEvent& event);
-
     void OnAddEdge(GraphEvent& event);
     void OnAddingEdge(GraphEvent& event);
     void OnDeleteEdge(GraphEvent& event);
 
+    // graph control events
     void OnClickNode(GraphEvent& event);
     void OnActivateNode(GraphEvent& event);
     void OnMenuNode(GraphEvent& event);
-
     void OnClickEdge(GraphEvent& event);
     void OnActivateEdge(GraphEvent& event);
     void OnMenuEdge(GraphEvent& event);
@@ -303,7 +410,6 @@ MyFrame::MyFrame(const wxString& title)
     testMenu->AppendSeparator();
     testMenu->AppendCheckItem(ID_SHOWGRID, _T("&Show Grid\tCtrl+G"))->Check();
     testMenu->Append(ID_SETGRID, _T("&Set Grid Spacing..."));
-
 #ifndef __WXMSW__
     testMenu->AppendSeparator();
     testMenu->Append(wxID_ZOOM_IN, _T("Zoom&In\t+"));
@@ -326,6 +432,8 @@ MyFrame::MyFrame(const wxString& title)
     // ... and attach this menu bar to the frame
     SetMenuBar(menuBar);
 
+    // Example of creating the graph control and graph.
+    // Call Graph::SetEventHandler to receive events from the graph.
     wxSplitterWindow *splitter = new wxSplitterWindow(this);
     GraphTreeCtrl *tree = new GraphTreeCtrl(splitter);
     m_graphctrl = new ProjectDesigner(splitter);
@@ -334,13 +442,16 @@ MyFrame::MyFrame(const wxString& title)
     m_graphctrl->SetGraph(m_graph);
     splitter->SplitVertically(tree, m_graphctrl, 240);
 
+    // give the graph control a gradient background
     m_graphctrl->SetBackgroundGradient(*wxWHITE, wxColour(0x1f97f6));
+    // and white grid
     m_graphctrl->SetForegroundColour(*wxWHITE);
 
-    wxImageList *images = new wxImageList(icon.GetWidth(), icon.GetHeight());
+    wxImageList *images = new wxImageList(16, 16);
     images->Add(icon);
     tree->AssignImageList(images);
 
+    // populate the tree control
     wxTreeItemId id, idRoot = tree->AddRoot(_T("Root"));
     id = tree->AppendItem(idRoot, _T("Import"));
     tree->AppendItem(id, _T("Flat File Import"), 0, 0);
@@ -387,6 +498,9 @@ MyFrame::~MyFrame()
 
 // event handlers
 
+// Example of handling a drop event from the tree control and using
+// Graph::Add to add node.
+//
 void MyFrame::OnGraphTreeDrop(GraphTreeEvent& event)
 {
     ProjectNode *node = new ProjectNode;
@@ -394,7 +508,7 @@ void MyFrame::OnGraphTreeDrop(GraphTreeEvent& event)
     node->SetResult(_T("this is a multi-\nline test"));
     node->SetColour(0x16a8fa);
     node->SetIcon(event.GetIcon());
-    event.GetTarget()->GetGraph()->Add(node, event.GetPosition());
+    m_graph->Add(node, event.GetPosition());
 }
 
 void MyFrame::OnAddNode(GraphEvent&)
@@ -412,6 +526,9 @@ void MyFrame::OnClickNode(GraphEvent&)
     wxLogDebug(_T("OnClickNode"));
 }
 
+// An example of how to tell which part of a node has been clicked using
+// the HitTest() method.
+//
 void MyFrame::OnActivateNode(GraphEvent& event)
 {
     wxLogDebug(_T("OnActivateNode"));
@@ -440,6 +557,10 @@ wxString MyFrame::TextPrompt(const wxString& prompt, const wxString& value)
     return str;
 }
 
+// Example of handling a right click on a node to display a popup menu.
+// The position returned by the event is in graph coordinates and can be
+// converted to screen coordinates using GraphToScreen()
+//
 void MyFrame::OnMenuNode(GraphEvent& event)
 {
     wxLogDebug(_T("OnMenuNode"));
@@ -465,6 +586,10 @@ void MyFrame::OnAddEdge(GraphEvent&)
     wxLogDebug(_T("OnAddEdge"));
 }
 
+// An example of disallowing connections between particular nodes. No
+// Outgoing connections are allowed from Export nodes, and no incoming
+// connections are allowed from Import nodes.
+// 
 void MyFrame::OnAddingEdge(GraphEvent& event)
 {
     wxLogDebug(_T("OnAddingEdge"));
@@ -517,8 +642,24 @@ void MyFrame::OnQuit(wxCommandEvent&)
 
 void MyFrame::OnHelp(wxCommandEvent&)
 {
-    wxHtmlWindow *html = new wxHtmlWindow(this);
-    html->SetPage(helptext);
+    wxString name = _T("graphtest_help");
+    wxWindow *win = FindWindow(name);
+        
+    if (win != NULL) {
+        win->Raise();
+    }
+    else {
+        wxRect rc = wxRect(0, 0, 800, 600).CentreIn(GetRect());
+
+        wxFrame *frame = new wxFrame(this, wxID_ANY, _T("GraphTest Help"),
+                                     rc.GetTopLeft(), rc.GetSize(),
+                                     wxDEFAULT_FRAME_STYLE, name);
+
+        wxHtmlWindow *html = new wxHtmlWindow(frame);
+        html->SetPage(helptext);
+
+        frame->Show();
+    }
 }
 
 void MyFrame::OnAbout(wxCommandEvent&)

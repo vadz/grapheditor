@@ -67,7 +67,6 @@ void GraphTreeCtrl::OnLeftButtonUp(wxMouseEvent& event)
         m_dragImg->Hide();
         m_dragImg->EndDrag();
         delete m_dragImg;
-        m_dragItem = 0;
         m_dragImg = NULL;
 
         wxPoint pt = ClientToScreen(event.GetPosition());

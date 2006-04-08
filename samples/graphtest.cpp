@@ -109,7 +109,7 @@
     #include "graphtest.xpm"
 #endif
 
-const wxChar *helptext = _T("                                           \
+const wxChar *helptext = _T("\
 <html>                                                                  \
   <head>                                                                \
     <title>graphtest</title>                                            \
@@ -233,6 +233,7 @@ public:
     void OnZoomIn(wxCommandEvent& event);
     void OnZoomOut(wxCommandEvent& event);
     void OnShowGrid(wxCommandEvent& event);
+    void OnSnapToGrid(wxCommandEvent&);
     void OnSetGrid(wxCommandEvent&);
 
     // help menu
@@ -273,6 +274,7 @@ private:
 enum {
     ID_LAYOUTALL,
     ID_SHOWGRID,
+    ID_SNAPTOGRID,
     ID_SETGRID,
     ID_LAYOUT,
     ID_SETSIZE,
@@ -305,6 +307,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(wxID_ZOOM_IN, MyFrame::OnZoomIn)
     EVT_MENU(wxID_ZOOM_OUT, MyFrame::OnZoomOut)
     EVT_MENU(ID_SHOWGRID, MyFrame::OnShowGrid)
+    EVT_MENU(ID_SNAPTOGRID, MyFrame::OnSnapToGrid)
     EVT_MENU(ID_SETGRID, MyFrame::OnSetGrid)
 
     EVT_MENU(ID_LAYOUT, MyFrame::OnLayout)
@@ -408,8 +411,9 @@ MyFrame::MyFrame(const wxString& title)
     wxMenu *testMenu = new wxMenu;
     testMenu->Append(ID_LAYOUTALL, _T("&Layout All\tCtrl+L"));
     testMenu->AppendSeparator();
-    testMenu->AppendCheckItem(ID_SHOWGRID, _T("&Show Grid\tCtrl+G"))->Check();
-    testMenu->Append(ID_SETGRID, _T("&Set Grid Spacing..."));
+    testMenu->AppendCheckItem(ID_SHOWGRID, _T("&Show &Grid\tCtrl+G"))->Check();
+    testMenu->AppendCheckItem(ID_SNAPTOGRID, _T("Snap &To Grid\tCtrl+T"))->Check();
+    testMenu->Append(ID_SETGRID, _T("Set Grid &Spacing..."));
 #ifndef __WXMSW__
     testMenu->AppendSeparator();
     testMenu->Append(wxID_ZOOM_IN, _T("Zoom&In\t+"));
@@ -649,15 +653,20 @@ void MyFrame::OnHelp(wxCommandEvent&)
         win->Raise();
     }
     else {
-        wxRect rc = wxRect(0, 0, 800, 600).CentreIn(GetRect());
-
         wxFrame *frame = new wxFrame(this, wxID_ANY, _T("GraphTest Help"),
-                                     rc.GetTopLeft(), rc.GetSize(),
+                                     wxDefaultPosition, wxSize(800, 600),
                                      wxDEFAULT_FRAME_STYLE, name);
 
+        wxLogNull nolog;
         wxHtmlWindow *html = new wxHtmlWindow(frame);
+
+#if defined __WXGTK__ && !wxUSE_UNICODE
+        html->GetParser()->SetInputEncoding(wxFONTENCODING_SYSTEM);
+#endif
+
         html->SetPage(helptext);
 
+        frame->CentreOnParent();
         frame->Show();
     }
 }
@@ -827,6 +836,11 @@ void MyFrame::OnZoomOut(wxCommandEvent&)
 void MyFrame::OnShowGrid(wxCommandEvent&)
 {
     m_graphctrl->SetShowGrid(!m_graphctrl->IsGridShown());
+}
+
+void MyFrame::OnSnapToGrid(wxCommandEvent&)
+{
+    m_graph->SetSnapToGrid(!m_graph->GetSnapToGrid());
 }
 
 void MyFrame::OnSetGrid(wxCommandEvent&)

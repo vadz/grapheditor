@@ -386,8 +386,10 @@ void GraphCanvas::OnSize(wxSizeEvent& event)
 
 void GraphCanvas::PrepareDC(wxDC& dc)
 {
-    dc.SetDeviceOrigin(m_ptOrigin.x, m_ptOrigin.y);
-    wxShapeCanvas::PrepareDC(dc);
+    wxPoint pt = dc.GetDeviceOrigin() + m_ptOrigin;
+    dc.SetDeviceOrigin( pt.x - m_xScrollPosition * m_xScrollPixelsPerLine,
+                        pt.y - m_yScrollPosition * m_yScrollPixelsPerLine );
+    dc.SetUserScale( m_scaleX, m_scaleY );
 }
 
 void GraphCanvas::ScrollTo(const wxPoint& ptGraph, bool draw)

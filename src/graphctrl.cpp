@@ -165,6 +165,7 @@ private:
     Graph *m_graph;
     bool m_isPanning;
     bool m_checkBounds;
+    bool m_checkingBounds;
     wxPoint m_ptDrag;
     wxPoint m_ptOrigin;
 
@@ -194,7 +195,8 @@ GraphCanvas::GraphCanvas(
   : wxShapeCanvas(parent, id, pos, size, style, name),
     m_graph(NULL),
     m_isPanning(false),
-    m_checkBounds(false)
+    m_checkBounds(false),
+    m_checkingBounds(false)
 {
     SetScrollRate(1, 1);
 }
@@ -299,9 +301,9 @@ void GraphCanvas::OnScroll(wxScrollWinEvent& event)
 
 void GraphCanvas::OnIdle(wxIdleEvent&)
 {
-    if (m_checkBounds && !wxGetMouseState().LeftDown())
+    if (m_checkBounds && !m_checkingBounds && !wxGetMouseState().LeftDown())
     {
-        m_checkBounds = false;
+        m_checkingBounds = true;
         wxClientDC dc(this);
         PrepareDC(dc);
 
@@ -365,6 +367,8 @@ void GraphCanvas::OnIdle(wxIdleEvent&)
 
         SetScrollPos(wxHORIZONTAL, m_xScrollPosition = viewX);
         SetScrollPos(wxVERTICAL, m_yScrollPosition = viewY);
+
+        m_checkBounds = m_checkingBounds = false;
     }
 }
 
@@ -379,17 +383,22 @@ void GraphCanvas::OnPaint(wxPaintEvent&)
 
 void GraphCanvas::OnSize(wxSizeEvent& event)
 {
-    Refresh();
-    //SetCheckBounds();
+    SetCheckBounds();
     event.Skip();
 }
 
 void GraphCanvas::PrepareDC(wxDC& dc)
 {
+    int viewX, viewY;
+    GetViewStart(&viewX, &viewY);
+
+    int unitX, unitY;
+    GetScrollPixelsPerUnit(&unitX, &unitY);
+
     wxPoint pt = dc.GetDeviceOrigin() + m_ptOrigin;
-    dc.SetDeviceOrigin( pt.x - m_xScrollPosition * m_xScrollPixelsPerLine,
-                        pt.y - m_yScrollPosition * m_yScrollPixelsPerLine );
-    dc.SetUserScale( m_scaleX, m_scaleY );
+
+    dc.SetDeviceOrigin(pt.x - viewX * unitX, pt.y - viewY * unitY);
+    dc.SetUserScale(GetScaleX(), GetScaleY());
 }
 
 void GraphCanvas::ScrollTo(const wxPoint& ptGraph, bool draw)

@@ -154,7 +154,10 @@ public:
 
     void PrepareDC(wxDC& dc);
 
+    void AdjustScrollbars() { }
+
     void SetCheckBounds() { m_checkBounds = true; }
+    void CheckBounds();
 
     void ScrollTo(const wxPoint& ptGraph, bool draw = true);
     wxPoint ScrollByOffset(int x, int y, bool draw = true);
@@ -165,9 +168,9 @@ private:
     Graph *m_graph;
     bool m_isPanning;
     bool m_checkBounds;
-    bool m_checkingBounds;
     wxPoint m_ptDrag;
     wxPoint m_ptOrigin;
+    wxSize m_sizeScrollbar;
 
     DECLARE_EVENT_TABLE()
     DECLARE_DYNAMIC_CLASS(GraphCanvas)
@@ -195,10 +198,8 @@ GraphCanvas::GraphCanvas(
   : wxShapeCanvas(parent, id, pos, size, style, name),
     m_graph(NULL),
     m_isPanning(false),
-    m_checkBounds(false),
-    m_checkingBounds(false)
+    m_checkBounds(false)
 {
-    SetScrollRate(1, 1);
 }
 
 void GraphCanvas::OnLeftClick(double, double, int)
@@ -295,81 +296,108 @@ void GraphCanvas::OnEndDragLeft(double x, double y, int key)
 
 void GraphCanvas::OnScroll(wxScrollWinEvent& event)
 {
-    m_checkBounds = true;
-    event.Skip();
+    bool horz = event.GetOrientation() == wxHORIZONTAL;
+    int type = event.GetEventType();
+    int pos = event.GetPosition();
+    int scroll = horz ? m_xScrollPosition : m_yScrollPosition;
+    int size = horz ? m_virtualSize.x : m_virtualSize.y;
+    int cs = horz ? GetClientSize().x : GetClientSize().y;
+
+    if (type == wxEVT_SCROLLWIN_TOP)
+        pos = 0;
+    else if (type == wxEVT_SCROLLWIN_BOTTOM)
+        pos = size;
+    else if (type == wxEVT_SCROLLWIN_LINEUP)
+        pos = scroll - 10;
+    else if (type == wxEVT_SCROLLWIN_LINEDOWN)
+        pos = scroll + 10;
+    else if (type == wxEVT_SCROLLWIN_PAGEUP)
+        pos = scroll - cs;
+    else if (type == wxEVT_SCROLLWIN_PAGEDOWN)
+        pos = scroll + cs;
+
+    if (pos > size - cs)
+        pos = size - cs;
+    if (pos < 0)
+        pos = 0;
+        
+    if (horz)
+        ScrollByOffset(pos - m_xScrollPosition, 0);
+    else
+        ScrollByOffset(0, pos - m_yScrollPosition);
 }
 
 void GraphCanvas::OnIdle(wxIdleEvent&)
 {
-    if (m_checkBounds && !m_checkingBounds && !wxGetMouseState().LeftDown())
-    {
-        m_checkingBounds = true;
-        wxClientDC dc(this);
-        PrepareDC(dc);
+    if (m_checkBounds && !wxGetMouseState().LeftDown())
+        CheckBounds();
+}
 
-        wxSize cs = GetClientSize();
-        wxSize current = GetVirtualSize();
-        wxSize size = current;
+void GraphCanvas::CheckBounds()
+{
+    wxClientDC dc(this);
+    PrepareDC(dc);
 
-        int viewX, viewY;
-        GetViewStart(&viewX, &viewY);
-        int unitX, unitY;
-        GetScrollPixelsPerUnit(&unitX, &unitY);
-        viewX *= unitX;
-        viewY *= unitY;
+    wxSize cs = GetClientSize() + m_sizeScrollbar;
+    wxSize fullclient = cs;
 
-        wxRect b = m_graph->GetBounds();
-        b.x = dc.LogicalToDeviceX(b.x);
-        b.y = dc.LogicalToDeviceY(b.y);
-        b.width = dc.LogicalToDeviceXRel(b.width);
-        b.height = dc.LogicalToDeviceYRel(b.height);
+    wxRect b = m_graph->GetBounds();
+    b.x = dc.LogicalToDeviceX(b.x);
+    b.y = dc.LogicalToDeviceY(b.y);
+    b.width = dc.LogicalToDeviceXRel(b.width);
+    b.height = dc.LogicalToDeviceYRel(b.height);
 
-        int x = min(min(0, b.x) + viewX, m_ptOrigin.x);
-        x -= unitX - 1;
-        x -= x % unitX;
-        if (x != 0) {
-            m_ptOrigin.x -= x;
-            size.x -= x;
-            viewX -= x;
+    int x = min(min(0, b.x) + m_xScrollPosition, m_ptOrigin.x);
+    m_ptOrigin.x -= x;
+    m_xScrollPosition -= x;
+
+    int y = min(min(0, b.y) + m_yScrollPosition, m_ptOrigin.y);
+    m_ptOrigin.y -= y;
+    m_yScrollPosition -= y;
+
+    bool needHBar = false, needVBar = false;
+    bool done = false;
+
+    while (!done) {
+        done = true;
+
+        if (m_xScrollPosition == 0 && m_ptOrigin.x == 0)
+            m_virtualSize.x = b.GetRight();
+        else
+            m_virtualSize.x =
+                max(max(cs.x, b.GetRight()) + m_xScrollPosition,
+                    m_ptOrigin.x + cs.x);
+
+        if (m_virtualSize.x > cs.x) {
+            SetScrollbar(wxHORIZONTAL, m_xScrollPosition, cs.x,
+                         m_virtualSize.x);
+            GetClientSize(NULL, &cs.y);
+            needHBar = true;
         }
 
-        x = max(max(cs.x, b.GetRight()) + viewX, m_ptOrigin.x + cs.x);
-        x += unitX - 1;
-        x -= x % unitX;
-        if (x != current.x)
-            size.x = x;
+        if (m_yScrollPosition == 0 && m_ptOrigin.y == 0)
+            m_virtualSize.y = b.GetBottom();
+        else
+            m_virtualSize.y =
+                max(max(cs.y, b.GetBottom()) + m_yScrollPosition,
+                    m_ptOrigin.y + cs.y);
 
-        int y = min(min(0, b.y) + viewY, m_ptOrigin.y);
-        y -= unitY - 1;
-        y -= y % unitY;
-        if (y != 0) {
-            m_ptOrigin.y -= y;
-            size.y -= y;
-            viewY -= y;
+        if (m_virtualSize.y > cs.y) {
+            SetScrollbar(wxVERTICAL, m_yScrollPosition, cs.y, m_virtualSize.y);
+            GetClientSize(&cs.x, NULL);
+            done = needVBar;
+            needVBar = true;
         }
-
-        y = max(max(cs.y, b.GetBottom()) + viewY, m_ptOrigin.y + cs.y);
-        y += unitY - 1;
-        y -= y % unitY;
-        if (y != current.y)
-            size.y = y;
-
-        viewX /= unitX;
-        viewY /= unitY;
-
-#ifdef __WXMSW__
-        m_xScrollPosition = viewX;
-        m_yScrollPosition = viewY;
-#endif
-
-        if (current != size)
-            SetVirtualSize(size);
-
-        SetScrollPos(wxHORIZONTAL, m_xScrollPosition = viewX);
-        SetScrollPos(wxVERTICAL, m_yScrollPosition = viewY);
-
-        m_checkBounds = m_checkingBounds = false;
     }
+
+    if (!needHBar)
+        SetScrollbar(wxHORIZONTAL, 0, 0, 0);
+    if (!needVBar)
+        SetScrollbar(wxVERTICAL, 0, 0, 0);
+
+    m_sizeScrollbar = fullclient - cs;
+
+    m_checkBounds = false;
 }
 
 void GraphCanvas::OnPaint(wxPaintEvent&)
@@ -389,16 +417,11 @@ void GraphCanvas::OnSize(wxSizeEvent& event)
 
 void GraphCanvas::PrepareDC(wxDC& dc)
 {
-    int viewX, viewY;
-    GetViewStart(&viewX, &viewY);
+    int x = m_ptOrigin.x - m_xScrollPosition;
+    int y = m_ptOrigin.y - m_yScrollPosition;
 
-    int unitX, unitY;
-    GetScrollPixelsPerUnit(&unitX, &unitY);
-
-    wxPoint pt = dc.GetDeviceOrigin() + m_ptOrigin;
-
-    dc.SetDeviceOrigin(pt.x - viewX * unitX, pt.y - viewY * unitY);
-    dc.SetUserScale(GetScaleX(), GetScaleY());
+    dc.SetDeviceOrigin(x, y);
+    dc.SetUserScale(m_scaleX, m_scaleY);
 }
 
 void GraphCanvas::ScrollTo(const wxPoint& ptGraph, bool draw)
@@ -415,60 +438,13 @@ void GraphCanvas::ScrollTo(const wxPoint& ptGraph, bool draw)
 
 wxPoint GraphCanvas::ScrollByOffset(int x, int y, bool draw)
 {
-    wxSize cs = GetClientSize();
-    wxSize current = GetVirtualSize();
-    wxSize size = current;
+    m_xScrollPosition += x;
+    m_yScrollPosition += y;
 
-    int viewX, viewY;
-    GetViewStart(&viewX, &viewY);
-    int unitX, unitY;
-    GetScrollPixelsPerUnit(&unitX, &unitY);
-    viewX *= unitX;
-    viewY *= unitY;
+    if (draw)
+        ScrollWindow(-x, -y);
 
-    x -= x % unitX;
-    y -= y % unitY;
-
-    viewX += x;
-    viewY += y;
-
-    if (viewX < 0) {
-        m_ptOrigin.x -= viewX;
-        size.x -= viewX;
-        if (draw)
-            ScrollWindow(-viewX, 0);
-        viewX = 0;
-    }
-    else if (viewX + cs.x > size.x) {
-        size.x = viewX + cs.x;
-    }
-
-    if (viewY < 0) {
-        m_ptOrigin.y -= viewY;
-        size.y -= viewY;
-        if (draw)
-            ScrollWindow(0, -viewY);
-        viewY = 0;
-    }
-    else if (viewY + cs.y > size.y) {
-        size.y = viewY + cs.y;
-    }
-
-    if (size != current)
-        SetVirtualSize(size);
-
-    viewX /= unitX;
-    viewY /= unitY;
-
-    if (draw) {
-        Scroll(viewX, viewY);
-    }
-    else {
-        if (m_xScrollPosition != viewX)
-            SetScrollPos(wxHORIZONTAL, m_xScrollPosition = viewX);
-        if (m_yScrollPosition != viewY)
-            SetScrollPos(wxVERTICAL, m_yScrollPosition = viewY);
-    }
+    CheckBounds();
 
     return wxPoint(x, y);
 }

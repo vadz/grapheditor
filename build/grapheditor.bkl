@@ -81,10 +81,10 @@ Makefile: grapheditor.bkl
 
         <library>grapheditor</library>
 
-        <wx-lib>base</wx-lib>
-        <wx-lib>core</wx-lib>
-        <wx-lib>html</wx-lib>
         <wx-lib>ogl</wx-lib>
+        <wx-lib>html</wx-lib>
+        <wx-lib>core</wx-lib>
+        <wx-lib>base</wx-lib>
 
         <ldflags>$(GRAPHVIZ_LDFLAGS)</ldflags>
         <app-type>gui</app-type>

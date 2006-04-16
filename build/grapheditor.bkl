@@ -6,17 +6,24 @@
         Configuration
      ====================================================================== -->
 
+    <set var="GRAPHVIZ_CPPFLAGS_DEFAULT">
+        <if cond="FORMAT=='gnu'">`pkg-config libgvc --cflags`</if>
+        <if cond="FORMAT!='gnu'">-DNO_GRAPHVIZ</if>
+    </set>
     <option name="GRAPHVIZ_CPPFLAGS">
         <description>Compiler flags needed for graphviz</description>
-        <default-value>pkg-config libgvc --cflags</default-value>
+        <default-value>$(GRAPHVIZ_CPPFLAGS_DEFAULT)</default-value>
     </option>
 
+    <set var="GRAPHVIZ_LDFLAGS_DEFAULT">
+        <if cond="FORMAT=='gnu'">`pkg-config libgvc --libs`</if>
+    </set>
     <option name="GRAPHVIZ_LDFLAGS">
         <description>Linker flags needed for graphviz</description>
-        <default-value>pkg-config libgvc --libs</default-value>
+        <default-value>$(GRAPHVIZ_LDFLAGS_DEFAULT)</default-value>
     </option>
 
-    <if cond="FORMAT=='gnu'">
+    <if cond="FORMAT!='msvc6prj'">
         <set var="BUILDDIR">obj</set>
     </if>
     <set var="SRCDIR">..</set>
@@ -29,12 +36,20 @@
     <include file="presets/simple.bkl"/>
     <include file="presets/wx.bkl"/>
 
+    <!-- the wx-lib tag for the gnu format doesn't add the libs to the link
+         so override WX_LIBS here -->
+    <if cond="FORMAT=='gnu'">
+        <set var="WX_LIBS">`$(WX_CONFIG) --libs ogl html core base`</set>
+    </if>
+
+    <!--
     <fragment format="gnu">
 # regenerate Makefile when bakefile changes
 Makefile: grapheditor.bkl
 	bakefile $(BKLFLAGS_GRAPHEDITOR) -f gnu -o $@ $&lt;
 	@touch $@
     </fragment>
+    -->
 
     <template id="graphcommon" template="simple">
         <warnings>max</warnings>

@@ -267,7 +267,6 @@ public:
     virtual void OnDraw(wxDC& dc);
 
     GraphShape *GetShape() const { return DoGetShape(); }
-    virtual void SetShape(GraphShape *shape);
 
     virtual Graph *GetGraph() const;
     virtual wxSize GetSize() const;
@@ -278,10 +277,10 @@ public:
 protected:
     virtual void DoSelect(bool select);
     virtual void UpdateShape() = 0;
+    virtual void SetShape(GraphShape *shape);
     virtual GraphShape *DoGetShape() const { return m_shape; }
 
 private:
-
     wxColour m_colour;
     wxColour m_bgcolour;
 
@@ -314,7 +313,12 @@ public:
     typedef std::pair<const_iterator, const_iterator> const_iterator_pair;
 
     /** @brief An enumeration of predefined appearances for edges. */
-    enum Style { style_line, style_arrow };
+    enum Style {
+        Style_Custom,
+        Style_Line,
+        Style_Arrow,
+        Num_Styles
+    };
 
     /** @brief Constructor. */
     GraphEdge();
@@ -331,7 +335,7 @@ public:
      * @brief A number from the Style enumeration indicating the edge's
      * appearance.
      */
-    virtual void SetStyle();
+    virtual void SetStyle(int style);
 
     /**
      * @brief An interator range returning the two nodes this edge connects.
@@ -381,7 +385,12 @@ public:
     typedef std::pair<const_iterator, const_iterator> const_iterator_pair;
 
     /** @brief An enumeration of predefined appearances for nodes. */
-    enum Style { style_rectangle };
+    enum Style {
+        Style_Custom,
+        Style_Rectangle,
+        Style_Elipse,
+        Num_Styles
+    };
 
     /** @brief Constructor. */
     GraphNode();
@@ -397,6 +406,7 @@ public:
      * appearance.
      */
     virtual int GetStyle() const            { return m_style; }
+
     /** @brief The colour of the node's text. */
     virtual wxColour GetTextColour() const  { return m_textcolour; }
 
@@ -408,7 +418,7 @@ public:
      * @brief A number from the Style enumeration indicating the node's
      * appearance.
      */
-    virtual void SetStyle();
+    virtual void SetStyle(int style);
     /** @brief The colour of the node's text. */
     virtual void SetTextColour(const wxColour& colour);
 
@@ -434,6 +444,8 @@ public:
     virtual void SetSize(const wxSize& size);
 
     virtual void OnConstrainSize(int&, int&) { }
+
+    void SetShape(wxShape *shape);
 
 protected:
     virtual void UpdateShape();
@@ -725,9 +737,6 @@ public:
      */
     void RefreshBounds();
 
-    virtual GraphShape *DefaultShape(GraphNode *node);
-    virtual GraphLineShape *DefaultLineShape(GraphEdge *edge);
-
     /**
      * @brief Set an event handler to handle events from the Graph.
      */
@@ -788,9 +797,6 @@ private:
 typedef void (wxEvtHandler::*GraphEventFunction)(GraphEvent&);
 
 BEGIN_DECLARE_EVENT_TYPES()
-    /*DECLARE_EVENT_TYPE(Evt_Graph_Left_Click, wxEVT_USER_FIRST + 1101)
-    DECLARE_EVENT_TYPE(Evt_Graph_Left_Double_Click, wxEVT_USER_FIRST + 1102)
-    DECLARE_EVENT_TYPE(Evt_Graph_Right_Click, wxEVT_USER_FIRST + 1103)*/
 
     // Graph Events
 
@@ -810,6 +816,7 @@ BEGIN_DECLARE_EVENT_TYPES()
     DECLARE_EVENT_TYPE(Evt_Graph_Edge_Click, wxEVT_USER_FIRST + 1112)
     DECLARE_EVENT_TYPE(Evt_Graph_Edge_Activate, wxEVT_USER_FIRST + 1113)
     DECLARE_EVENT_TYPE(Evt_Graph_Edge_Menu, wxEVT_USER_FIRST + 1114)
+
 END_DECLARE_EVENT_TYPES()
 
 } // namespace tt_solutions
@@ -836,10 +843,6 @@ END_DECLARE_EVENT_TYPES()
 #define EVT_GRAPH_ELEMENT_DELETE(fn) EVT_GRAPH_NODE_DELETE(fn) EVT_GRAPH_EDGE_DELETE(fn)
 
 // GraphCtrl Events
-
-//#define EVT_GRAPH_LEFT_CLICK(id, fn) DECLARE_GRAPH_EVT1(Left_Click, id, fn)
-//#define EVT_GRAPH_LEFT_DOUBLE_CLICK(id, fn) DECLARE_GRAPH_EVT1(Left_Double_Click, id, fn)
-//#define EVT_GRAPH_RIGHT_CLICK(id, fn) DECLARE_GRAPH_EVT1(Right_Click, id, fn)
 
 #define EVT_GRAPH_NODE_CLICK(id, fn) DECLARE_GRAPH_EVT1(Node_Click, id, fn)
 #define EVT_GRAPH_NODE_ACTIVATE(id, fn) DECLARE_GRAPH_EVT1(Node_Activate, id, fn)

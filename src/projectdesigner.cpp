@@ -215,6 +215,7 @@ ProjectNode::ProjectNode()
     m_borderThickness = 6;
     m_cornerRadius = 10;
     m_divide = 0;
+    SetStyle(Style_Custom);
 }
 
 
@@ -271,14 +272,16 @@ int ProjectNode::HitTest(const wxPoint& pt) const
     if (!bounds.Inside(pt))
         return Hit_No;
 
-    wxPoint ptNode = pt - bounds.GetTopLeft();
+    if (GetStyle() == Style_Custom) {
+        wxPoint ptNode = pt - bounds.GetTopLeft();
 
-    if (m_rcText.Inside(ptNode))
-        return Hit_Operation;
-    if (m_rcResult.Inside(ptNode))
-        return Hit_Result;
-    if (m_rcIcon.Inside(ptNode))
-        return Hit_Image;
+        if (m_rcText.Inside(ptNode))
+            return Hit_Operation;
+        if (m_rcResult.Inside(ptNode))
+            return Hit_Result;
+        if (m_rcIcon.Inside(ptNode))
+            return Hit_Image;
+    }
 
     return Hit_Yes;
 }
@@ -334,33 +337,39 @@ void ProjectNode::OnLayout(wxDC &dc)
 
 void ProjectNode::OnDraw(wxDC& dc)
 {
-    wxRect bounds = GetBounds();
-    wxRect rc = bounds;
-    rc.Deflate(m_borderThickness / 2);
+    if (GetStyle() == Style_Custom) {
+        wxRect bounds = GetBounds();
+        wxRect rc = bounds;
+        rc.Deflate(m_borderThickness / 2);
 
-    dc.SetPen(wxPen(GetColour(), m_borderThickness));
-    dc.SetBrush(GetBackgroundColour());
-    dc.SetFont(GetFont());
-    dc.SetTextForeground(GetTextColour());
+        dc.SetPen(wxPen(GetColour(), m_borderThickness));
+        dc.SetBrush(GetBackgroundColour());
+        dc.SetFont(GetFont());
+        dc.SetTextForeground(GetTextColour());
 
-    dc.DrawRoundedRectangle(rc, GetCornerRadius());
-    rc.height = m_divide;
-    dc.SetBrush(GetColour());
-    dc.DrawRoundedRectangle(rc, GetCornerRadius());
-    if (m_cornerRadius > m_borderThickness) {
-        rc.y += m_cornerRadius;
-        rc.height -= m_cornerRadius;
-        dc.DrawRectangle(rc);
+        dc.DrawRoundedRectangle(rc, GetCornerRadius());
+        rc.height = m_divide;
+        dc.SetBrush(GetColour());
+        dc.DrawRoundedRectangle(rc, GetCornerRadius());
+        if (m_cornerRadius > m_borderThickness) {
+            rc.y += m_cornerRadius;
+            rc.height -= m_cornerRadius;
+            dc.DrawRectangle(rc);
+        }
+
+        rc = m_rcText;
+        rc.Offset(bounds.GetTopLeft());
+        dc.DrawLabel(GetText(), rc);
+        rc = m_rcResult;
+        rc.Offset(bounds.GetTopLeft());
+        dc.DrawLabel(GetResult(), rc);
+        if (GetIcon().Ok())
+            dc.DrawIcon(GetIcon(), bounds.GetTopLeft() +
+                                   m_rcIcon.GetTopLeft());
     }
-
-    rc = m_rcText;
-    rc.Offset(bounds.GetTopLeft());
-    dc.DrawLabel(GetText(), rc);
-    rc = m_rcResult;
-    rc.Offset(bounds.GetTopLeft());
-    dc.DrawLabel(GetResult(), rc);
-    if (GetIcon().Ok())
-        dc.DrawIcon(GetIcon(), bounds.GetTopLeft() + m_rcIcon.GetTopLeft());
+    else {
+        GraphNode::OnDraw(dc);
+    }
 }
 
 } // namespace datactics

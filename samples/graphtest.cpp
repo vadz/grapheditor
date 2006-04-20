@@ -167,6 +167,7 @@ using datactics::ProjectNode;
 using tt_solutions::GraphTreeEvent;
 using tt_solutions::GraphTreeCtrl;
 using tt_solutions::GraphElement;
+using tt_solutions::GraphEdge;
 using tt_solutions::GraphNode;
 using tt_solutions::GraphEvent;
 using tt_solutions::Graph;
@@ -247,6 +248,8 @@ public:
     void OnSetColour(wxCommandEvent& event);
     void OnSetBgColour(wxCommandEvent& event);
     void OnSetTextColour(wxCommandEvent& event);
+    void OnSetStyle(wxCommandEvent&);
+    void OnSetLineStyle(wxCommandEvent&);
 
     wxString TextPrompt(const wxString& prompt, const wxString& value);
 
@@ -259,6 +262,7 @@ public:
 private:
     ProjectDesigner *m_graphctrl;
     GraphElement *m_element;
+    GraphEdge *m_edge;
     GraphNode *m_node;
     Graph *m_graph;
 
@@ -281,7 +285,13 @@ enum {
     ID_SETFONT,
     ID_SETCOLOUR,
     ID_SETBGCOLOUR,
-    ID_SETTEXTCOLOUR
+    ID_SETTEXTCOLOUR,
+    ID_STYLE,
+    ID_CUSTOM,
+    ID_RECTANGLE,
+    ID_ELIPSE,
+    ID_LINE,
+    ID_ARROW
 };
 
 // ----------------------------------------------------------------------------
@@ -316,6 +326,11 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(ID_SETCOLOUR, MyFrame::OnSetColour)
     EVT_MENU(ID_SETBGCOLOUR, MyFrame::OnSetBgColour)
     EVT_MENU(ID_SETTEXTCOLOUR, MyFrame::OnSetTextColour)
+    EVT_MENU(ID_CUSTOM, MyFrame::OnSetStyle)
+    EVT_MENU(ID_RECTANGLE, MyFrame::OnSetStyle)
+    EVT_MENU(ID_ELIPSE, MyFrame::OnSetStyle)
+    EVT_MENU(ID_LINE, MyFrame::OnSetLineStyle)
+    EVT_MENU(ID_ARROW, MyFrame::OnSetLineStyle)
 
     EVT_MENU(wxID_HELP, MyFrame::OnHelp)
     EVT_MENU(wxID_ABOUT, MyFrame::OnAbout)
@@ -577,6 +592,12 @@ void MyFrame::OnMenuNode(GraphEvent& event)
     menu.Append(ID_SETBGCOLOUR, _T("Set &Background Colour..."));
     menu.Append(ID_SETTEXTCOLOUR, _T("Set &Text Colour..."));
 
+    wxMenu *submenu = new wxMenu;
+    submenu->Append(ID_CUSTOM, _T("&Custom"));
+    submenu->Append(ID_RECTANGLE, _T("&Rectangle"));
+    submenu->Append(ID_ELIPSE, _T("&Elipse"));
+    menu.Append(ID_STYLE, _T("Set St&yle"), submenu);
+
     wxPoint pt = event.GetPosition();
     wxPoint ptClient = ScreenToClient(m_graphctrl->GraphToScreen(pt));
 
@@ -630,12 +651,17 @@ void MyFrame::OnMenuEdge(GraphEvent& event)
     menu.Append(ID_SETCOLOUR, _T("Set &Colour..."));
     menu.Append(ID_SETBGCOLOUR, _T("Set &Background Colour..."));
 
+    wxMenu *submenu = new wxMenu;
+    submenu->Append(ID_LINE, _T("&Line"));
+    submenu->Append(ID_ARROW, _T("&Arrow"));
+    menu.Append(ID_STYLE, _T("Set &Style"), submenu);
+
     wxPoint pt = event.GetPosition();
     wxPoint ptClient = ScreenToClient(m_graphctrl->GraphToScreen(pt));
 
-    m_element = event.GetEdge();
+    m_element = m_edge = event.GetEdge();
     PopupMenu(&menu, ptClient.x, ptClient.y);
-    m_element = NULL;
+    m_element = m_edge = NULL;
 }
 
 void MyFrame::OnQuit(wxCommandEvent&)
@@ -660,6 +686,7 @@ void MyFrame::OnHelp(wxCommandEvent&)
         wxLogNull nolog;
         wxHtmlWindow *html = new wxHtmlWindow(frame);
 
+        // work around the wxhtml bug in wxWidgets 2.6.3
 #if defined __WXGTK__ && !wxUSE_UNICODE
         html->GetParser()->SetInputEncoding(wxFONTENCODING_SYSTEM);
 #endif
@@ -747,6 +774,31 @@ void MyFrame::OnSetTextColour(wxCommandEvent&)
 
         for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it)
             it->SetTextColour(colour);
+    }
+}
+
+void MyFrame::OnSetStyle(wxCommandEvent& event)
+{
+    Graph::node_iterator it, end;
+    tie(it, end) = m_graph->GetSelectionNodes();
+
+    while (it != end) {
+        GraphNode& node= *it;
+        ++it;
+        node.SetStyle(event.GetId() - ID_CUSTOM + GraphNode::Style_Custom);
+    }
+}
+
+void MyFrame::OnSetLineStyle(wxCommandEvent& event)
+{
+    Graph::iterator it, end;
+    tie(it, end) = m_graph->GetSelection();
+
+    while (it != end) {
+        GraphEdge *edge = wxDynamicCast(&*it, GraphEdge);
+        ++it;
+        if (edge)
+            edge->SetStyle(event.GetId() - ID_LINE + GraphEdge::Style_Line);
     }
 }
 

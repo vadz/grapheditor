@@ -31,10 +31,6 @@ using namespace impl;
 // Events
 // ----------------------------------------------------------------------------
 
-/*DEFINE_EVENT_TYPE(Evt_Graph_Left_Click)
-DEFINE_EVENT_TYPE(Evt_Graph_Left_Double_Click)
-DEFINE_EVENT_TYPE(Evt_Graph_Right_Click)*/
-
 // Graph Events
 
 DEFINE_EVENT_TYPE(Evt_Graph_Node_Add)
@@ -53,6 +49,10 @@ DEFINE_EVENT_TYPE(Evt_Graph_Node_Menu)
 DEFINE_EVENT_TYPE(Evt_Graph_Edge_Click)
 DEFINE_EVENT_TYPE(Evt_Graph_Edge_Activate)
 DEFINE_EVENT_TYPE(Evt_Graph_Edge_Menu)
+
+// ----------------------------------------------------------------------------
+// Helpers
+// ----------------------------------------------------------------------------
 
 namespace {
 
@@ -200,6 +200,7 @@ GraphCanvas::GraphCanvas(
     m_isPanning(false),
     m_checkBounds(false)
 {
+    SetScrollRate(1, 1);
 }
 
 void GraphCanvas::OnLeftClick(double, double, int)
@@ -444,7 +445,7 @@ wxPoint GraphCanvas::ScrollByOffset(int x, int y, bool draw)
     if (draw)
         ScrollWindow(-x, -y);
 
-    CheckBounds();
+    SetCheckBounds();
 
     return wxPoint(x, y);
 }
@@ -911,9 +912,14 @@ public:
 void GraphDiagram::SetEventHandler(wxShape *shape)
 {
     wxShapeEvtHandler *handler;
+    void *data = shape->GetClientData();
 
     if (shape->GetClassInfo() == CLASSINFO(wxControlPoint))
         handler = new ControlPointHandler(shape);
+    else if (wxDynamicCast(data, GraphNode))
+        handler = new GraphNodeHandler(shape);
+    else if (wxDynamicCast(data, GraphElement))
+        handler = new GraphElementHandler(shape);
     else
         handler = new GraphHandler(shape);
 
@@ -1238,34 +1244,6 @@ GraphCanvas *Graph::GetCanvas() const
     return canvas ? wxStaticCast(canvas, GraphCanvas) : NULL;
 }
 
-wxShape *Graph::DefaultShape(GraphNode*)
-{
-    wxShape *shape;
-
-    /*switch (node->GetStyle())
-    {
-        default:
-            shape = new wxRectangleShape;
-            break;
-    }*/
-    shape = new wxRectangleShape;
-
-    shape->SetSize(100, 50);
-    shape->Show(true);
-
-    return shape;
-}
-
-wxLineShape *Graph::DefaultLineShape(GraphEdge*)
-{
-    wxLineShape *line = new wxLineShape;
-    line->MakeLineControlPoints(2);
-    line->Show(true);
-    line->AddArrow(ARROW_ARROW);
-
-    return line;
-}
-
 GraphNode *Graph::Add(GraphNode *node, wxPoint pt)
 {
     GraphEvent event(Evt_Graph_Node_Add);
@@ -1275,11 +1253,11 @@ GraphNode *Graph::Add(GraphNode *node, wxPoint pt)
 
     if (event.IsAllowed()) {
         wxShape *shape = node->GetShape();
-        if (!shape)
-            node->SetShape(shape = DefaultShape(node));
-
-        shape->SetEventHandler(new GraphNodeHandler(shape));
-        m_diagram->wxDiagram::AddShape(shape);
+        if (!shape) {
+            node->SetStyle(node->GetStyle());
+            shape = node->GetShape();
+        }
+        m_diagram->AddShape(shape);
         node->SetPosition(pt);
         return node;
     }
@@ -1301,16 +1279,17 @@ GraphEdge *Graph::Add(GraphNode& from, GraphNode& to, GraphEdge *edge)
         if (!edge)
             edge = new GraphEdge;
 
-        wxLineShape *line = (wxLineShape*)edge->GetShape();
-        if (!line)
-            edge->SetShape(line = DefaultLineShape(edge));
+        wxLineShape *line = edge->GetShape();
+        if (!line) {
+            edge->SetStyle(edge->GetStyle());
+            line = edge->GetShape();
+        }
 
         wxShape *fromshape = from.GetShape();
         wxShape *toshape = to.GetShape();
         fromshape->AddLine(line, toshape);
 
-        line->SetEventHandler(new GraphElementHandler(line));
-        m_diagram->wxDiagram::AddShape(line);
+        m_diagram->AddShape(line);
 
         double x1, y1, x2, y2;
         line->FindLineEndPoints(&x1, &y1, &x2, &y2);
@@ -1811,6 +1790,58 @@ GraphElement::~GraphElement()
     delete m_shape;
 }
 
+void GraphElement::SetShape(wxShape *shape)
+{
+    wxShapeCanvas *canvas = m_shape ? m_shape->GetCanvas() : NULL;
+    wxShape *prev = NULL;
+    double x = 0, y = 0;
+    double w = 0, h = 0;
+    bool sel = false;
+
+    if (canvas) {
+        Refresh();
+
+        x = m_shape->GetX();
+        y = m_shape->GetY();
+
+        m_shape->GetBoundingBoxMin(&w, &h);
+
+        sel = m_shape->Selected();
+        if (sel)
+            m_shape->Select(false);
+
+        if (shape) {
+            wxList *list = canvas->GetDiagram()->GetShapeList();
+            wxObjectListNode *node = list->Find(m_shape)->GetPrevious();
+            prev = node ? static_cast<wxShape*>(node->GetData()) : NULL;
+        }
+
+        canvas->RemoveShape(m_shape);
+    }
+
+    delete m_shape;
+
+    m_shape = shape;
+
+    if (shape) {
+        shape->SetClientData(this);
+
+        if (canvas) {
+            shape->SetX(x);
+            shape->SetY(y);
+            shape->SetSize(w, h);
+
+            canvas->AddShape(shape, prev);
+
+            if (sel)
+                shape->Select(true);
+        }
+
+        UpdateShape();
+        Refresh();
+    }
+}
+
 Graph *GraphElement::GetGraph() const
 {
     wxShapeCanvas *canvas = GetCanvas(m_shape);
@@ -1874,15 +1905,6 @@ bool GraphElement::IsSelected() const
     return m_shape && m_shape->Selected();
 }
 
-void GraphElement::SetShape(wxShape *shape)
-{
-    wxASSERT(m_shape == NULL);
-    m_shape = shape;
-    shape->SetClientData(this);
-    UpdateShape();
-    Refresh();
-}
-
 wxRect GraphElement::GetBounds() const
 {
     wxShape *shape = GetShape();
@@ -1903,7 +1925,7 @@ wxRect GraphElement::GetBounds() const
 wxPoint GraphElement::GetPosition() const
 {
     wxShape *shape = GetShape();
-    wxPoint pt(0, 0);
+    wxPoint pt;
 
     if (shape) {
         pt.x = WXROUND(shape->GetX());
@@ -1916,7 +1938,7 @@ wxPoint GraphElement::GetPosition() const
 wxSize GraphElement::GetSize() const
 {
     wxShape *shape = GetShape();
-    wxSize size(0, 0);
+    wxSize size;
 
     if (shape) {
         double width, height;
@@ -1935,6 +1957,7 @@ wxSize GraphElement::GetSize() const
 IMPLEMENT_DYNAMIC_CLASS(GraphEdge, GraphElement)
 
 GraphEdge::GraphEdge()
+  : m_style(Style_Arrow)
 {
 }
 
@@ -1942,8 +1965,43 @@ GraphEdge::~GraphEdge()
 {
 }
 
-void GraphEdge::SetStyle()
+void GraphEdge::SetShape(wxLineShape *line)
 {
+    wxLineShape *old = GetShape();
+
+    if (old && line) {
+        wxShape *from = old->GetFrom();
+        wxShape *to = old->GetTo();
+        if (from && to) {
+            from->AddLine(line, to);
+            double x1, y1, x2, y2;
+            line->FindLineEndPoints(&x1, &y1, &x2, &y2);
+            line->SetEnds(x1, y1, x2, y2);
+        }
+        old->Unlink();
+    }
+
+    GraphElement::SetShape(line);
+    m_style = Style_Custom;
+}
+
+wxLineShape *GraphEdge::GetShape() const
+{
+    return static_cast<wxLineShape*>(GraphElement::DoGetShape());
+}
+
+void GraphEdge::SetStyle(int style)
+{
+    wxLineShape *line = new wxLineShape;
+
+    line->MakeLineControlPoints(2);
+    line->Show(true);
+ 
+    if (style == Style_Arrow)
+        line->AddArrow(ARROW_ARROW);
+
+    SetShape(line);
+    m_style = style;
 }
 
 bool GraphEdge::Serialize(wxOutputStream&) const
@@ -1974,16 +2032,6 @@ GraphEdge::const_iterator_pair GraphEdge::GetNodes() const
                      const_iterator(new PairIterImpl(line, true)));
 }
 
-wxLineShape *GraphEdge::GetShape() const
-{
-    return static_cast<wxLineShape*>(GraphElement::DoGetShape());
-}
-
-void GraphEdge::SetShape(wxLineShape *line)
-{
-    GraphElement::SetShape(line);
-}
-
 // ----------------------------------------------------------------------------
 // GraphNode
 // ----------------------------------------------------------------------------
@@ -1991,13 +2039,53 @@ void GraphEdge::SetShape(wxLineShape *line)
 IMPLEMENT_DYNAMIC_CLASS(GraphNode, GraphElement)
 
 GraphNode::GraphNode()
-  : m_style(0),
+  : m_style(Style_Rectangle),
     m_textcolour(*wxBLACK)
 {
 }
 
 GraphNode::~GraphNode()
 {
+}
+
+void GraphNode::SetShape(wxShape *shape)
+{
+    if (GetShape() && shape) {
+        wxList& lines = GetShape()->GetLines();
+        wxList::iterator it, end;
+        
+        for ( it= lines.begin(), end = lines.end(); it != end; ++it) {
+            wxLineShape *line = static_cast<wxLineShape*>(*it);
+
+            if (line->GetFrom() == GetShape())
+                shape->AddLine(line, line->GetTo());
+            else
+                line->GetFrom()->AddLine(line, shape);
+        }
+    }
+
+    GraphElement::SetShape(shape);
+    m_style = Style_Custom;
+}
+
+void GraphNode::SetStyle(int style)
+{
+    wxShape *shape;
+        
+    switch (style) {
+        case Style_Elipse:
+            shape = new wxEllipseShape;
+            break;
+        default:
+            shape = new wxRectangleShape;
+            break;
+    }
+
+    shape->SetSize(100, 50);
+    shape->Show(true);
+
+    SetShape(shape);
+    m_style = style;
 }
 
 void GraphNode::Layout()
@@ -2107,8 +2195,6 @@ void GraphNode::UpdateShapeTextColour()
         shape->SetTextColour(name);
     }
 }
-
-void GraphNode::SetStyle() { wxFAIL; }
 
 GraphNode::iterator_pair GraphNode::GetEdges()
 {

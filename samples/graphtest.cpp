@@ -12,7 +12,7 @@
 // Notes:
 //
 // This code from MyFrame::MyFrame() shows how to create graph control:
-// 
+//
 //  m_graphctrl = new ProjectDesigner(splitter);
 //  m_graph = new Graph;
 //  m_graphctrl->SetGraph(m_graph);
@@ -614,7 +614,7 @@ void MyFrame::OnAddEdge(GraphEvent&)
 // An example of disallowing connections between particular nodes. No
 // Outgoing connections are allowed from Export nodes, and no incoming
 // connections are allowed from Import nodes.
-// 
+//
 void MyFrame::OnAddingEdge(GraphEvent& event)
 {
     wxLogDebug(_T("OnAddingEdge"));
@@ -674,7 +674,7 @@ void MyFrame::OnHelp(wxCommandEvent&)
 {
     wxString name = _T("graphtest_help");
     wxWindow *win = FindWindow(name);
-        
+
     if (win != NULL) {
         win->Raise();
     }

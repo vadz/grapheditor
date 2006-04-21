@@ -745,7 +745,7 @@ public:
      * @brief Returns the current event handler.
      */
     virtual wxEvtHandler *GetEventHandler() const;
- 
+
     void SendEvent(wxEvent& event);
 
 private:

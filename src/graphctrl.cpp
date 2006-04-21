@@ -321,7 +321,7 @@ void GraphCanvas::OnScroll(wxScrollWinEvent& event)
         pos = size - cs;
     if (pos < 0)
         pos = 0;
-        
+
     if (horz)
         ScrollByOffset(pos - m_xScrollPosition, 0);
     else
@@ -1996,7 +1996,7 @@ void GraphEdge::SetStyle(int style)
 
     line->MakeLineControlPoints(2);
     line->Show(true);
- 
+
     if (style == Style_Arrow)
         line->AddArrow(ARROW_ARROW);
 
@@ -2050,14 +2050,16 @@ GraphNode::~GraphNode()
 
 void GraphNode::SetShape(wxShape *shape)
 {
-    if (GetShape() && shape) {
-        wxList& lines = GetShape()->GetLines();
+    wxShape *old = GetShape();
+
+    if (old && shape) {
+        wxList& lines = old->GetLines();
         wxList::iterator it, end;
-        
-        for ( it= lines.begin(), end = lines.end(); it != end; ++it) {
+
+        for (it = lines.begin(), end = lines.end(); it != end; ++it) {
             wxLineShape *line = static_cast<wxLineShape*>(*it);
 
-            if (line->GetFrom() == GetShape())
+            if (line->GetFrom() == old)
                 shape->AddLine(line, line->GetTo());
             else
                 line->GetFrom()->AddLine(line, shape);
@@ -2066,12 +2068,24 @@ void GraphNode::SetShape(wxShape *shape)
 
     GraphElement::SetShape(shape);
     m_style = Style_Custom;
+
+    if (old && shape) {
+        wxList& lines = shape->GetLines();
+        wxList::iterator it, end;
+
+        for (it = lines.begin(), end = lines.end(); it != end; ++it) {
+            wxLineShape *line = static_cast<wxLineShape*>(*it);
+            double x1, y1, x2, y2;
+            line->FindLineEndPoints(&x1, &y1, &x2, &y2);
+            line->SetEnds(x1, y1, x2, y2);
+        }
+    }
 }
 
 void GraphNode::SetStyle(int style)
 {
     wxShape *shape;
-        
+
     switch (style) {
         case Style_Elipse:
             shape = new wxEllipseShape;

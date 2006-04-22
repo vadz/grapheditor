@@ -78,7 +78,6 @@ public:
     int GetCornerRadius()                   { return m_cornerRadius; }
 
     void OnDraw(wxDC& dc);
-    void OnConstrainSize(int& x, int& y);
     void OnLayout(wxDC &dc);
 
 private:

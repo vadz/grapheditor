@@ -96,6 +96,19 @@ char *unconst(const char *str)
     return const_cast<char*>(str);
 }
 
+wxPolygonShape *CreatePolygon(int num_points, const int points[][2])
+{
+    wxList *list = new wxList;
+
+    for (int i = 0; i < num_points; i++)
+        list->Append(reinterpret_cast<wxObject*>
+                     (new wxRealPoint(points[i][0], points[i][1])));
+
+    wxPolygonShape *shape = new wxPolygonShape;
+    shape->Create(list);
+    return shape;
+}
+
 } // namespace
 
 // ----------------------------------------------------------------------------
@@ -703,8 +716,6 @@ public:
     void OnSizingDragLeft(wxControlPoint* pt, bool draw, double x, double y, int keys, int attachment);
     void OnSizingEndDragLeft(wxControlPoint* pt, double x, double y, int keys, int attachment);
 
-    void CallOnSize(double& x, double& y);
-
     inline GraphNode *GetNode() const;
 
 private:
@@ -862,7 +873,6 @@ void GraphNodeHandler::OnSizingDragLeft(wxControlPoint* pt, bool draw,
                                         double x, double y,
                                         int keys, int attachment)
 {
-    CallOnSize(x, y);
     GraphElementHandler::OnSizingDragLeft(pt, draw, x, y, keys, attachment);
 }
 
@@ -870,27 +880,16 @@ void GraphNodeHandler::OnSizingEndDragLeft(wxControlPoint* pt,
                                            double x, double y,
                                            int keys, int attachment)
 {
-    CallOnSize(x, y);
-    GraphElementHandler::OnSizingEndDragLeft(pt, x, y, keys, attachment);
     GraphNode *node = GetNode();
-    node->SetSize(node->GetSize());
-}
-
-void GraphNodeHandler::CallOnSize(double& x, double& y)
-{
     wxShape *shape = GetShape();
-
-    double shapeX = shape->GetX();
-    double shapeY = shape->GetY();
-    int signX = x >= shapeX ? 1 : -1;
-    int signY = y >= shapeY ? 1 : -1;
-    int w = signX * int(x - shapeX) * 2;
-    int h = signY * int(y - shapeY) * 2;
-
-    GetNode()->OnConstrainSize(w, h);
-
-    x = shapeX + signX * w / 2;
-    y = shapeY + signY * h / 2;
+    wxDiagram *diagram = shape->GetCanvas()->GetDiagram();
+    node->Refresh();
+    shape->Show(false);
+    diagram->SetQuickEditMode(true);
+    GraphElementHandler::OnSizingEndDragLeft(pt, x, y, keys, attachment);
+    shape->Show(true);
+    diagram->SetQuickEditMode(false);
+    node->SetSize(node->GetSize());
 }
 
 } // namespace
@@ -2084,11 +2083,24 @@ void GraphNode::SetShape(wxShape *shape)
 
 void GraphNode::SetStyle(int style)
 {
+    static const int triangle[][2] = {
+        { 0, -1 }, { 1, 1 }, { -1, 1 }
+    };
+    static const int diamond[][2] = {
+        { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 }
+    };
+
     wxShape *shape;
 
     switch (style) {
         case Style_Elipse:
             shape = new wxEllipseShape;
+            break;
+        case Style_Triangle:
+            shape = CreatePolygon(WXSIZEOF(triangle), triangle);
+            break;
+        case Style_Diamond:
+            shape = CreatePolygon(WXSIZEOF(diamond), diamond);
             break;
         default:
             shape = new wxRectangleShape;

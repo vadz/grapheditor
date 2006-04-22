@@ -257,14 +257,6 @@ void ProjectNode::SetIcon(const wxIcon& icon)
     Refresh();
 }
 
-void ProjectNode::OnConstrainSize(int& x, int& y)
-{
-    if (x < m_minSize.x)
-        x = m_minSize.x;
-    if (y < m_minSize.y)
-        y = m_minSize.y;
-}
-
 int ProjectNode::HitTest(const wxPoint& pt) const
 {
     wxRect bounds = GetBounds();

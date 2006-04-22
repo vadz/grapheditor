@@ -389,6 +389,8 @@ public:
         Style_Custom,
         Style_Rectangle,
         Style_Elipse,
+        Style_Triangle,
+        Style_Diamond,
         Num_Styles
     };
 
@@ -442,8 +444,6 @@ public:
      * @brief Resize the node.
      */
     virtual void SetSize(const wxSize& size);
-
-    virtual void OnConstrainSize(int&, int&) { }
 
     void SetShape(wxShape *shape);
 

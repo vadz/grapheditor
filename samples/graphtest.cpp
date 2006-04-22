@@ -290,6 +290,8 @@ enum {
     ID_CUSTOM,
     ID_RECTANGLE,
     ID_ELIPSE,
+    ID_TRIANGLE,
+    ID_DIAMOND,
     ID_LINE,
     ID_ARROW
 };
@@ -329,6 +331,8 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(ID_CUSTOM, MyFrame::OnSetStyle)
     EVT_MENU(ID_RECTANGLE, MyFrame::OnSetStyle)
     EVT_MENU(ID_ELIPSE, MyFrame::OnSetStyle)
+    EVT_MENU(ID_TRIANGLE, MyFrame::OnSetStyle)
+    EVT_MENU(ID_DIAMOND, MyFrame::OnSetStyle)
     EVT_MENU(ID_LINE, MyFrame::OnSetLineStyle)
     EVT_MENU(ID_ARROW, MyFrame::OnSetLineStyle)
 
@@ -596,6 +600,8 @@ void MyFrame::OnMenuNode(GraphEvent& event)
     submenu->Append(ID_CUSTOM, _T("&Custom"));
     submenu->Append(ID_RECTANGLE, _T("&Rectangle"));
     submenu->Append(ID_ELIPSE, _T("&Elipse"));
+    submenu->Append(ID_TRIANGLE, _T("&Triangle"));
+    submenu->Append(ID_DIAMOND, _T("&Diamond"));
     menu.Append(ID_STYLE, _T("Set St&yle"), submenu);
 
     wxPoint pt = event.GetPosition();

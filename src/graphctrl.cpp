@@ -1288,7 +1288,7 @@ GraphEdge *Graph::Add(GraphNode& from, GraphNode& to, GraphEdge *edge)
         wxShape *toshape = to.GetShape();
         fromshape->AddLine(line, toshape);
 
-        m_diagram->AddShape(line);
+        m_diagram->InsertShape(line);
 
         double x1, y1, x2, y2;
         line->FindLineEndPoints(&x1, &y1, &x2, &y2);

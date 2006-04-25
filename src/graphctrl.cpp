@@ -794,13 +794,15 @@ void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
             m_sources.clear();
 
             for (tie(it, end) = graph->GetSelectionNodes(); it != end; ++it) {
-                GraphEvent event(Evt_Graph_Edge_Adding);
-                event.SetNode(&*it);
-                event.SetTarget(target);
-                event.SetPosition(wxPoint(int(x), int(y)));
-                graph->SendEvent(event);
-                if (event.IsAllowed())
-                    m_sources.push_back(&*it);
+                if (&*it != target) {
+                    GraphEvent event(Evt_Graph_Edge_Adding);
+                    event.SetNode(&*it);
+                    event.SetTarget(target);
+                    event.SetPosition(wxPoint(int(x), int(y)));
+                    graph->SendEvent(event);
+                    if (event.IsAllowed())
+                        m_sources.push_back(&*it);
+                }
             }
         }
 
@@ -1557,45 +1559,52 @@ bool Graph::Layout(const node_iterator_pair& range)
     wxLogError(_("No layout engine available"));
     return false;
 #else
-#ifdef __VISUALC__
-    class NoLeakCheck
-    {
-    public:
-        NoLeakCheck() : flags(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG)) {
-            _CrtSetDbgFlag(flags & ~_CRTDBG_ALLOC_MEM_DF);
-        }
-        ~NoLeakCheck() {
-            _CrtSetDbgFlag(flags);
-        }
-    private:
-        int flags;
-    };
+    Agraph_t *graph;
+    bool ok;
+    GVC_t *context;
 
-    NoLeakCheck noCheck;
+    {
+        class GraphVizContext
+        {
+        public:
+            GraphVizContext() {
+                context = gvContext();
+            }
+            ~GraphVizContext() {
+                gvFreeContext(context);
+            }
+            GVC_t* get() {
+                return context;
+            }
+        private:
+            GVC_t *context;
+        };
+
+#ifdef __VISUALC__
+        class NoLeakCheck
+        {
+        public:
+            NoLeakCheck() : flags(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG)) {
+                _CrtSetDbgFlag(flags & ~_CRTDBG_ALLOC_MEM_DF);
+            }
+            ~NoLeakCheck() {
+                _CrtSetDbgFlag(flags);
+            }
+        private:
+            int flags;
+        };
+
+        NoLeakCheck noCheck;
 #endif
 
-    class GraphVizContext
-    {
-    public:
-        GraphVizContext() {
-            context = gvContext();
-        }
-        ~GraphVizContext() {
-            gvFreeContext(context);
-        }
-        operator GVC_t*() {
-            return context;
-        }
-    private:
-        GVC_t *context;
-    };
+        static GraphVizContext theContext;
+        context = theContext.get();
 
-    static GraphVizContext context;
+        graph = agmemread(unconst(dot.mb_str()));
+        wxCHECK(graph, false);
 
-    Agraph_t *graph = agmemread(unconst(dot.mb_str()));
-    wxCHECK(graph, false);
-
-    bool ok = gvLayout(context, graph, "dot") == 0;
+        ok = gvLayout(context, graph, "dot") == 0;
+    }
 
     if (ok)
     {

@@ -19,6 +19,11 @@
 #include <gd.h>
 #endif
 
+#if defined(__VISUALC__) && !defined(NDEBUG)
+    #define SUPPRESS_GRAPHVIZ_MEMLEAKS
+    #include <crtdbg.h>
+#endif
+
 namespace tt_solutions {
 
 using std::make_pair;
@@ -1558,7 +1563,7 @@ bool Graph::Layout(const node_iterator_pair& range)
 #ifdef NO_GRAPHVIZ
     wxLogError(_("No layout engine available"));
     return false;
-#else
+#else // using graphviz
     Agraph_t *graph;
     bool ok;
     GVC_t *context;
@@ -1580,7 +1585,11 @@ bool Graph::Layout(const node_iterator_pair& range)
             GVC_t *context;
         };
 
-#ifdef __VISUALC__
+#ifdef SUPPRESS_GRAPHVIZ_MEMLEAKS
+        // memory allocated during GraphVizContext creation is never freed so
+        // VC++ debug CRT reports it as leaked which is not really true as this
+        // is a one-time only allocation and, anyhow, we can do nothing about
+        // it, so just suppress the CRT reports about it
         class NoLeakCheck
         {
         public:
@@ -1595,7 +1604,7 @@ bool Graph::Layout(const node_iterator_pair& range)
         };
 
         NoLeakCheck noCheck;
-#endif
+#endif // SUPPRESS_GRAPHVIZ_MEMLEAKS
 
         static GraphVizContext theContext;
         context = theContext.get();
@@ -1645,7 +1654,7 @@ bool Graph::Layout(const node_iterator_pair& range)
 
     agclose(graph);
     return ok;
-#endif
+#endif // NO_GRAPHVIZ/using graphviz
 }
 
 void Graph::Select(const iterator_pair& range)

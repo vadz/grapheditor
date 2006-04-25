@@ -109,54 +109,54 @@
     #include "graphtest.xpm"
 #endif
 
-const wxChar *helptext = _T("\
-<html>                                                                  \
-  <head>                                                                \
-    <title>graphtest</title>                                            \
-  </head>                                                               \
-  <body>                                                                \
-    <h3>Adding Nodes</h3>                                               \
-                                                                        \
-    <p>To add a node drag a leaf from the tree control onto the graph   \
-    editor.                                                             \
-                                                                        \
-    <h3>Adding Links</h3>                                               \
-                                                                        \
-    <p>Links can be created between two nodes by dragging one node      \
-    onto the other. During dragging the outline rectangle will become   \
-    a line if dropping here is allowed and will create a link.          \
-                                                                        \
-    <p>This example program disallows incoming links to 'Import' nodes  \
-    and outgoing links from 'Export' nodes.                             \
-                                                                        \
-    <h3>Panning</h3>                                                    \
-                                                                        \
-    <p>The graph control can pan over the graph by shift dragging the   \
-    background.                                                         \
-                                                                        \
-    <h3>Selection</h3>                                                  \
-                                                                        \
-    <p>Mutliple selection is possible by rubber-banding (dragging a     \
-    rectangle over the background), or by ctrl+clicking graph           \
-    elements.                                                           \
-                                                                        \
-    <h3>Context Menu</h3>                                               \
-                                                                        \
-    <p>Right clicking a graph element brings up a context menu for the  \
-    current selection.                                                  \
-                                                                        \
-    <h3>Activation</h3>                                                 \
-                                                                        \
-    <p>Nodes can be activated by double clicking them.                  \
-                                                                        \
-    <h3>Grid Spacing</h3>                                               \
-                                                                        \
-    <p>When the graph control displays a grid, it draws one line for    \
-    every five gridlines of the associated graph.                       \
-                                                                        \
-  </body>                                                               \
-</html>                                                                 \
-");
+const wxChar *helptext =
+_T("<html>                                                                  ")
+_T("  <head>                                                                ")
+_T("    <title>graphtest</title>                                            ")
+_T("  </head>                                                               ")
+_T("  <body>                                                                ")
+_T("    <h3>Adding Nodes</h3>                                               ")
+_T("                                                                        ")
+_T("    <p>To add a node drag a leaf from the tree control onto the graph   ")
+_T("    editor.                                                             ")
+_T("                                                                        ")
+_T("    <h3>Adding Links</h3>                                               ")
+_T("                                                                        ")
+_T("    <p>Links can be created between two nodes by dragging one node      ")
+_T("    onto the other. During dragging the outline rectangle will become   ")
+_T("    a line if dropping here is allowed and will create a link.          ")
+_T("                                                                        ")
+_T("    <p>This example program disallows incoming links to 'Import' nodes  ")
+_T("    and outgoing links from 'Export' nodes.                             ")
+_T("                                                                        ")
+_T("    <h3>Panning</h3>                                                    ")
+_T("                                                                        ")
+_T("    <p>The graph control can pan over the graph by shift dragging the   ")
+_T("    background.                                                         ")
+_T("                                                                        ")
+_T("    <h3>Selection</h3>                                                  ")
+_T("                                                                        ")
+_T("    <p>Mutliple selection is possible by rubber-banding (dragging a     ")
+_T("    rectangle over the background), or by ctrl+clicking graph           ")
+_T("    elements.                                                           ")
+_T("                                                                        ")
+_T("    <h3>Context Menu</h3>                                               ")
+_T("                                                                        ")
+_T("    <p>Right clicking a graph element brings up a context menu for the  ")
+_T("    current selection.                                                  ")
+_T("                                                                        ")
+_T("    <h3>Activation</h3>                                                 ")
+_T("                                                                        ")
+_T("    <p>Nodes can be activated by double clicking them.                  ")
+_T("                                                                        ")
+_T("    <h3>Grid Spacing</h3>                                               ")
+_T("                                                                        ")
+_T("    <p>When the graph control displays a grid, it draws one line for    ")
+_T("    every five gridlines of the associated graph.                       ")
+_T("                                                                        ")
+_T("  </body>                                                               ")
+_T("</html>                                                                 ")
+;
 
 // ----------------------------------------------------------------------------
 // types

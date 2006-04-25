@@ -523,7 +523,7 @@ void GraphHandler::OnErase(wxDC& dc)
     {
         wxWindow *canvas = shape->GetCanvas();
 
-        wxPen *pen = shape->GetPen();
+        const wxPen *pen = shape->GetPen();
         int penWidth = pen ? pen->GetWidth() : 0;
         penWidth += 2;
 

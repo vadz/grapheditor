@@ -1532,9 +1532,43 @@ bool Graph::Layout(const node_iterator_pair& range)
     dot << _T("}\n");
 
 #ifdef NO_GRAPHVIZ
+    wxLogError(_("No layout engine available"));
     return false;
 #else
-    GVC_t *context = gvContext();
+#ifdef __VISUALC__
+    class NoLeakCheck
+    {
+    public:
+        NoLeakCheck() : flags(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG)) {
+            _CrtSetDbgFlag(flags & ~_CRTDBG_ALLOC_MEM_DF);
+        }
+        ~NoLeakCheck() {
+            _CrtSetDbgFlag(flags);
+        }
+    private:
+        int flags;
+    };
+
+    NoLeakCheck noCheck;
+#endif
+
+    class GraphVizContext
+    {
+    public:
+        GraphVizContext() {
+            context = gvContext();
+        }
+        ~GraphVizContext() {
+            gvFreeContext(context);
+        }
+        operator GVC_t*() {
+            return context;
+        }
+    private:
+        GVC_t *context;
+    };
+
+    static GraphVizContext context;
 
     Agraph_t *graph = agmemread(unconst(dot.mb_str()));
     wxCHECK(graph, false);
@@ -1579,7 +1613,6 @@ bool Graph::Layout(const node_iterator_pair& range)
     }
 
     agclose(graph);
-    gvFreeContext(context);
     return ok;
 #endif
 }

@@ -17,6 +17,7 @@
 
     <set var="GRAPHVIZ_LDFLAGS_DEFAULT">
         <if cond="FORMAT=='gnu'">`pkg-config libgvc --libs`</if>
+        <if cond="FORMAT=='msvc6prj'">cdt.lib circogen.lib common.lib dotgen.lib fdpgen.lib ft.lib gd.lib graph.lib libexpat.lib neatogen.lib pack.lib plugin.lib pathplan.lib twopigen.lib</if>
     </set>
     <option name="GRAPHVIZ_LDFLAGS">
         <description>Linker flags needed for graphviz</description>

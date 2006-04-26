@@ -205,7 +205,7 @@ public:
     void OnAddNode(GraphEvent& event);
     void OnDeleteNode(GraphEvent& event);
     void OnAddEdge(GraphEvent& event);
-    void OnAddingEdge(GraphEvent& event);
+    void OnAddingEdges(GraphEvent& event);
     void OnDeleteEdge(GraphEvent& event);
 
     // graph control events
@@ -345,7 +345,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_GRAPH_NODE_DELETE(MyFrame::OnDeleteNode)
 
     EVT_GRAPH_EDGE_ADD(MyFrame::OnAddEdge)
-    EVT_GRAPH_EDGE_ADDING(MyFrame::OnAddingEdge)
+    EVT_GRAPH_EDGE_ADDING(MyFrame::OnAddingEdges)
     EVT_GRAPH_EDGE_DELETE(MyFrame::OnDeleteEdge)
 
     EVT_GRAPH_NODE_CLICK(wxID_ANY, MyFrame::OnClickNode)
@@ -617,20 +617,33 @@ void MyFrame::OnAddEdge(GraphEvent&)
     wxLogDebug(_T("OnAddEdge"));
 }
 
-// An example of disallowing connections between particular nodes. No
-// Outgoing connections are allowed from Export nodes, and no incoming
-// connections are allowed from Import nodes.
+// An example of disallowing connections between particular nodes.
+// GetSources() returns a list of source nodes, and GetTarget() returns the
+// target node.  Removing nodes from the sources list disallows just that
+// connection while permitting other sources to connect. Vetoing the event
+// disallows all connections (it's equivalent to clearing the list).
 //
-void MyFrame::OnAddingEdge(GraphEvent& event)
+// In this example no outgoing connections are allowed from Export nodes, and
+// no incoming connections are allowed to Import nodes.
+//
+void MyFrame::OnAddingEdges(GraphEvent& event)
 {
-    wxLogDebug(_T("OnAddingEdge"));
+    wxLogDebug(_T("OnAddingEdges"));
 
-    wxString src = event.GetNode()->GetText();
+    // Veto to disallow all connections
     wxString dest = event.GetTarget()->GetText();
+    if (dest.find(_T("Import")) != wxString::npos)
+        return event.Veto();
 
-    if (dest.find(_T("Import")) != wxString::npos
-            || src.find(_T("Export")) != wxString::npos)
-        event.Veto();
+    GraphEvent::NodeList& sources = event.GetSources();
+    GraphEvent::NodeList::iterator i = sources.begin(), j;
+
+    // Remove from sources list to disallow selected connections
+    while (i != sources.end()) {
+        j = i++;
+        if ((*j)->GetText().find(_T("Export")) != wxString::npos)
+            sources.erase(j);
+    }
 }
 
 void MyFrame::OnDeleteEdge(GraphEvent&)

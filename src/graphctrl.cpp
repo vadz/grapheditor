@@ -704,6 +704,8 @@ void GraphElementHandler::Select(wxShape *shape, bool select, int keys)
 class GraphNodeHandler: public GraphElementHandler
 {
 public:
+    typedef GraphEvent::NodeList NodeList;
+
     GraphNodeHandler(wxShapeEvtHandler *prev);
 
     void OnLeftClick(double x, double y, int keys, int attachment);
@@ -726,7 +728,7 @@ public:
     inline GraphNode *GetNode() const;
 
 private:
-    list<GraphNode*> m_sources;
+    NodeList m_sources;
     GraphNode *m_target;
     wxPoint m_offset;
 };
@@ -800,14 +802,34 @@ void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
 
             for (tie(it, end) = graph->GetSelectionNodes(); it != end; ++it) {
                 if (&*it != target) {
-                    GraphEvent event(Evt_Graph_Edge_Adding);
-                    event.SetNode(&*it);
-                    event.SetTarget(target);
-                    event.SetPosition(wxPoint(int(x), int(y)));
-                    graph->SendEvent(event);
-                    if (event.IsAllowed())
+                    GraphNode::iterator i, iend;
+
+                    for (tie(i, iend) = it->GetEdges(); i != iend; ++i) {
+                        GraphEdge::iterator j, jend;
+
+                        for (tie(j, jend) = i->GetNodes(); j != jend; ++j)
+                            if (&*j == target)
+                                break;
+
+                        if (j != jend)
+                            break;
+                    }
+
+                    if (i == iend)
                         m_sources.push_back(&*it);
                 }
+            }
+
+            if (!m_sources.empty()) {
+                GraphEvent event(Evt_Graph_Edge_Adding);
+                event.SetNode(GetNode());
+                event.SetTarget(target);
+                event.SetSources(m_sources);
+                event.SetPosition(wxPoint(int(x), int(y)));
+                graph->SendEvent(event);
+
+                if (!event.IsAllowed())
+                    m_sources.clear();
             }
         }
 
@@ -830,12 +852,12 @@ void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
     }
     else if (!needNoEntry && hasNoEntry) {
         canvas->ReleaseMouse();
-        canvas->SetCursor(wxCURSOR_ARROW);
+        canvas->SetCursor(wxCURSOR_DEFAULT);
         canvas->CaptureMouse();
     }
 
     if (m_target) {
-        list<GraphNode*>::iterator it;
+        NodeList::iterator it;
 
         for (it = m_sources.begin(); it != m_sources.end(); ++it) {
             double xp, yp;
@@ -871,10 +893,10 @@ void GraphNodeHandler::OnEndDragLeft(double x, double y, int, int)
 
     if (m_target) {
         if (m_sources.empty()) {
-            canvas->SetCursor(wxNullCursor);
+            canvas->SetCursor(wxCURSOR_DEFAULT);
         }
         else {
-            list<GraphNode*>::iterator it;
+            NodeList::iterator it;
 
             for (it = m_sources.begin(); it != m_sources.end(); ++it)
                 graph->Add(**it, *m_target);

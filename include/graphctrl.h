@@ -16,6 +16,7 @@
 
 #include <iterator>
 #include <utility>
+#include <list>
 
 /**
  * @file graphctrl.h
@@ -770,6 +771,8 @@ private:
 class GraphEvent : public wxNotifyEvent
 {
 public:
+    typedef std::list<GraphNode*> NodeList;
+
     GraphEvent(wxEventType commandType = wxEVT_NULL, int winid = 0);
     GraphEvent(const GraphEvent& event);
 
@@ -779,17 +782,20 @@ public:
     void SetTarget(GraphNode *node)     { m_target = node; }
     void SetEdge(GraphEdge *edge)       { m_edge = edge; }
     void SetPosition(const wxPoint& pt) { m_pos = pt; }
+    void SetSources(NodeList& sources)  { m_sources = &sources; }
 
     GraphNode *GetNode() const          { return m_node; }
     GraphNode *GetTarget() const        { return m_target; }
     GraphEdge *GetEdge() const          { return m_edge; }
     wxPoint GetPosition() const         { return m_pos; }
+    NodeList& GetSources() const        { return *m_sources; }
 
 private:
     wxPoint m_pos;
     GraphNode *m_node;
     GraphNode *m_target;
     GraphEdge *m_edge;
+    NodeList *m_sources;
 
     DECLARE_DYNAMIC_CLASS(GraphEvent)
 };

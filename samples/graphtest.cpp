@@ -40,9 +40,9 @@
 // Edges are of type GraphEdge, and there is also an overload of Graph::Add()
 // for adding these, however it's not usually necessary to use it since the
 // GraphCtrl will add edges itself when the user drags one node onto another.
-// This processes can be controlled using the EVT_GRAPH_EDGE_ADDING event,
-// which is fired using dragging, and vetoing it disallows a connection from
-// being made.
+// This processes can be controlled using the EVT_GRAPH_CONNECT_FEEDBACK
+// event, which is fired using dragging, and vetoing it disallows a
+// connection from being made.
 //
 // The cursor positions returned by the event object's GetPosition() are in
 // the coordinate system of the Graph, and so can be passed to Graph's
@@ -205,8 +205,8 @@ public:
     void OnAddNode(GraphEvent& event);
     void OnDeleteNode(GraphEvent& event);
     void OnAddEdge(GraphEvent& event);
-    void OnAddingEdges(GraphEvent& event);
     void OnDeleteEdge(GraphEvent& event);
+    void OnConnectFeedback(GraphEvent& event);
 
     // graph control events
     void OnClickNode(GraphEvent& event);
@@ -345,8 +345,9 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_GRAPH_NODE_DELETE(MyFrame::OnDeleteNode)
 
     EVT_GRAPH_EDGE_ADD(MyFrame::OnAddEdge)
-    EVT_GRAPH_EDGE_ADDING(MyFrame::OnAddingEdges)
     EVT_GRAPH_EDGE_DELETE(MyFrame::OnDeleteEdge)
+
+    EVT_GRAPH_CONNECT_FEEDBACK(MyFrame::OnConnectFeedback)
 
     EVT_GRAPH_NODE_CLICK(wxID_ANY, MyFrame::OnClickNode)
     EVT_GRAPH_NODE_ACTIVATE(wxID_ANY, MyFrame::OnActivateNode)
@@ -617,7 +618,15 @@ void MyFrame::OnAddEdge(GraphEvent&)
     wxLogDebug(_T("OnAddEdge"));
 }
 
-// An example of disallowing connections between particular nodes.
+void MyFrame::OnDeleteEdge(GraphEvent&)
+{
+    wxLogDebug(_T("OnDeleteEdge"));
+}
+
+// This event fires during node dragging each time the cursor hovers over
+// a potential target node, and allows the application to decide whether
+// dropping here would create a link.
+//
 // GetSources() returns a list of source nodes, and GetTarget() returns the
 // target node.  Removing nodes from the sources list disallows just that
 // connection while permitting other sources to connect. Vetoing the event
@@ -626,9 +635,9 @@ void MyFrame::OnAddEdge(GraphEvent&)
 // In this example no outgoing connections are allowed from Export nodes, and
 // no incoming connections are allowed to Import nodes.
 //
-void MyFrame::OnAddingEdges(GraphEvent& event)
+void MyFrame::OnConnectFeedback(GraphEvent& event)
 {
-    wxLogDebug(_T("OnAddingEdges"));
+    wxLogDebug(_T("OnConnectFeedback"));
 
     // Veto to disallow all connections
     wxString dest = event.GetTarget()->GetText();
@@ -644,11 +653,6 @@ void MyFrame::OnAddingEdges(GraphEvent& event)
         if ((*j)->GetText().find(_T("Export")) != wxString::npos)
             sources.erase(j);
     }
-}
-
-void MyFrame::OnDeleteEdge(GraphEvent&)
-{
-    wxLogDebug(_T("OnDeleteEdge"));
 }
 
 void MyFrame::OnClickEdge(GraphEvent&)

@@ -44,8 +44,9 @@ DEFINE_EVENT_TYPE(Evt_Graph_Node_Add)
 DEFINE_EVENT_TYPE(Evt_Graph_Node_Delete)
 
 DEFINE_EVENT_TYPE(Evt_Graph_Edge_Add)
-DEFINE_EVENT_TYPE(Evt_Graph_Edge_Adding)
 DEFINE_EVENT_TYPE(Evt_Graph_Edge_Delete)
+
+DEFINE_EVENT_TYPE(Evt_Graph_Connect_Feedback)
 
 // GraphCtrl Events
 
@@ -821,7 +822,7 @@ void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
             }
 
             if (!m_sources.empty()) {
-                GraphEvent event(Evt_Graph_Edge_Adding);
+                GraphEvent event(Evt_Graph_Connect_Feedback);
                 event.SetNode(GetNode());
                 event.SetTarget(target);
                 event.SetSources(m_sources);

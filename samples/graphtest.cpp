@@ -228,6 +228,7 @@ public:
     void OnAddEdge(GraphEvent& event);
     void OnDeleteEdge(GraphEvent& event);
     void OnConnectFeedback(GraphEvent& event);
+    void OnConnect(GraphEvent& event);
 
     // graph control events
     void OnClickNode(GraphEvent& event);
@@ -369,6 +370,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_GRAPH_EDGE_DELETE(MyFrame::OnDeleteEdge)
 
     EVT_GRAPH_CONNECT_FEEDBACK(MyFrame::OnConnectFeedback)
+    EVT_GRAPH_CONNECT(MyFrame::OnConnect)
 
     EVT_GRAPH_NODE_CLICK(wxID_ANY, MyFrame::OnClickNode)
     EVT_GRAPH_NODE_ACTIVATE(wxID_ANY, MyFrame::OnActivateNode)
@@ -674,6 +676,79 @@ void MyFrame::OnConnectFeedback(GraphEvent& event)
         if ((*j)->GetText().find(_T("Export")) != wxString::npos)
             sources.erase(j);
     }
+}
+
+// This event fires when nodes have been dropped on a target node. It is
+// similar to OnConnectFeedback above. Vetoing the event disallows all
+// connections or removing nodes from the list disallows just selected
+// connections.
+//
+// In this example 'Sort' nodes are restricted to 1 input and 1 output
+//
+void MyFrame::OnConnect(GraphEvent& event)
+{
+    wxLogDebug(_T("OnConnect"));
+
+    GraphNode *target = event.GetTarget();
+    wxString dest = target->GetText();
+    GraphEvent::NodeList& sources = event.GetSources();
+    bool ok = true;
+
+    // Veto to disallow all connections
+    if (dest.find(_T("Sort")) != wxString::npos)
+    {
+        size_t count = sources.size();
+
+        if (count == 1) {
+            GraphNode::iterator l, lend;
+
+            // count the input edges the target currently has
+            for (tie(l, lend) = target->GetEdges(); l != lend; ++l) {
+                GraphEdge::iterator m, mend;
+                tie(m, mend) = l->GetNodes();
+                if (m != mend && &*m != target) {
+                    count++;
+                    break;
+                }
+            }
+        }
+
+        if (count > 1) {
+            event.Veto();
+            ok = false;
+        }
+    }
+
+    GraphEvent::NodeList::iterator i = sources.begin(), j;
+
+    // Remove from sources list to disallow selected connections
+    while (i != sources.end())
+    {
+        j = i++;
+
+        if ((*j)->GetText().find(_T("Sort")) != wxString::npos) {
+            GraphNode::iterator l, lend;
+            size_t count = 0;
+
+            // count the output edges the target currently has
+            for (tie(l, lend) = (*j)->GetEdges(); l != lend; ++l) {
+                GraphEdge::iterator m, mend;
+                tie(m, mend) = l->GetNodes();
+                if (m != mend && &*m == *j) {
+                    count++;
+                    break;
+                }
+            }
+
+            if (count > 0) {
+                sources.erase(j);
+                ok = false;
+            }
+        }
+    }
+
+    if (!ok)
+        wxLogError(_T("A 'Sort' node can have only one input and one output"));
 }
 
 void MyFrame::OnClickEdge(GraphEvent&)

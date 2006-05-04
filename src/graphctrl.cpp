@@ -47,6 +47,7 @@ DEFINE_EVENT_TYPE(Evt_Graph_Edge_Add)
 DEFINE_EVENT_TYPE(Evt_Graph_Edge_Delete)
 
 DEFINE_EVENT_TYPE(Evt_Graph_Connect_Feedback)
+DEFINE_EVENT_TYPE(Evt_Graph_Connect)
 
 // GraphCtrl Events
 
@@ -897,10 +898,19 @@ void GraphNodeHandler::OnEndDragLeft(double x, double y, int, int)
             canvas->SetCursor(wxCURSOR_DEFAULT);
         }
         else {
-            NodeList::iterator it;
+            GraphEvent event(Evt_Graph_Connect);
+            event.SetNode(GetNode());
+            event.SetTarget(m_target);
+            event.SetSources(m_sources);
+            event.SetPosition(wxPoint(int(x), int(y)));
+            graph->SendEvent(event);
 
-            for (it = m_sources.begin(); it != m_sources.end(); ++it)
-                graph->Add(**it, *m_target);
+            if (event.IsAllowed()) {
+                NodeList::iterator it;
+
+                for (it = m_sources.begin(); it != m_sources.end(); ++it)
+                    graph->Add(**it, *m_target);
+            }
 
             m_target = NULL;
             m_sources.clear();

@@ -9,64 +9,85 @@
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
-// Notes:
-//
-// This code from MyFrame::MyFrame() shows how to create graph control:
-//
-//  m_graphctrl = new ProjectDesigner(splitter);
-//  m_graph = new Graph;
-//  m_graphctrl->SetGraph(m_graph);
-//  m_graph->SetEventHandler(this);
-//
-// You create a GraphCtrl (or ProjectDesigner in this case, derived from
-// GraphCtrl), a Graph and associate the two with SetGraph().
-//
-// The reason for the spit is so that (potentially at least) in a doc/view
-// application the doc could own a Graph while multiple views could use
-// multiple GraphCtrl to allow editing of it. This isn't supported at the
-// moment, and the two must be used in a one-to-one pair.
-//
-// Both the Graph and the GraphCtrl can fire events. The GraphCtrl ones can
-// be handled by the GraphCtrl's parent as usual, but for the Graph (which is
-// not a window and does not have a parent) it is necessary to call
-// SetEventHandler() as shown to select the class that will handle its
-// events.
-//
-// Nodes (these are of type GraphNode or derived from it), can be added to
-// the graph using Graph::Add(). In this program this is done in response to
-// EVT_GRAPHTREE_DROP events from the tree control, see OnGraphTreeDrop()
-// below for an example.
-//
-// Edges are of type GraphEdge, and there is also an overload of Graph::Add()
-// for adding these, however it's not usually necessary to use it since the
-// GraphCtrl will add edges itself when the user drags one node onto another.
-// This processes can be controlled using the EVT_GRAPH_CONNECT_FEEDBACK
-// event, which is fired using dragging, and vetoing it disallows a
-// connection from being made.
-//
-// The cursor positions returned by the event object's GetPosition() are in
-// the coordinate system of the Graph, and so can be passed to Graph's
-// methods without conversion. To use the position with other classes, for
-// example to display a popup menu in response to a EVT_GRAPH_NODE_MENU
-// event, you can convert it using GraphCtrl::GraphToScreen(). See
-// OnMenuNode() below for an example of this. Given a cursor position it is
-// possible to tell which part of a ProjectNode has been clicked using its
-// HitTest() method, see OnActivateNode() below for an example of this.
-//
-// The classes GraphNode and GraphEdge have a common base class GraphElement.
-// Graph elements are enumerated using iterators. The iterators are
-// assignable if references to the types they point to would be assignable.
-// E.g. if a method needs a pair of GraphElement iterators, then you can pass
-// a pair of GraphNode iterators (since a GraphNode is-a GraphElement).
-//
-// Methods that return iterators return a begin/end pair in a std::pair.
-// These can be assigned to a pair of variables using the 'tie' function, so
-// the usual idiom for using them is:
-//
-//  Graph::node_iterator it, end;
-//
-//  for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it)
-//      it->SetSize(size);
+/**
+ * @file graphtest.cpp
+ * @brief Sample program for the graph editor.
+ */
+
+/**
+ * @mainpage
+ *
+ * The following code shows how to create graph control:
+ *
+ * @code
+ *  m_graphctrl = new ProjectDesigner(splitter);
+ *  m_graph = new Graph;
+ *  m_graphctrl->SetGraph(m_graph);
+ *  m_graph->SetEventHandler(this);
+ * @endcode
+ *
+ * You create a <code>GraphCtrl</code> (or <code>ProjectDesigner</code> in
+ * this case, derived from <code>GraphCtrl</code>), a <code>Graph</code> and
+ * associate the two with <code>SetGraph()</code>.
+ *
+ * The reason for the spit is so that (potentially at least) in a doc/view
+ * application the doc could own a <code>Graph</code> while multiple views
+ * could use multiple <code>GraphCtrl</code> to allow editing of it. This
+ * isn't supported at the moment, and the two must be used in a one-to-one
+ * pair.
+ *
+ * Both the <code>Graph</code> and the <code>GraphCtrl</code> can fire
+ * events. The <code>GraphCtrl</code> ones can be handled by the
+ * <code>GraphCtrl</code>'s parent as usual, but for the <code>Graph</code>
+ * (which is not a window and does not have a parent) it is necessary to call
+ * <code>SetEventHandler()</code> as shown to select the class that will
+ * handle its events.
+ *
+ * Nodes (these are of type <code>GraphNode</code> or derived from it), can
+ * be added to the graph using <code>Graph::Add()</code>. In the graphtest
+ * sample program this is done in response to <code>EVT_GRAPHTREE_DROP</code>
+ * events from the tree control, see <code>OnGraphTreeDrop()</code> in
+ * graphtest.cpp for an example.
+ *
+ * Edges are of type <code>GraphEdge</code>, and there is also an overload of
+ * Graph::Add() for adding these, however it's not usually necessary to use
+ * it since the <code>GraphCtrl</code> will add edges itself when the user
+ * drags one node onto another.  This processes can be controlled using the
+ * <code>EVT_GRAPH_CONNECT_FEEDBACK</code> event, which is fired during
+ * dragging, and vetoing it disallows a connection from being made.
+ *
+ * The cursor positions returned by the event object's
+ * <code>GetPosition()</code> are in the coordinate system of the
+ * <code>Graph</code>, and so can be passed to <code>Graph</code>'s methods
+ * without conversion. To use the position with other classes, for example to
+ * display a popup menu in response to a <code>EVT_GRAPH_NODE_MENU</code>
+ * event, you can convert it using <code>GraphCtrl::GraphToScreen()</code>.
+ * See <code>OnMenuNode()</code> in graphtest.cpp for an example of this.
+ * Given a cursor position it is possible to tell which part of a
+ * <code>ProjectNode</code> has been clicked using its <code>HitTest()</code>
+ * method, see <code>OnActivateNode()</code> in graphtest.cpp for an example
+ * of this.
+ *
+ * The classes <code>GraphNode</code> and <code>GraphEdge</code> have a
+ * common base class <code>GraphElement</code>.  Graph elements are
+ * enumerated using iterators. The iterators are assignable if references to
+ * the types they point to would be assignable.  E.g. if a method needs a
+ * pair of GraphElement iterators, then you can pass a pair of
+ * <code>GraphNode</code> iterators (since a <code>GraphNode</code> is-a
+ * <code>GraphElement</code>).
+ *
+ * Methods that return iterators return a begin/end pair in a
+ * <code>std::pair</code>.  These can be assigned to a pair of variables
+ * using the '<code>tie</code>' function, so the usual idiom for using them
+ * is:
+ *
+ * @code
+ *  Graph::node_iterator it, end;
+ *
+ *  for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it)
+ *      it->SetSize(size);
+ * @endcode
+ */
 
 // ============================================================================
 // declarations

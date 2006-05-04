@@ -36,8 +36,8 @@ WARN_FORMAT            = "$file:$line: $text"
 # configuration options related to the input files
 #---------------------------------------------------------------------------
 
-INPUT                  = ../include
-FILE_PATTERNS          = *.h
+INPUT                  = ../include ../samples
+FILE_PATTERNS          = *.h graphtest.cpp
 RECURSIVE              = yes
 
 #EXCLUDE                =

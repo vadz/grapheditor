@@ -449,6 +449,7 @@ public:
     void SetShape(wxShape *shape);
 
 protected:
+    virtual void DoSelect(bool select);
     virtual void UpdateShape();
     virtual void UpdateShapeTextColour();
     virtual void OnLayout(wxDC&) { }

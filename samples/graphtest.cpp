@@ -670,7 +670,7 @@ void MyFrame::OnConnectFeedback(GraphEvent& event)
     GraphEvent::NodeList& sources = event.GetSources();
     GraphEvent::NodeList::iterator i = sources.begin(), j;
 
-    // Remove from sources list to disallow selected connections
+    // Remove from sources list to disallow only some connections
     while (i != sources.end()) {
         j = i++;
         if ((*j)->GetText().find(_T("Export")) != wxString::npos)
@@ -702,7 +702,7 @@ void MyFrame::OnConnect(GraphEvent& event)
         if (count == 1) {
             GraphNode::iterator l, lend;
 
-            // count the input edges the target currently has
+            // count the incoming edges the target currently has
             for (tie(l, lend) = target->GetEdges(); l != lend; ++l) {
                 GraphEdge::iterator m, mend;
                 tie(m, mend) = l->GetNodes();
@@ -721,16 +721,21 @@ void MyFrame::OnConnect(GraphEvent& event)
 
     GraphEvent::NodeList::iterator i = sources.begin(), j;
 
-    // Remove from sources list to disallow selected connections
+    // Remove from sources list to disallow only some connections
     while (i != sources.end())
     {
         j = i++;
 
-        if ((*j)->GetText().find(_T("Sort")) != wxString::npos) {
+        wxString operation = (*j)->GetText();
+
+        // output the operation text so that the order of the list is visible
+        wxLogDebug(_T("    ") + operation);
+
+        if (operation.find(_T("Sort")) != wxString::npos) {
             GraphNode::iterator l, lend;
             size_t count = 0;
 
-            // count the output edges the target currently has
+            // count the outgoing edges this source node currently has
             for (tie(l, lend) = (*j)->GetEdges(); l != lend; ++l) {
                 GraphEdge::iterator m, mend;
                 tie(m, mend) = l->GetNodes();

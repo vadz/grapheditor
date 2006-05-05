@@ -274,12 +274,11 @@ void GraphCanvas::OnEndDragLeft(double x, double y, int key)
     if (m_isPanning) {
         m_isPanning = false;
         m_checkBounds = true;
+        // these aren't needed I think
         SetScrollPos(wxHORIZONTAL, GetScrollPos(wxHORIZONTAL));
         SetScrollPos(wxVERTICAL, GetScrollPos(wxVERTICAL));
     }
     else {
-        Graph *graph = GetGraph();
-        Graph::iterator it, end;
         wxRect rc;
 
         if (x >= m_ptDrag.x) {
@@ -298,20 +297,23 @@ void GraphCanvas::OnEndDragLeft(double x, double y, int key)
             rc.height = m_ptDrag.y - int(y);
         }
 
-        wxClientDC dc(this);
-        PrepareDC(dc);
+        Graph *graph = GetGraph();
+        Graph::iterator i, j, end;
+        tie(i, end) = graph->GetElements();
 
-        for (tie(it, end) = graph->GetElements(); it != end; ++it)
+        while (i != end)
         {
-            wxShape *shape = it->GetShape();
+            // Increment i before calling Select, since Select invalidates
+            // iterators to that element.
+            j = i++;
 
-            if (!shape->Selected()) {
-                if (rc.Intersects(it->GetBounds()))
-                    shape->Select(true, &dc);
+            if (!j->IsSelected()) {
+                if (rc.Intersects(j->GetBounds()))
+                    j->Select();
             }
             else {
-                if ((key & KEY_CTRL) == 0 && !rc.Intersects(it->GetBounds()))
-                    shape->Select(false, &dc);
+                if ((key & KEY_CTRL) == 0 && !rc.Intersects(j->GetBounds()))
+                    j->Unselect();
             }
         }
     }
@@ -677,26 +679,27 @@ bool GraphElementHandler::SendEvent(wxEventType cmd, double x, double y)
 
 void GraphElementHandler::Select(wxShape *shape, bool select, int keys)
 {
-    wxShapeCanvas *canvas = shape->GetCanvas();
-
-    wxClientDC dc(canvas);
-    canvas->PrepareDC(dc);
+    GraphElement *element = GetElement(shape);
 
     if ((keys & KEY_CTRL) == 0) {
-        GraphElement *element = GetElement(shape);
         Graph *graph = element->GetGraph();
-        Graph::iterator it, end;
+        Graph::iterator i, j, end;
 
-        for (tie(it, end) = graph->GetSelection(); it != end; ++it) {
-            if (&*it != element) {
-                it->GetShape()->Select(false, &dc);
+        tie(i, end) = graph->GetSelection();
+
+        while (i != end) {
+            j = i++;
+            if (&*j != element) {
+                j->Unselect();
                 select = true;
             }
         }
     }
 
-    if (shape->Selected() != select)
-        shape->Select(select, &dc);
+    if (select)
+        element->Select();
+    else
+        element->Unselect();
 }
 
 // ----------------------------------------------------------------------------
@@ -770,8 +773,10 @@ void GraphNodeHandler::OnBeginDragLeft(double x, double y,
     m_target = NULL;
     m_offset = wxPoint(int(shape->GetX() - x), int(shape->GetY() - y));
 
-    if (!shape->Selected())
+    if (!shape->Selected()) {
         Select(shape, true, keys);
+        canvas->Update();
+    }
 
     OnDragLeft(true, x, y, keys, attachment);
     canvas->CaptureMouse();
@@ -1692,26 +1697,24 @@ bool Graph::Layout(const node_iterator_pair& range)
 
 void Graph::Select(const iterator_pair& range)
 {
-    wxShapeCanvas *canvas = m_diagram->GetCanvas();
-    wxClientDC dc(canvas);
-    canvas->PrepareDC(dc);
-    iterator it, end;
+    iterator i, j, end;
+    tie(i, end) = range;
 
-    for (tie(it, end) = range; it != end; ++it)
-        if (!it->GetShape()->Selected())
-            it->GetShape()->Select(true, &dc);
+    while (i != end) {
+        j = i++;
+        j->Select();
+    }
 }
 
 void Graph::Unselect(const iterator_pair& range)
 {
-    wxShapeCanvas *canvas = m_diagram->GetCanvas();
-    wxClientDC dc(canvas);
-    canvas->PrepareDC(dc);
-    iterator it, end;
+    iterator i, j, end;
+    tie(i, end) = range;
 
-    for (tie(it, end) = range; it != end; ++it)
-        if (it->GetShape()->Selected())
-            it->GetShape()->Select(false, &dc);
+    while (i != end) {
+        j = i++;
+        j->Unselect();
+    }
 }
 
 void Graph::SetSnapToGrid(bool snap)
@@ -1994,13 +1997,19 @@ void GraphElement::DoSelect(bool select)
 {
     if (m_shape && m_shape->Selected() != select)
     {
-        m_shape->Select(select);
         wxShapeCanvas *canvas = GetCanvas(m_shape);
 
         if (canvas) {
             wxClientDC dc(canvas);
             canvas->PrepareDC(dc);
-            m_shape->OnEraseControlPoints(dc);
+            if (select) {
+                m_shape->Select(true);
+                m_shape->OnEraseControlPoints(dc);
+            }
+            else {
+                m_shape->OnEraseControlPoints(dc);
+                m_shape->Select(false);
+            }
         }
     }
 }
@@ -2151,6 +2160,34 @@ GraphNode::GraphNode()
 
 GraphNode::~GraphNode()
 {
+}
+
+void GraphNode::DoSelect(bool select)
+{
+    wxShape *shape = GetShape();
+
+    if (shape && shape->Selected() != select)
+    {
+        wxShapeCanvas *canvas = GetCanvas(shape);
+
+        if (canvas) {
+            wxClientDC dc(canvas);
+            canvas->PrepareDC(dc);
+
+            if (select) {
+                shape->Select(true);
+                wxDiagram *diagram = canvas->GetDiagram();
+                wxList *list = diagram->GetShapeList();
+                list->remove(shape);
+                list->push_back(shape);
+                shape->Erase(dc);
+            }
+            else {
+                shape->OnEraseControlPoints(dc);
+                shape->Select(false);
+            }
+        }
+    }
 }
 
 void GraphNode::SetShape(wxShape *shape)

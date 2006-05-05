@@ -2176,11 +2176,28 @@ void GraphNode::DoSelect(bool select)
 
             if (select) {
                 shape->Select(true);
+                shape->OnEraseControlPoints(dc);
+
+                wxRect rc, bounds = GetBounds();
+                Graph::node_iterator begin, it;
+
+                tie(begin, it) = GetGraph()->GetNodes();
+
+                while (it != begin && &*--it != this)
+                    rc.Union(it->GetBounds().Intersect(bounds));
+
+                if (!rc.IsEmpty()) {
+                    rc.x = dc.LogicalToDeviceX(rc.x);
+                    rc.y = dc.LogicalToDeviceY(rc.y);
+                    rc.width = dc.LogicalToDeviceXRel(rc.width);
+                    rc.height = dc.LogicalToDeviceYRel(rc.height);
+                    canvas->RefreshRect(rc);
+                }
+
                 wxDiagram *diagram = canvas->GetDiagram();
                 wxList *list = diagram->GetShapeList();
                 list->remove(shape);
                 list->push_back(shape);
-                shape->Erase(dc);
             }
             else {
                 shape->OnEraseControlPoints(dc);

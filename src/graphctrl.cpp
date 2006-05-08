@@ -308,7 +308,7 @@ void GraphCanvas::OnEndDragLeft(double x, double y, int key)
             j = i++;
 
             if (!j->IsSelected()) {
-                if (rc.Intersects(j->GetBounds()))
+                if (rc.Intersects(j->GetBounds().Inflate(1)))
                     j->Select();
             }
             else {

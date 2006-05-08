@@ -80,7 +80,15 @@ public:
     void OnDraw(wxDC& dc);
     void OnLayout(wxDC &dc);
 
+    wxPoint GetPerimeterPoint(const wxPoint& pt1,
+                              const wxPoint& pt2) const;
+
 private:
+    wxPoint GetCornerPoint(const wxPoint& centre,
+                           int radius, int sign,
+                           const wxPoint& pt1,
+                           const wxPoint& pt2) const;
+
     wxString m_id;
     wxString m_result;
     wxIcon m_icon;

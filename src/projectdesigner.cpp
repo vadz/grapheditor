@@ -364,4 +364,78 @@ void ProjectNode::OnDraw(wxDC& dc)
     }
 }
 
+wxPoint ProjectNode::GetCornerPoint(const wxPoint& centre,
+                                    int radius, int sign,
+                                    const wxPoint& pt1,
+                                    const wxPoint& pt2) const
+{
+    // let k be the point inside the shape, which we keep constant,
+    // and pt be the other point
+    wxPoint k, pt;
+    if (GetBounds().Inside(pt1)) {
+        k = pt1;
+        pt = pt2;
+    } else {
+        k = pt2;
+        pt = pt1;
+    }
+
+    radius++;
+
+    // translate the line, so that the centre of the circle is at the origin
+    // so the circle is now x^2 + y^2 = radius^2
+    k -= centre;
+    pt -= centre;
+
+    // work out m and c for the line y = m x + c through the points
+    double m = pt.y - k.y;
+    m /= pt.x - k.x;
+    double c = pt.y - m * pt.x;
+
+    // work out some squares ready
+    double r2 = radius * radius;
+    double m2 = m * m;
+    double c2 = c * c;
+
+    double G = sqrt((m2 + 1) * r2 - c2);
+
+    // this is the solution of y = m x + c and y^2 + x^2 = radius^2, there
+    // are two solutions and sign should be +1 or -1 to select between them.
+    double x = (sign * G - c * m) / (m2 + 1);
+    double y = (sign * G * m + c) / (m2 + 1);
+
+    return centre + wxPoint(int(x), int(y));
+}
+
+wxPoint ProjectNode::GetPerimeterPoint(const wxPoint& pt1,
+                                       const wxPoint& pt2) const
+{
+    wxPoint pt = GraphNode::GetPerimeterPoint(pt1, pt2);
+
+    wxRect b = GetBounds();
+    int r = m_cornerRadius + m_borderThickness / 2;
+
+    // deflate so that the corners are the centres of the corner circles
+    b.Deflate(r);
+
+    // avoid cases GetCornerPoint won't handle
+    if (b.IsEmpty() || pt1.x == pt2.x || pt1.y == pt2.y)
+        return pt;
+
+    // check if in a corner
+    if (pt.x < b.x && pt.y < b.y)
+        pt = GetCornerPoint(b.GetTopLeft(), r, -1, pt1, pt2);
+
+    else if (pt.x > b.GetRight() && pt.y < b.y)
+        pt = GetCornerPoint(wxPoint(b.GetRight(), b.y), r, 1, pt1, pt2);
+
+    else if (pt.x < b.x && pt.y > b.GetBottom())
+        pt = GetCornerPoint(wxPoint(b.x, b.GetBottom()), r, -1, pt1, pt2);
+
+    else if (pt.x > b.GetRight() && pt.y > b.GetBottom())
+        pt = GetCornerPoint(b.GetBottomRight(), r, 1, pt1, pt2);
+
+    return pt;
+}
+
 } // namespace datactics

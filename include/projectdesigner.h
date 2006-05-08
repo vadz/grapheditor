@@ -74,20 +74,23 @@ public:
      */
     int HitTest(const wxPoint& pt) const;
 
-    int GetBorderThickness()                { return m_borderThickness; }
-    int GetCornerRadius()                   { return m_cornerRadius; }
+    int GetBorderThickness() const          { return m_borderThickness; }
+    void SetBorderThickness(int thickness);
+
+    int GetCornerRadius() const             { return m_cornerRadius; }
+    void SetCornerRadius(int radius);
 
     void OnDraw(wxDC& dc);
     void OnLayout(wxDC &dc);
 
-    wxPoint GetPerimeterPoint(const wxPoint& pt1,
-                              const wxPoint& pt2) const;
+    wxPoint GetPerimeterPoint(const wxPoint& inside,
+                              const wxPoint& outside) const;
 
 private:
     wxPoint GetCornerPoint(const wxPoint& centre,
                            int radius, int sign,
-                           const wxPoint& pt1,
-                           const wxPoint& pt2) const;
+                           const wxPoint& inside,
+                           const wxPoint& outside) const;
 
     wxString m_id;
     wxString m_result;

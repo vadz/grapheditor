@@ -977,8 +977,21 @@ bool GraphNodeShape::GetPerimeterPoint(double x1, double y1,
                                        double x2, double y2,
                                        double *x3, double *y3)
 {
-    wxPoint pt = GetNode(this)->GetPerimeterPoint(wxPoint(int(x1), int(y1)),
-                                                  wxPoint(int(x2), int(y2)));
+    GraphNode *node = GetNode(this);
+    wxPoint pt1 = wxPoint(int(x1), int(y1));
+    wxPoint pt2 = wxPoint(int(x2), int(y2));
+    wxPoint inside, outside;
+
+    if (node->GetBounds().Inside(pt1)) {
+        inside = pt1;
+        outside = pt2;
+    } else {
+        inside = pt2;
+        outside = pt1;
+    }
+
+    wxPoint pt = GetNode(this)->GetPerimeterPoint(inside, outside);
+
     *x3 = pt.x;
     *y3 = pt.y;
 
@@ -2602,22 +2615,12 @@ size_t GraphNode::GetOutEdgeCount() const
     return count;
 }
 
-wxPoint GraphNode::GetPerimeterPoint(const wxPoint& pt1,
-                                     const wxPoint& pt2) const
+wxPoint GraphNode::GetPerimeterPoint(const wxPoint& inside,
+                                     const wxPoint& outside) const
 {
     wxRect b = GetBounds();
-    wxPoint k;
-    wxPoint pt;
-
-    // let k be the point inside the shape, which we keep constant,
-    // and pt be the other point which we move to the perimeter.
-    if (b.Inside(pt1)) {
-        k = pt1;
-        pt = pt2;
-    } else {
-        k = pt2;
-        pt = pt1;
-    }
+    wxPoint k = inside;
+    wxPoint pt = outside;
 
     b.Inflate(1);
 

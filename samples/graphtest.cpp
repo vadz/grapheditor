@@ -272,6 +272,8 @@ public:
     void OnSetTextColour(wxCommandEvent& event);
     void OnSetStyle(wxCommandEvent&);
     void OnSetLineStyle(wxCommandEvent&);
+    void OnSetBorderThickness(wxCommandEvent& event);
+    void OnSetCornerRadius(wxCommandEvent& event);
 
     wxString TextPrompt(const wxString& prompt, const wxString& value);
 
@@ -315,7 +317,9 @@ enum {
     ID_TRIANGLE,
     ID_DIAMOND,
     ID_LINE,
-    ID_ARROW
+    ID_ARROW,
+    ID_SETBORDERTHCKNESS,
+    ID_SETCORNERRADIUS
 };
 
 // ----------------------------------------------------------------------------
@@ -357,6 +361,8 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(ID_DIAMOND, MyFrame::OnSetStyle)
     EVT_MENU(ID_LINE, MyFrame::OnSetLineStyle)
     EVT_MENU(ID_ARROW, MyFrame::OnSetLineStyle)
+    EVT_MENU(ID_SETBORDERTHCKNESS, MyFrame::OnSetBorderThickness)
+    EVT_MENU(ID_SETCORNERRADIUS, MyFrame::OnSetCornerRadius)
 
     EVT_MENU(wxID_HELP, MyFrame::OnHelp)
     EVT_MENU(wxID_ABOUT, MyFrame::OnAbout)
@@ -619,6 +625,8 @@ void MyFrame::OnMenuNode(GraphEvent& event)
     menu.Append(ID_SETCOLOUR, _T("Set &Colour..."));
     menu.Append(ID_SETBGCOLOUR, _T("Set &Background Colour..."));
     menu.Append(ID_SETTEXTCOLOUR, _T("Set &Text Colour..."));
+    menu.Append(ID_SETBORDERTHCKNESS, _T("Set Bor&der Thickness..."));
+    menu.Append(ID_SETCORNERRADIUS, _T("Set Corner &Radius..."));
 
     wxMenu *submenu = new wxMenu;
     submenu->Append(ID_CUSTOM, _T("&Custom"));
@@ -812,8 +820,8 @@ void MyFrame::OnSetSize(wxCommandEvent&)
 
     if (!str.empty()) {
         wxChar sep = _T(',');
-        size.x = atoi(str.BeforeFirst(sep).mb_str());
-        size.y = atoi(str.AfterFirst(sep).mb_str());
+        size.x = wxAtoi(str.BeforeFirst(sep));
+        size.y = wxAtoi(str.AfterFirst(sep));
 
         Graph::node_iterator it, end;
 
@@ -893,6 +901,54 @@ void MyFrame::OnSetLineStyle(wxCommandEvent& event)
         ++it;
         if (edge)
             edge->SetStyle(event.GetId() - ID_LINE + GraphEdge::Style_Line);
+    }
+}
+
+void MyFrame::OnSetBorderThickness(wxCommandEvent&)
+{
+    ProjectNode *node = wxDynamicCast(m_node, ProjectNode);
+    int thickness = node ? node->GetBorderThickness() : 0;
+    wxString str;
+
+    str << thickness;
+
+    str = wxGetTextFromUser(
+            _T("Enter a new thickness for the selected nodes' borders:"),
+            _T("Set Border Thickness"), str, this);
+
+    if (!str.empty()) {
+        Graph::node_iterator it, end;
+        thickness = wxAtoi(str);
+
+        for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it) {
+            node = wxDynamicCast(&*it, ProjectNode);
+            if (node)
+                node->SetBorderThickness(thickness);
+        }
+    }
+}
+
+void MyFrame::OnSetCornerRadius(wxCommandEvent&)
+{
+    ProjectNode *node = wxDynamicCast(m_node, ProjectNode);
+    int radius = node ? node->GetCornerRadius() : 0;
+    wxString str;
+
+    str << radius;
+
+    str = wxGetTextFromUser(
+            _T("Enter a new radius for the selected nodes' corners:"),
+            _T("Set Corner Radius"), str, this);
+
+    if (!str.empty()) {
+        Graph::node_iterator it, end;
+        radius = wxAtoi(str);
+
+        for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it) {
+            node = wxDynamicCast(&*it, ProjectNode);
+            if (node)
+                node->SetCornerRadius(radius);
+        }
     }
 }
 

@@ -257,6 +257,26 @@ void ProjectNode::SetIcon(const wxIcon& icon)
     Refresh();
 }
 
+void ProjectNode::SetBorderThickness(int thickness)
+{
+    m_borderThickness = thickness;
+    m_rcText = wxRect();
+    m_rcResult = wxRect();
+    m_rcIcon = wxRect();
+    Layout();
+    Refresh();
+}
+
+void ProjectNode::SetCornerRadius(int radius)
+{
+    m_cornerRadius = radius;
+    m_rcText = wxRect();
+    m_rcResult = wxRect();
+    m_rcIcon = wxRect();
+    Layout();
+    Refresh();
+}
+
 int ProjectNode::HitTest(const wxPoint& pt) const
 {
     wxRect bounds = GetBounds();
@@ -366,20 +386,10 @@ void ProjectNode::OnDraw(wxDC& dc)
 
 wxPoint ProjectNode::GetCornerPoint(const wxPoint& centre,
                                     int radius, int sign,
-                                    const wxPoint& pt1,
-                                    const wxPoint& pt2) const
+                                    const wxPoint& inside,
+                                    const wxPoint& outside) const
 {
-    // let k be the point inside the shape, which we keep constant,
-    // and pt be the other point
-    wxPoint k, pt;
-    if (GetBounds().Inside(pt1)) {
-        k = pt1;
-        pt = pt2;
-    } else {
-        k = pt2;
-        pt = pt1;
-    }
-
+    wxPoint k = inside, pt = outside;
     radius++;
 
     // translate the line, so that the centre of the circle is at the origin
@@ -407,10 +417,10 @@ wxPoint ProjectNode::GetCornerPoint(const wxPoint& centre,
     return centre + wxPoint(int(x), int(y));
 }
 
-wxPoint ProjectNode::GetPerimeterPoint(const wxPoint& pt1,
-                                       const wxPoint& pt2) const
+wxPoint ProjectNode::GetPerimeterPoint(const wxPoint& inside,
+                                       const wxPoint& outside) const
 {
-    wxPoint pt = GraphNode::GetPerimeterPoint(pt1, pt2);
+    wxPoint pt = GraphNode::GetPerimeterPoint(inside, outside);
 
     wxRect b = GetBounds();
     int r = m_cornerRadius + m_borderThickness / 2;
@@ -419,21 +429,21 @@ wxPoint ProjectNode::GetPerimeterPoint(const wxPoint& pt1,
     b.Deflate(r);
 
     // avoid cases GetCornerPoint won't handle
-    if (b.IsEmpty() || pt1.x == pt2.x || pt1.y == pt2.y)
+    if (b.IsEmpty() || inside.x == outside.x || inside.y == outside.y)
         return pt;
 
     // check if in a corner
     if (pt.x < b.x && pt.y < b.y)
-        pt = GetCornerPoint(b.GetTopLeft(), r, -1, pt1, pt2);
+        pt = GetCornerPoint(b.GetTopLeft(), r, -1, inside, outside);
 
     else if (pt.x > b.GetRight() && pt.y < b.y)
-        pt = GetCornerPoint(wxPoint(b.GetRight(), b.y), r, 1, pt1, pt2);
+        pt = GetCornerPoint(wxPoint(b.GetRight(), b.y), r, 1, inside, outside);
 
     else if (pt.x < b.x && pt.y > b.GetBottom())
-        pt = GetCornerPoint(wxPoint(b.x, b.GetBottom()), r, -1, pt1, pt2);
+        pt = GetCornerPoint(wxPoint(b.x, b.GetBottom()), r, -1, inside, outside);
 
     else if (pt.x > b.GetRight() && pt.y > b.GetBottom())
-        pt = GetCornerPoint(b.GetBottomRight(), r, 1, pt1, pt2);
+        pt = GetCornerPoint(b.GetBottomRight(), r, 1, inside, outside);
 
     return pt;
 }

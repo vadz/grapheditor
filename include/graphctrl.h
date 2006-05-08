@@ -462,8 +462,8 @@ public:
 
     void SetShape(wxShape *shape);
 
-    virtual wxPoint GetPerimeterPoint(const wxPoint& pt1,
-                                      const wxPoint& pt2) const;
+    virtual wxPoint GetPerimeterPoint(const wxPoint& inside,
+                                      const wxPoint& outside) const;
 
 protected:
     virtual void DoSelect(bool select);

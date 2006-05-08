@@ -403,7 +403,7 @@ public:
     /** @brief The node's main text label. */
     virtual wxString GetText() const        { return m_text; }
     /** @brief The node's font. */
-    virtual wxFont GetFont() const          { return m_font; }
+    virtual wxFont GetFont() const;
     /**
      * @brief A number from the Style enumeration indicating the node's
      * appearance.

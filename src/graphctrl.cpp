@@ -933,7 +933,9 @@ void GraphNodeHandler::OnEndDragLeft(double x, double y, int, int)
 
 void GraphNodeHandler::OnDraw(wxDC& dc)
 {
-    GetNode()->OnDraw(dc);
+    GraphNode *node = GetNode();
+    dc.SetFont(node->GetFont());
+    node->OnDraw(dc);
 }
 
 void GraphNodeHandler::OnSizingDragLeft(wxControlPoint* pt, bool draw,
@@ -2382,6 +2384,16 @@ void GraphNode::SetFont(const wxFont& font)
         Layout();
         Refresh();
     }
+}
+
+wxFont GraphNode::GetFont() const
+{
+    if (!m_font.Ok()) {
+        wxShapeCanvas *canvas = GetCanvas(GetShape());
+        if (canvas)
+            return canvas->GetFont();
+    }
+    return m_font;
 }
 
 void GraphNode::SetTextColour(const wxColour& colour)

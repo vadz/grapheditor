@@ -1056,7 +1056,10 @@ public:
     virtual GraphElement *get() const = 0;
     virtual GraphIteratorImpl *clone() const = 0;
 
-    enum Flags { AllElements, NodesOnly, EdgesOnly, Pair };
+    enum Flags {
+        AllElements, NodesOnly, EdgesOnly, InEdgesOnly, OutEdgesOnly, Pair
+    };
+
     int GetFlags() const { return m_flags; }
     bool IsSelectionOnly() const { return m_selectionOnly; }
 
@@ -1117,12 +1120,20 @@ public:
     ListIterImpl(const wxList::iterator& begin,
                  const wxList::iterator& end = wxList::iterator(),
                  int flags = AllElements,
-                 bool selectionOnly = false)
-      : GraphIteratorImpl(flags, selectionOnly), m_it(begin), m_end(end)
+                 bool selectionOnly = false,
+                 const GraphNode *node = NULL)
+      : GraphIteratorImpl(flags, selectionOnly),
+        m_it(begin),
+        m_end(end),
+        m_node(node)
     {
         wxASSERT(flags == AllElements ||
                  flags == NodesOnly ||
-                 flags == EdgesOnly);
+                 flags == EdgesOnly ||
+                 flags == InEdgesOnly ||
+                 flags == OutEdgesOnly);
+
+        wxASSERT((flags != InEdgesOnly && flags != OutEdgesOnly) || node);
 
         while (m_it != m_end && !filter())
             ++m_it;
@@ -1138,14 +1149,29 @@ public:
     bool filter()
     {
         GraphElement *element = get();
+
         if (!element)
             return false;
         if (IsSelectionOnly() && !element->IsSelected())
             return false;
-        if (GetFlags() == NodesOnly)
+
+        int flags = GetFlags();
+
+        if (flags == NodesOnly)
             return element->IsKindOf(CLASSINFO(GraphNode));
-        if (GetFlags() == EdgesOnly)
-            return element->IsKindOf(CLASSINFO(GraphEdge));
+
+        if (flags == EdgesOnly || flags == InEdgesOnly
+                || flags == OutEdgesOnly)
+        {
+            GraphEdge *edge = wxDynamicCast(element, GraphEdge);
+            if (!edge)
+                return false;
+            if (flags == InEdgesOnly)
+                return edge->GetTo() == m_node;
+            if (flags == OutEdgesOnly)
+                return edge->GetFrom() == m_node;
+            return true;
+        }
 
         return true;
     }
@@ -1185,6 +1211,7 @@ public:
 private:
     wxList::iterator m_it;
     wxList::iterator m_end;
+    const GraphNode *m_node;
 };
 
 class PairIterImpl : public GraphIteratorImpl
@@ -1566,7 +1593,7 @@ Graph::const_node_iterator_pair Graph::GetSelectionNodes() const
 size_t Graph::GetNodeCount() const
 {
     const_iterator it, end;
-    size_t count;
+    size_t count = 0;
 
     for (tie(it, end) = GetNodes(); it != end; ++it)
         count++;
@@ -1577,7 +1604,7 @@ size_t Graph::GetNodeCount() const
 size_t Graph::GetElementCount() const
 {
     const_iterator it, end;
-    size_t count;
+    size_t count = 0;
 
     for (tie(it, end) = GetElements(); it != end; ++it)
         count++;
@@ -1588,7 +1615,7 @@ size_t Graph::GetElementCount() const
 size_t Graph::GetSelectionCount() const
 {
     const_iterator it, end;
-    size_t count;
+    size_t count = 0;
 
     for (tie(it, end) = GetSelection(); it != end; ++it)
         count++;
@@ -1599,7 +1626,7 @@ size_t Graph::GetSelectionCount() const
 size_t Graph::GetSelectionNodeCount() const
 {
     const_iterator it, end;
-    size_t count;
+    size_t count = 0;
 
     for (tie(it, end) = GetSelectionNodes(); it != end; ++it)
         count++;
@@ -2503,10 +2530,76 @@ GraphNode::const_iterator_pair GraphNode::GetEdges() const
                      const_iterator(new ListIterImpl(end)));
 }
 
+GraphNode::iterator_pair GraphNode::GetInEdges()
+{
+    wxList& list = GetShape()->GetLines();
+    wxList::iterator begin = list.begin(), end = list.end();
+    const int flags = ListIterImpl::InEdgesOnly;
+
+    return make_pair(
+            iterator(new ListIterImpl(begin, end, flags, false, this)),
+            iterator(new ListIterImpl(end, end, flags, false, this)));
+}
+
+GraphNode::const_iterator_pair GraphNode::GetInEdges() const
+{
+    wxList& list = GetShape()->GetLines();
+    wxList::iterator begin = list.begin(), end = list.end();
+    const int flags = ListIterImpl::InEdgesOnly;
+
+    return make_pair(
+            const_iterator(new ListIterImpl(begin, end, flags, false, this)),
+            const_iterator(new ListIterImpl(end, end, flags, false, this)));
+}
+
+GraphNode::iterator_pair GraphNode::GetOutEdges()
+{
+    wxList& list = GetShape()->GetLines();
+    wxList::iterator begin = list.begin(), end = list.end();
+    const int flags = ListIterImpl::OutEdgesOnly;
+
+    return make_pair(
+            iterator(new ListIterImpl(begin, end, flags, false, this)),
+            iterator(new ListIterImpl(end, end, flags, false, this)));
+}
+
+GraphNode::const_iterator_pair GraphNode::GetOutEdges() const
+{
+    wxList& list = GetShape()->GetLines();
+    wxList::iterator begin = list.begin(), end = list.end();
+    const int flags = ListIterImpl::OutEdgesOnly;
+
+    return make_pair(
+            const_iterator(new ListIterImpl(begin, end, flags, false, this)),
+            const_iterator(new ListIterImpl(end, end, flags, false, this)));
+}
+
 size_t GraphNode::GetEdgeCount() const
 {
     wxList& list = GetShape()->GetLines();
     return list.size();
+}
+
+size_t GraphNode::GetInEdgeCount() const
+{
+    const_iterator it, end;
+    size_t count = 0;
+
+    for (tie(it, end) = GetInEdges(); it != end; ++it)
+        count++;
+    
+    return count;
+}
+
+size_t GraphNode::GetOutEdgeCount() const
+{
+    const_iterator it, end;
+    size_t count = 0;
+
+    for (tie(it, end) = GetOutEdges(); it != end; ++it)
+        count++;
+    
+    return count;
 }
 
 wxPoint GraphNode::GetPerimeterPoint(const wxPoint& pt1,

@@ -439,7 +439,14 @@ public:
      */
     const_iterator_pair GetEdges() const;
 
+    iterator_pair GetInEdges();
+    const_iterator_pair GetInEdges() const;
+    iterator_pair GetOutEdges();
+    const_iterator_pair GetOutEdges() const;
+
     size_t GetEdgeCount() const;
+    size_t GetInEdgeCount() const;
+    size_t GetOutEdgeCount() const;
 
     bool Serialize(wxOutputStream& out) const;
     bool Deserialize(wxInputStream& in);

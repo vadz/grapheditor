@@ -695,25 +695,8 @@ void MyFrame::OnConnect(GraphEvent& event)
     bool ok = true;
 
     // Veto to disallow all connections
-    if (dest.find(_T("Sort")) != wxString::npos)
-    {
-        size_t count = sources.size();
-
-        if (count == 1) {
-            GraphNode::iterator l, lend;
-
-            // count the incoming edges the target currently has
-            for (tie(l, lend) = target->GetEdges(); l != lend; ++l) {
-                GraphEdge::iterator m, mend;
-                tie(m, mend) = l->GetNodes();
-                if (m != mend && &*m != target) {
-                    count++;
-                    break;
-                }
-            }
-        }
-
-        if (count > 1) {
+    if (dest.find(_T("Sort")) != wxString::npos) {
+        if (sources.size() + target->GetInEdgeCount() > 1) {
             event.Veto();
             ok = false;
         }
@@ -732,20 +715,7 @@ void MyFrame::OnConnect(GraphEvent& event)
         wxLogDebug(_T("    ") + operation);
 
         if (operation.find(_T("Sort")) != wxString::npos) {
-            GraphNode::iterator l, lend;
-            size_t count = 0;
-
-            // count the outgoing edges this source node currently has
-            for (tie(l, lend) = (*j)->GetEdges(); l != lend; ++l) {
-                GraphEdge::iterator m, mend;
-                tie(m, mend) = l->GetNodes();
-                if (m != mend && &*m == *j) {
-                    count++;
-                    break;
-                }
-            }
-
-            if (count > 0) {
+            if ((*j)->GetOutEdgeCount() > 0) {
                 sources.erase(j);
                 ok = false;
             }

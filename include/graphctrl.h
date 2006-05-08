@@ -347,6 +347,11 @@ public:
      */
     const_iterator_pair GetNodes() const;
 
+    size_t GetNodeCount() const;
+
+    virtual GraphNode *GetFrom() const;
+    virtual GraphNode *GetTo() const;
+
     bool Serialize(wxOutputStream& out) const;
     bool Deserialize(wxInputStream& in);
 
@@ -433,6 +438,8 @@ public:
      * @brief An interator range returning the edges connecting to this node.
      */
     const_iterator_pair GetEdges() const;
+
+    size_t GetEdgeCount() const;
 
     bool Serialize(wxOutputStream& out) const;
     bool Deserialize(wxInputStream& in);
@@ -673,6 +680,11 @@ public:
      * @brief An interator range returning all the nodes currently selected.
      */
     const_node_iterator_pair GetSelectionNodes() const;
+
+    size_t GetNodeCount() const;
+    size_t GetElementCount() const;
+    size_t GetSelectionCount() const;
+    size_t GetSelectionNodeCount() const;
 
     /**
      * @brief Write a text representation of the graph and all its elements.

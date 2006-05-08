@@ -1563,6 +1563,50 @@ Graph::const_node_iterator_pair Graph::GetSelectionNodes() const
             const_node_iterator(new ListIterImpl(end, end, flags, true)));
 }
 
+size_t Graph::GetNodeCount() const
+{
+    const_iterator it, end;
+    size_t count;
+
+    for (tie(it, end) = GetNodes(); it != end; ++it)
+        count++;
+    
+    return count;
+}
+
+size_t Graph::GetElementCount() const
+{
+    const_iterator it, end;
+    size_t count;
+
+    for (tie(it, end) = GetElements(); it != end; ++it)
+        count++;
+    
+    return count;
+}
+
+size_t Graph::GetSelectionCount() const
+{
+    const_iterator it, end;
+    size_t count;
+
+    for (tie(it, end) = GetSelection(); it != end; ++it)
+        count++;
+    
+    return count;
+}
+
+size_t Graph::GetSelectionNodeCount() const
+{
+    const_iterator it, end;
+    size_t count;
+
+    for (tie(it, end) = GetSelectionNodes(); it != end; ++it)
+        count++;
+    
+    return count;
+}
+
 bool Graph::Layout(const node_iterator_pair& range)
 {
     wxString dot;
@@ -2172,6 +2216,29 @@ GraphEdge::const_iterator_pair GraphEdge::GetNodes() const
                      const_iterator(new PairIterImpl(line, true)));
 }
 
+size_t GraphEdge::GetNodeCount() const
+{
+    size_t count = 0;
+    if (GetFrom())
+        count++;
+    if (GetTo())
+        count++;
+    return count;
+}
+
+GraphNode *GraphEdge::GetFrom() const
+{
+    wxLineShape *line = GetShape();
+    return line ? GetNode(line->GetFrom()) : NULL;
+}
+
+GraphNode *GraphEdge::GetTo() const
+{
+    wxLineShape *line = GetShape();
+    return line ? GetNode(line->GetTo()) : NULL;
+}
+
+
 // ----------------------------------------------------------------------------
 // GraphNode
 // ----------------------------------------------------------------------------
@@ -2434,6 +2501,12 @@ GraphNode::const_iterator_pair GraphNode::GetEdges() const
 
     return make_pair(const_iterator(new ListIterImpl(begin)),
                      const_iterator(new ListIterImpl(end)));
+}
+
+size_t GraphNode::GetEdgeCount() const
+{
+    wxList& list = GetShape()->GetLines();
+    return list.size();
 }
 
 wxPoint GraphNode::GetPerimeterPoint(const wxPoint& pt1,

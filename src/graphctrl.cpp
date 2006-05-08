@@ -959,6 +959,30 @@ void GraphNodeHandler::OnSizingEndDragLeft(wxControlPoint* pt,
     node->SetSize(node->GetSize());
 }
 
+// ----------------------------------------------------------------------------
+// GraphNodeShape
+// ----------------------------------------------------------------------------
+
+class GraphNodeShape : public wxRectangleShape
+{
+public:
+    bool GetPerimeterPoint(double x1, double y1,
+                           double x2, double y2,
+                           double *x3, double *y3);
+};
+
+bool GraphNodeShape::GetPerimeterPoint(double x1, double y1,
+                                       double x2, double y2,
+                                       double *x3, double *y3)
+{
+    wxPoint pt = GetNode(this)->GetPerimeterPoint(wxPoint(int(x1), int(y1)),
+                                                  wxPoint(int(x2), int(y2)));
+    *x3 = pt.x;
+    *y3 = pt.y;
+
+    return true;
+}
+
 } // namespace
 
 // ----------------------------------------------------------------------------
@@ -2263,7 +2287,7 @@ void GraphNode::SetStyle(int style)
             shape = CreatePolygon(WXSIZEOF(diamond), diamond);
             break;
         default:
-            shape = new wxRectangleShape;
+            shape = new GraphNodeShape;
             break;
     }
 
@@ -2398,6 +2422,41 @@ GraphNode::const_iterator_pair GraphNode::GetEdges() const
 
     return make_pair(const_iterator(new ListIterImpl(begin)),
                      const_iterator(new ListIterImpl(end)));
+}
+
+wxPoint GraphNode::GetPerimeterPoint(const wxPoint& pt1,
+                                     const wxPoint& pt2) const
+{
+    wxRect b = GetBounds();
+    wxPoint k;
+    wxPoint pt;
+
+    // let k be the point inside the shape, which we keep constant,
+    // and pt be the other point which we move to the perimeter.
+    if (b.Inside(pt1)) {
+        k = pt1;
+        pt = pt2;
+    } else {
+        k = pt2;
+        pt = pt1;
+    }
+
+    b.Inflate(1);
+
+    int dx = pt.x - k.x;
+    int dy = pt.y - k.y;
+
+    if (dx != 0) {
+        pt.x = pt.x < k.x ?  b.x : b.GetRight();
+        pt.y = k.y + (pt.x - k.x) * dy / dx;
+    }
+
+    if (dy != 0 && (dx == 0 || pt.y < b.y || pt.y > b.GetBottom())) {
+        pt.y = pt.y < k.y ? b.y : b.GetBottom();
+        pt.x = k.x + (pt.y - k.y) * dx / dy;
+    }
+
+    return pt;
 }
 
 bool GraphNode::Serialize(wxOutputStream&) const

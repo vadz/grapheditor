@@ -907,18 +907,14 @@ void MyFrame::OnSetLineStyle(wxCommandEvent& event)
 void MyFrame::OnSetBorderThickness(wxCommandEvent&)
 {
     ProjectNode *node = wxDynamicCast(m_node, ProjectNode);
-    int thickness = node ? node->GetBorderThickness() : 0;
-    wxString str;
+    long thickness = node ? node->GetBorderThickness() : 0;
 
-    str << thickness;
+    thickness = wxGetNumberFromUser(
+        _T("Enter a new thickness for the selected nodes' borders:"), _T(""),
+        _T("Set Border Thickness"), thickness, 1, 100, this);
 
-    str = wxGetTextFromUser(
-            _T("Enter a new thickness for the selected nodes' borders:"),
-            _T("Set Border Thickness"), str, this);
-
-    if (!str.empty()) {
+    if (thickness >= 1) {
         Graph::node_iterator it, end;
-        thickness = wxAtoi(str);
 
         for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it) {
             node = wxDynamicCast(&*it, ProjectNode);
@@ -931,18 +927,14 @@ void MyFrame::OnSetBorderThickness(wxCommandEvent&)
 void MyFrame::OnSetCornerRadius(wxCommandEvent&)
 {
     ProjectNode *node = wxDynamicCast(m_node, ProjectNode);
-    int radius = node ? node->GetCornerRadius() : 0;
-    wxString str;
+    long radius = node ? node->GetCornerRadius() : 0;
 
-    str << radius;
+    radius = wxGetNumberFromUser(
+        _T("Enter a new radius for the selected nodes' corners:"), _T(""),
+        _T("Set Corner Radius"), radius, 1, 100, this);
 
-    str = wxGetTextFromUser(
-            _T("Enter a new radius for the selected nodes' corners:"),
-            _T("Set Corner Radius"), str, this);
-
-    if (!str.empty()) {
+    if (radius >= 1) {
         Graph::node_iterator it, end;
-        radius = wxAtoi(str);
 
         for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it) {
             node = wxDynamicCast(&*it, ProjectNode);

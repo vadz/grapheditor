@@ -391,7 +391,6 @@ void ProjectNode::OnDraw(wxDC& dc)
         dc.DrawRoundedRectangle(rc, GetCornerRadius());
 
         // fill top section with the border color
-        dc.SetPen(GetColour());
         dc.SetBrush(GetColour());
         int r = m_cornerRadius;
         int x1 = rc.x, x2 = rc.GetRight();

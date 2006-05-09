@@ -252,7 +252,6 @@ void ProjectNode::SetResult(const wxString& text)
 void ProjectNode::SetIcon(const wxIcon& icon)
 {
     m_icon = icon;
-    m_rcIcon = wxRect();
     Layout();
     Refresh();
 }
@@ -260,9 +259,6 @@ void ProjectNode::SetIcon(const wxIcon& icon)
 void ProjectNode::SetBorderThickness(int thickness)
 {
     m_borderThickness = thickness;
-    m_rcText = wxRect();
-    m_rcResult = wxRect();
-    m_rcIcon = wxRect();
     Layout();
     Refresh();
 }
@@ -270,9 +266,6 @@ void ProjectNode::SetBorderThickness(int thickness)
 void ProjectNode::SetCornerRadius(int radius)
 {
     m_cornerRadius = radius;
-    m_rcText = wxRect();
-    m_rcResult = wxRect();
-    m_rcIcon = wxRect();
     Layout();
     Refresh();
 }
@@ -284,6 +277,7 @@ int ProjectNode::HitTest(const wxPoint& pt) const
     if (!bounds.Inside(pt))
         return Hit_No;
 
+    // for the custom style detect operation, result or icon
     if (GetStyle() == Style_Custom) {
         wxPoint ptNode = pt - bounds.GetTopLeft();
 
@@ -295,44 +289,76 @@ int ProjectNode::HitTest(const wxPoint& pt) const
             return Hit_Image;
     }
 
+    // for non-custom sytles it just returns yes or no
     return Hit_Yes;
 }
 
+// Recalculates the positions of the things within the node. Only recalcs
+// the sizes of the text lables, m_rcText and m_rcResult, when the rects
+// are null, so usual it runs quickly.
+// 
 void ProjectNode::OnLayout(wxDC &dc)
 {
-    int spacing = m_cornerRadius + m_borderThickness / 2 -
+    int spacing = 0;
+
+    // this keeps the text within the inner radius of the curved corners
+    if (m_cornerRadius > m_borderThickness)
+        spacing = m_cornerRadius + m_borderThickness / 2 -
                   (m_cornerRadius - m_borderThickness / 2)
                   * 1000000 / 1414214;
+    // if the border is thicker than the corner curve then just allow 3
+    if (spacing < m_borderThickness + 3)
+        spacing = m_borderThickness + 3;
 
     if (m_rcText.IsEmpty() || m_rcResult.IsEmpty())
         dc.SetFont(GetFont());
 
+    // figure out the bounds of the top text label
     if (m_rcText.IsEmpty()) {
         wxCoord h, w;
         dc.GetMultiLineTextExtent(GetText(), &w, &h);
-        m_rcText = wxRect(spacing, spacing, w, h);
+        m_rcText.width = w;
+        m_rcText.height = h;
     }
+    m_rcText.x = spacing;
+    m_rcText.y = spacing;
 
-    if (m_icon.Ok() && m_rcIcon.IsEmpty()) {
-        m_rcIcon = wxRect(spacing, 0, m_icon.GetWidth(), m_icon.GetHeight());
+    // bounds of the icon without worrying about it's y position
+    if (m_icon.Ok()) {
+        m_rcIcon.width = m_icon.GetWidth();
+        m_rcIcon.height = m_icon.GetHeight();
+    } else {
+        m_rcIcon.width = 0;
+        m_rcIcon.height = 0;
     }
+    m_rcIcon.x = spacing;
 
     int iconHSpace = m_rcIcon.width + spacing;
 
+    // bounds of the lower text, without calculating the y position
     if (m_rcResult.IsEmpty()) {
         wxCoord h, w;
         dc.GetMultiLineTextExtent(GetResult(), &w, &h);
-        m_rcResult = wxRect(spacing + iconHSpace, 0, w, h);
+        m_rcResult.width = w;
+        m_rcResult.height = h;
     }
+    m_rcResult.x = spacing + iconHSpace;
 
+    // calcuate the position of the dividing line between the two sections
+    m_divide = m_rcText.GetBottom() + 1 + spacing - m_borderThickness;
+    m_divide = max(m_divide, m_cornerRadius + m_borderThickness / 2);
+    
+    // calculate the min size the node must have to fit everything
     m_minSize.x = max(m_rcText.GetRight(), m_rcResult.GetRight()) +
                   spacing + 1;
-
+    m_minSize.x = max(m_minSize.x, 2 * m_cornerRadius + m_borderThickness);
     m_minSize.y = max(m_rcIcon.GetHeight(), m_rcResult.GetHeight()) +
-                  m_rcText.GetBottom() + 2 + 2 * spacing - m_borderThickness;
+                  m_rcText.GetBottom() + 2 + 2 * spacing;
+    m_minSize.y = max(m_minSize.y, m_divide + m_cornerRadius + m_borderThickness / 2);
 
     wxRect bounds = GetBounds();
 
+    // resize the node if it's too small
     if (bounds.width < m_minSize.x || bounds.height < m_minSize.y) {
         if (bounds.width < m_minSize.x)
             bounds.width = m_minSize.x;
@@ -341,7 +367,7 @@ void ProjectNode::OnLayout(wxDC &dc)
         SetSize(bounds.GetSize());
     }
 
-    m_divide = m_rcText.GetBottom() + 1 + spacing - m_borderThickness;
+    // vertically centre the icon and result text in the lower section
     int mid = (m_divide + bounds.height) / 2;
     m_rcIcon.y = mid - m_rcIcon.height / 2;
     m_rcResult.y = mid - m_rcResult.height / 2;
@@ -352,6 +378,8 @@ void ProjectNode::OnDraw(wxDC& dc)
     if (GetStyle() == Style_Custom) {
         wxRect bounds = GetBounds();
         wxRect rc = bounds;
+        // deflate by half the border thickness so that the whole stays
+        // within the bounds
         rc.Deflate(m_borderThickness / 2);
 
         dc.SetPen(wxPen(GetColour(), m_borderThickness));
@@ -359,22 +387,30 @@ void ProjectNode::OnDraw(wxDC& dc)
         dc.SetFont(GetFont());
         dc.SetTextForeground(GetTextColour());
 
+        // border, filled with bg colour
         dc.DrawRoundedRectangle(rc, GetCornerRadius());
-        rc.height = m_divide;
-        dc.SetBrush(GetColour());
-        dc.DrawRoundedRectangle(rc, GetCornerRadius());
-        if (m_cornerRadius > m_borderThickness) {
-            rc.y += m_cornerRadius;
-            rc.height -= m_cornerRadius;
-            dc.DrawRectangle(rc);
-        }
 
+        // fill top section with the border color
+        dc.SetPen(GetColour());
+        dc.SetBrush(GetColour());
+        int r = m_cornerRadius;
+        int x1 = rc.x, x2 = rc.GetRight();
+        dc.DrawArc(x1 + r, rc.y, x1, rc.y + r, x1 + r, rc.y + r);
+        dc.DrawArc(x2, rc.y + r, x2 - r, rc.y, x2 - r, rc.y + r);
+        dc.DrawRectangle(x1 + r, rc.y, x2 - x1 - 2 * r, r);
+        dc.DrawRectangle(x1, rc.y + r, x2 - x1, m_divide - r);
+
+        // upper text
         rc = m_rcText;
         rc.Offset(bounds.GetTopLeft());
         dc.DrawLabel(GetText(), rc);
+
+        // lower text
         rc = m_rcResult;
         rc.Offset(bounds.GetTopLeft());
         dc.DrawLabel(GetResult(), rc);
+
+        // icon
         if (GetIcon().Ok())
             dc.DrawIcon(GetIcon(), bounds.GetTopLeft() +
                                    m_rcIcon.GetTopLeft());

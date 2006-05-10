@@ -500,42 +500,43 @@ MyFrame::MyFrame(const wxString& title)
     // and white grid
     m_graphctrl->SetForegroundColour(*wxWHITE);
 
+    enum { Icon_Normal };
     wxImageList *images = new wxImageList(16, 16);
     images->Add(icon);
     tree->AssignImageList(images);
 
     // populate the tree control
     wxTreeItemId id, idRoot = tree->AddRoot(_T("Root"));
-    id = tree->AppendItem(idRoot, _T("Import"));
-    tree->AppendItem(id, _T("Flat File Import"), 0, 0);
-    tree->AppendItem(id, _T("Fixed Width Import"), 0, 0, NULL);
-    tree->AppendItem(id, _T("ODBC Import"), 0, 0, NULL);
+    id = tree->AppendItem(idRoot, _T("Import"), Icon_Normal);
+    tree->AppendItem(id, _T("Flat File Import"), Icon_Normal);
+    tree->AppendItem(id, _T("Fixed Width Import"), Icon_Normal);
+    tree->AppendItem(id, _T("ODBC Import"), Icon_Normal);
     tree->Expand(id);
-    id = tree->AppendItem(idRoot, _T("Export"));
-    tree->AppendItem(id, _T("File Export"), 0, 0, NULL);
-    tree->AppendItem(id, _T("ODBC Export"), 0, 0, NULL);
+    id = tree->AppendItem(idRoot, _T("Export"), Icon_Normal);
+    tree->AppendItem(id, _T("File Export"), Icon_Normal);
+    tree->AppendItem(id, _T("ODBC Export"), Icon_Normal);
     tree->Expand(id);
-    id = tree->AppendItem(idRoot, _T("Clean"));
-    tree->AppendItem(id, _T("Insert"), 0, 0, NULL);
-    tree->AppendItem(id, _T("Delete"), 0, 0, NULL);
-    tree->AppendItem(id, _T("Unite"), 0, 0, NULL);
-    tree->AppendItem(id, _T("Append"), 0, 0, NULL);
-    tree->AppendItem(id, _T("Clean"), 0, 0, NULL);
-    tree->AppendItem(id, _T("Sort"), 0, 0, NULL);
-    tree->AppendItem(id, _T("Split"), 0, 0, NULL);
-    tree->AppendItem(id, _T("Sample"), 0, 0, NULL);
+    id = tree->AppendItem(idRoot, _T("Clean"), Icon_Normal);
+    tree->AppendItem(id, _T("Insert"), Icon_Normal);
+    tree->AppendItem(id, _T("Delete"), Icon_Normal);
+    tree->AppendItem(id, _T("Unite"), Icon_Normal);
+    tree->AppendItem(id, _T("Append"), Icon_Normal);
+    tree->AppendItem(id, _T("Clean"), Icon_Normal);
+    tree->AppendItem(id, _T("Sort"), Icon_Normal);
+    tree->AppendItem(id, _T("Split"), Icon_Normal);
+    tree->AppendItem(id, _T("Sample"), Icon_Normal);
     tree->Expand(id);
-    id = tree->AppendItem(idRoot, _T("Match"));
-    tree->AppendItem(id, _T("Match"), 0, 0, NULL);
-    tree->AppendItem(id, _T("Match export"), 0, 0, NULL);
+    id = tree->AppendItem(idRoot, _T("Match"), Icon_Normal);
+    tree->AppendItem(id, _T("Match"), Icon_Normal);
+    tree->AppendItem(id, _T("Match export"), Icon_Normal);
     tree->Expand(id);
-    id = tree->AppendItem(idRoot, _T("Merge"));
-    tree->AppendItem(id, _T("Merge"), 0, 0, NULL);
+    id = tree->AppendItem(idRoot, _T("Merge"), Icon_Normal);
+    tree->AppendItem(id, _T("Merge"), Icon_Normal);
     tree->Expand(id);
-    id = tree->AppendItem(idRoot, _T("Profile"));
-    tree->AppendItem(id, _T("Validate"), 0, 0, NULL);
-    tree->AppendItem(id, _T("SQL Query"), 0, 0, NULL);
-    tree->AppendItem(id, _T("Search"), 0, 0, NULL);
+    id = tree->AppendItem(idRoot, _T("Profile"), Icon_Normal);
+    tree->AppendItem(id, _T("Validate"), Icon_Normal);
+    tree->AppendItem(id, _T("SQL Query"), Icon_Normal);
+    tree->AppendItem(id, _T("Search"), Icon_Normal);
     tree->Expand(id);
 
     // create a status bar just for fun (by default with 1 pane only)

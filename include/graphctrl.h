@@ -122,6 +122,57 @@ namespace impl
 
 /**
  * @brief Iterator class template for graph elements.
+ *
+ * Graph elements are enumerated using iterator types such as
+ * <code>Graph::iterator</code>, <code>GraphNode::iterator</code> and
+ * <code>GraphEdge::iterator</code>, which are instantiations of this
+ * template, <code>GraphIterator<T></code>.
+ *
+ * A <code>GraphIterator<GraphNode></code> or
+ * <code>GraphIterator<GraphEdge></code> is assignable to a
+ * <code>GraphIterator<GraphElement></code>, but not vice versa.
+ *
+ * Methods that return iterators return a begin/end pair in a
+ * <code>std::pair</code>.  These can be assigned to a pair of variables
+ * using the '<code>tie</code>' function, so the usual idiom for using them
+ * is:
+ *
+ * @code
+ *  Graph::node_iterator it, end;
+ *
+ *  for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it)
+ *      it->SetSize(size);
+ * @endcode
+ *
+ * As with <code>std::list</code>, deleting an element from a graph
+ * invalidates any iterators pointing to that element, but not those pointing
+ * to any other elements. Therefore when deleting elements in a loop, it is
+ * necessary to increment the loop iterator before deleting the element that
+ * it points to.
+ *
+ * Also affected in the same way are <code>GraphElement::Select()</code>,
+ * <code>GraphElement::SetStyle()</code> and
+ * <code>GraphElement::SetShape()</code>.  These also invalidate any
+ * iterators pointing to the elements they change. For example:
+ *
+ * @code
+ *  iterator i, j, end;
+ *  tie(i, end) = range;
+
+ *  while (i != end) {
+ *      // the loop iterator i, must be incremented before Select is called
+ *      j = i++;
+ *      if (j->GetEdgeCount() == 0)
+ *          j->Select();
+ *  }
+ * @endcode
+ *
+ * @see
+ * tie()
+ * Graph::GetNodes()
+ * Graph::GetSelection()
+ * GraphNode::GetEdges()
+ * GraphEdge::GetNodes()
  */
 template <class T>
 class GraphIterator : public impl::GraphIteratorBase
@@ -195,7 +246,8 @@ private:
 };
 
 /**
- * @brief A helper to allow a std::pair to be assigned to two variables.
+ * @brief A helper to allow a <code>std::pair</code> to be assigned to two
+ * variables.
  *
  * For example:
  * @code
@@ -240,6 +292,8 @@ public:
      *
      * If the element has been added to a Graph, then
      * this adds the element to the Graph's current selection.
+     *
+     * Invalidates any iterators pointing to this element.
      */
     virtual void Select()                           { DoSelect(true); }
     /**
@@ -257,23 +311,55 @@ public:
      */
     virtual bool IsSelected() const;
 
-    /** @brief Write a text representation of this element's attributes. */
+    /**
+     * @brief Write a text representation of this element's attributes.
+     * Not yet implemented.
+     */
     virtual bool Serialize(wxOutputStream& out) const = 0;
     /**
      * @brief Restore this element's attributes from text written by
      * Serialize.
+     * Not yet implemented.
      */
     virtual bool Deserialize(wxInputStream& in) = 0;
 
+    /**
+     * @brief Called by the graph control when the element must draw itself.
+     * Can be overridden to give the element a custom appearance.
+     */
     virtual void OnDraw(wxDC& dc);
 
+    /**
+     * @brief Returns the shape that represents this graph element in the
+     * underlying graphics library.
+     */
     GraphShape *GetShape() const { return DoGetShape(); }
 
+    /**
+     * @brief Returns the graph that this element has been added to, or
+     * NULL if it has not be added.
+     */
     virtual Graph *GetGraph() const;
+
+    /**
+     * @brief Returns the size of the graph element in graph coordinates.
+     */
     virtual wxSize GetSize() const;
-    virtual wxRect GetBounds() const;
-    virtual void Refresh();
+    /**
+     * @brief Returns the position of the graph element in graph coordinates.
+     */
     virtual wxPoint GetPosition() const;
+    /**
+     * @brief Returns the bounding rectangle of the graph element in graph
+     * coordinates.
+     */
+    virtual wxRect GetBounds() const;
+
+    /**
+     * @brief Invalidates the bounds of the element so that it redraws the
+     * next time its graph control handles a wxEVT_PAINT event.
+     */
+    virtual void Refresh();
 
 protected:
     virtual void DoSelect(bool select);
@@ -346,16 +432,35 @@ public:
      * @brief An interator range returning the two nodes this edge connects.
      */
     const_iterator_pair GetNodes() const;
-
+    /**
+     * @brief Returns the number of nodes this edge connects, i.e. two if the
+     * edge has been added to a graph.
+     */
     size_t GetNodeCount() const;
 
+    /**
+     * @brief Returns the first of the two nodes this edge connects.
+     */
     virtual GraphNode *GetFrom() const;
+    /**
+     * @brief Returns the second of the two nodes this edge connects.
+     */
     virtual GraphNode *GetTo() const;
 
     bool Serialize(wxOutputStream& out) const;
     bool Deserialize(wxInputStream& in);
 
     GraphLineShape *GetShape() const;
+
+    /**
+     * @brief Set a shape object from the underlying graphics library that
+     * will be used to render this edge on the graph control.
+     *
+     * This makes user code dependent on the particular underlying graphics
+     * library. To avoid a dependency, <code>SetStyle()</code> can be used
+     * instead to select from a limit range of prefined appearances. Or for
+     * more control <code>OnDraw()</code> can be overridden.
+     */
     virtual void SetShape(GraphLineShape *shape);
 
 protected:
@@ -438,14 +543,36 @@ public:
      * @brief An interator range returning the edges connecting to this node.
      */
     const_iterator_pair GetEdges() const;
-
-    iterator_pair GetInEdges();
-    const_iterator_pair GetInEdges() const;
-    iterator_pair GetOutEdges();
-    const_iterator_pair GetOutEdges() const;
-
+    /**
+     * @brief Returns the number of edges connecting to this node.
+     */
     size_t GetEdgeCount() const;
+
+    /**
+     * @brief An iterator range returning the edges into this node.
+     */
+    iterator_pair GetInEdges();
+    /**
+     * @brief An iterator range returning the edges into this node.
+     */
+    const_iterator_pair GetInEdges() const;
+    /**
+     * @brief Returns the number of edges in to this node. Takes linear time.
+     */
     size_t GetInEdgeCount() const;
+
+    /**
+     * @brief An iterator range returning the edges out of this node.
+     */
+    iterator_pair GetOutEdges();
+    /**
+     * @brief An iterator range returning the edges out of this node.
+     */
+    const_iterator_pair GetOutEdges() const;
+    /**
+     * @brief Returns the number of edges out from this node. Takes linear
+     * time.
+     */
     size_t GetOutEdgeCount() const;
 
     bool Serialize(wxOutputStream& out) const;
@@ -462,6 +589,18 @@ public:
 
     void SetShape(wxShape *shape);
 
+    /**
+     * @brief This can be overridden to give the node a custom shape.
+     *
+     * It is only called when the style has been set to
+     * <code>Style_Custom</code>, and should return a point the perimeter
+     * intersects the line between the two points <code>inside</code> and
+     * <code>outside</code>.
+     *
+     * This can be used together with <code>OnDraw()</code> to customise the
+     * appearance of a node in a way independent of the underlying graphics
+     * library.
+     */
     virtual wxPoint GetPerimeterPoint(const wxPoint& inside,
                                       const wxPoint& outside) const;
 
@@ -688,22 +827,40 @@ public:
      */
     const_node_iterator_pair GetSelectionNodes() const;
 
+    /**
+     * @brief Returns the number of nodes in the graph. Takes linear time.
+     */
     size_t GetNodeCount() const;
+    /**
+     * @brief Returns the number of elements in the graph. Takes linear time.
+     */
     size_t GetElementCount() const;
+    /**
+     * @brief Returns the number of elements in the current selection. Takes
+     * linear time.
+     */
     size_t GetSelectionCount() const;
+    /**
+     * @brief Returns the number of nodes in the current selection. Takes
+     * linear time.
+     */
     size_t GetSelectionNodeCount() const;
 
     /**
      * @brief Write a text representation of the graph and all its elements.
+     * Not yet implemented.
      */
     virtual bool Serialize(wxOutputStream& out) const;
     /**
      * @brief Write a text representation of the graph elements specified by
-     * the given iterator range.
+     * the given iterator range. Not yet implemented.
      */
     virtual bool Serialize(wxOutputStream& out,
                            const const_iterator_pair& range) const;
-    /** @brief Restore the elements from text written by Serialize. */
+    /**
+     * @brief Restore the elements from text written by Serialize.
+     * Not yet implemented.
+     */
     virtual bool Deserialize(wxInputStream& in);
 
     /**
@@ -725,34 +882,56 @@ public:
      */
     virtual int GetGridSpacing() const;
 
-    /** @brief Undo the last operation. */
+    /** @brief Undo the last operation. Not yet implemented. */
     virtual void Undo() { wxFAIL; }
-    /** @brief Redo the last Undo. */
+    /** @brief Redo the last Undo. Not yet implemented. */
     virtual void Redo() { wxFAIL; }
 
-    /** @brief Indicates the previous operation could be undone with Undo. */
+    /**
+     * @brief Indicates the previous operation could be undone with Undo.
+     * Not yet implemented.
+     */
     virtual bool CanUndo() const { wxFAIL; return false; }
-    /** @brief Indicates the previous Undo could be redone with Redo. */
+    /**
+     * @brief Indicates the previous Undo could be redone with Redo.
+     * Not yet implemented.
+     */
     virtual bool CanRedo() const { wxFAIL; return false; }
 
-    /** @brief Cut the current selection to the clipboard. */
+    /**
+     * @brief Cut the current selection to the clipboard.
+     * Not yet implemented.
+     */
     virtual bool Cut() { wxFAIL; return false; }
-    /** @brief Copy the current selection to the clipboard. */
+    /**
+     * @brief Copy the current selection to the clipboard.
+     * Not yet implemented.
+     */
     virtual bool Copy() { wxFAIL; return false; }
-    /** @brief Paste from the clipboard, replacing the current selection. */
+    /**
+     * @brief Paste from the clipboard, replacing the current selection.
+     * Not yet implemented.
+     */
     virtual bool Paste() { wxFAIL; return false; }
     /** @brief Delete the nodes and edges in the current selection. */
     void Clear() { Delete(GetSelection()); }
 
     virtual bool CanCut() const { wxFAIL; return false; }
-    /** @brief Indicates that the current selection is non-empty. */
+    /**
+     * @brief Indicates that the current selection is non-empty.
+     * Not yet implemented.
+     */
     virtual bool CanCopy() const { wxFAIL; return false; }
-    /** @brief Indicates that there is graph data in the clipboard. */
+    /**
+     * @brief Indicates that there is graph data in the clipboard.
+     * Not yet implemented.
+     */
     virtual bool CanPaste() const { wxFAIL; return false; }
     virtual bool CanClear() const;
 
     /**
-     * @brief Returns a bounding rectange for the graph
+     * @brief Returns a bounding rectange for all the elements currently
+     * in the graph.
      */
     wxRect GetBounds() const;
     /**
@@ -770,6 +949,7 @@ public:
      */
     virtual wxEvtHandler *GetEventHandler() const;
 
+    /* helper to send an event to the graph event handler. */
     void SendEvent(wxEvent& event);
 
 private:
@@ -794,6 +974,10 @@ private:
 class GraphEvent : public wxNotifyEvent
 {
 public:
+    /**
+     * @brief A list type used by EVT_GRAPH_CONNECT and
+     * EVT_GRAPH_CONNECT_FEEDBACK to provide a list of all the source nodes.
+     */
     typedef std::list<GraphNode*> NodeList;
 
     GraphEvent(wxEventType commandType = wxEVT_NULL, int winid = 0);
@@ -801,16 +985,50 @@ public:
 
     virtual wxEvent *Clone() const      { return new GraphEvent(*this); }
 
+    /**
+     * @brief The node being added, deleted, clicked, etc..
+     */
     void SetNode(GraphNode *node)       { m_node = node; }
+    /**
+     * @brief Set by EVT_GRAPH_CONNECT and EVT_GRAPH_CONNECT_FEEDBACK to
+     * indicate the target node.
+     */
     void SetTarget(GraphNode *node)     { m_target = node; }
+    /**
+     * @brief The edge being added, deleted, clicked, etc..
+     */
     void SetEdge(GraphEdge *edge)       { m_edge = edge; }
+    /**
+     * @brief The cursor position for mouse related events.
+     */
     void SetPosition(const wxPoint& pt) { m_pos = pt; }
+    /**
+     * @brief A list provided by EVT_GRAPH_CONNECT and
+     * EVT_GRAPH_CONNECT_FEEDBACK of all the source nodes.
+     */
     void SetSources(NodeList& sources)  { m_sources = &sources; }
 
+    /**
+     * @brief The node being added, deleted, clicked, etc..
+     */
     GraphNode *GetNode() const          { return m_node; }
+    /**
+     * @brief Set by EVT_GRAPH_CONNECT and EVT_GRAPH_CONNECT_FEEDBACK to
+     * indicate the target node.
+     */
     GraphNode *GetTarget() const        { return m_target; }
+    /**
+     * @brief The edge being added, deleted, clicked, etc..
+     */
     GraphEdge *GetEdge() const          { return m_edge; }
+    /**
+     * @brief The cursor position for mouse related events.
+     */
     wxPoint GetPosition() const         { return m_pos; }
+    /**
+     * @brief A list provided by EVT_GRAPH_CONNECT and
+     * EVT_GRAPH_CONNECT_FEEDBACK of all the source nodes.
+     */
     NodeList& GetSources() const        { return *m_sources; }
 
 private:

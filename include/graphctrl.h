@@ -1081,29 +1081,140 @@ END_DECLARE_EVENT_TYPES()
 
 // Graph events
 
+/**
+ * @brief Fired when a node is about to be added to the graph.
+ *
+ * <code>GraphEvent::GetNode()</code> returns the node that will be added.
+ * Vetoing the event cancels the addition of the node and deletes it.
+ */
 #define EVT_GRAPH_NODE_ADD(fn) DECLARE_GRAPH_EVT0(Node_Add, fn)
+/**
+ * @brief Fired when a node is about to be deleted from the graph.
+ *
+ * <code>GraphEvent::GetNode()</code> returns the node that will be
+ * deleted. Vetoing the event cancels the deletion of the node.
+ */
 #define EVT_GRAPH_NODE_DELETE(fn) DECLARE_GRAPH_EVT0(Node_Delete, fn)
 
+/**
+ * @brief Fired when a edge is about to be added to the graph.
+ *
+ * The parameters passed to <code>Graph::Add(GraphNode& from, GraphNode& to,
+ * GraphEdge *edge)</code> are available from the <code>GraphEvent</code>'s
+ * <code>GetNode()</code>, <code>GetTarget()</code> and
+ * <code>GetEdge()</code> methods.
+ *
+ * <code>GetEdge()</code> will return <code>NULL</code> if the
+ * <code>edge</code> parameter of <code>Add()</code> was <code>NULL</code>.
+ * In this case, after the event handler returns a <code>GraphEdge</code>
+ * object is created to be added to the graph. Alternatively, To override the
+ * default attributes of the edge, or to use a derived type instead a
+ * <code>GraphEdge</code>, the handler can create an edge object and set it
+ * with <code>GraphEvent::SetEdge()</code>.
+ *
+ * Vetoing the event cancels the addition of the edge and deletes it.
+ */
 #define EVT_GRAPH_EDGE_ADD(fn) DECLARE_GRAPH_EVT0(Edge_Add, fn)
+/**
+ * @brief Fired when an edge is about to be deleted from the graph.
+ *
+ * <code>GraphEvent::GetNode()</code> returns the edge that will be
+ * deleted. Vetoing the event cancels the deletion of the edge.
+ */
 #define EVT_GRAPH_EDGE_DELETE(fn) DECLARE_GRAPH_EVT0(Edge_Delete, fn)
 
+/**
+ * @brief Handles both EVT_GRAPH_NODE_ADD and EVT_GRAPH_EDGE_ADD with
+ * a single event handler.
+ */
 #define EVT_GRAPH_ELEMENT_ADD(fn) EVT_GRAPH_NODE_ADD(fn) EVT_GRAPH_EDGE_ADD(fn)
+/**
+ * @brief Handles both EVT_GRAPH_NODE_DELETE and EVT_GRAPH_EDGE_DELETE with
+ * a single event handler.
+ */
 #define EVT_GRAPH_ELEMENT_DELETE(fn) EVT_GRAPH_NODE_DELETE(fn) EVT_GRAPH_EDGE_DELETE(fn)
 
+/**
+ * @brief Fires during node dragging each time the cursor hovers over
+ * a potential target node, and allows the application to decide whether
+ * dropping here would create a link.
+ *
+ * GetSources() returns a list of source nodes, and GetTarget() returns the
+ * target node.  Removing nodes from the sources list disallows just that
+ * connection while permitting other sources to connect. Vetoing the event
+ * disallows all connections (it's equivalent to clearing the list).
+ */
 #define EVT_GRAPH_CONNECT_FEEDBACK(fn) DECLARE_GRAPH_EVT0(Connect_Feedback, fn)
+/**
+ * @brief This event fires when nodes have been dropped on a target node.
+ *
+ * GetSources() returns a list of source nodes, and GetTarget() returns the
+ * target node.  Removing a node from the sources list disallows just that
+ * connection while permitting other sources to connect. Vetoing the event
+ * disallows all connections (it's equivalent to clearing the list).
+ */
 #define EVT_GRAPH_CONNECT(fn) DECLARE_GRAPH_EVT0(Connect, fn)
 
 // GraphCtrl Events
 
+/**
+ * @brief Fires when a node is clicked.
+ *
+ * <code>GraphEvent::GetPosition()</code> returns the position of the
+ * mouse click.
+ */
 #define EVT_GRAPH_NODE_CLICK(id, fn) DECLARE_GRAPH_EVT1(Node_Click, id, fn)
+/**
+ * @brief Fires when a node is double clicked.
+ *
+ * <code>GraphEvent::GetPosition()</code> returns the position of the
+ * mouse click.
+ */
 #define EVT_GRAPH_NODE_ACTIVATE(id, fn) DECLARE_GRAPH_EVT1(Node_Activate, id, fn)
+/**
+ * @brief Fires when a node is right clicked.
+ *
+ * <code>GraphEvent::GetPosition()</code> returns the position of the
+ * mouse click.
+ */
 #define EVT_GRAPH_NODE_MENU(id, fn) DECLARE_GRAPH_EVT1(Node_Menu, id, fn)
 
+/**
+ * @brief Fires when an edge is clicked.
+ *
+ * <code>GraphEvent::GetPosition()</code> returns the position of the
+ * mouse click.
+ */
 #define EVT_GRAPH_EDGE_CLICK(id, fn) DECLARE_GRAPH_EVT1(Edge_Click, id, fn)
+/**
+ * @brief Fires when an edge is double clicked.
+ *
+ * <code>GraphEvent::GetPosition()</code> returns the position of the
+ * mouse click.
+ */
 #define EVT_GRAPH_EDGE_ACTIVATE(id, fn) DECLARE_GRAPH_EVT1(Edge_Activate, id, fn)
+/**
+ * @brief Fires when an edge is right clicked.
+ *
+ * <code>GraphEvent::GetPosition()</code> returns the position of the
+ * mouse click.
+ */
 #define EVT_GRAPH_EDGE_MENU(id, fn) DECLARE_GRAPH_EVT1(Edge_Menu, id, fn)
 
+/**
+ * @brief Handles both EVT_GRAPH_NODE_CLICK and EVT_GRAPH_EDGE_CLICK with
+ * a single event handler.
+ */
+#define EVT_GRAPH_ELEMENT_CLICK(id, fn) EVT_GRAPH_NODE_CLICK(id, fn) EVT_GRAPH_EDGE_CLICK(id, fn)
+/**
+ * @brief Handles both EVT_GRAPH_NODE_ACTIVATE and EVT_GRAPH_EDGE_ACTIVATE
+ * with a single event handler.
+ */
 #define EVT_GRAPH_ELEMENT_ACTIVATE(id, fn) EVT_GRAPH_NODE_ACTIVATE(id, fn) EVT_GRAPH_EDGE_ACTIVATE(id, fn)
+/**
+ * @brief Handles both EVT_GRAPH_NODE_MENU and EVT_GRAPH_EDGE_MENU with
+ * a single event handler.
+ */
 #define EVT_GRAPH_ELEMENT_MENU(id, fn) EVT_GRAPH_NODE_MENU(id, fn) EVT_GRAPH_EDGE_MENU(id, fn)
 
 #endif // GRAPHCTRL_H

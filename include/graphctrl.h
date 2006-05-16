@@ -525,7 +525,12 @@ public:
 
     /** @brief The node's main text label. */
     virtual void SetText(const wxString& text);
-    /** @brief The node's font. */
+    /**
+     * @brief The node's font.
+     *
+     * If no font is set for the node it inherits the font of the graph
+     * control.
+     */
     virtual void SetFont(const wxFont& font);
     /**
      * @brief A number from the Style enumeration indicating the node's
@@ -600,6 +605,11 @@ public:
      * This can be used together with <code>OnDraw()</code> to customise the
      * appearance of a node in a way independent of the underlying graphics
      * library.
+     *
+     * @param inside A point inside the node's bounds.
+     * @param outside A point outside the node's bounds.
+     * @returns     A point on the node's perimeter on the line between
+     *              inside and outside.
      */
     virtual wxPoint GetPerimeterPoint(const wxPoint& inside,
                                       const wxPoint& outside) const;
@@ -608,7 +618,19 @@ protected:
     virtual void DoSelect(bool select);
     virtual void UpdateShape();
     virtual void UpdateShapeTextColour();
+    /**
+     * @brief Overridable called from Layout().
+     */
     virtual void OnLayout(wxDC&) { }
+    /**
+     * @brief Calculates the positions of any text labels, icons, etc.
+     * within the node.
+     *
+     * This is called by methods that affect the appearance of the node, such
+     * as SetSize(), SetText() and SetFont(), to give the node the chance
+     * to adjust its layout. It calls OnLayout() to allow derived classes
+     * to take care of any custom features they add.
+     */
     virtual void Layout();
 
 private:
@@ -640,6 +662,20 @@ private:
  * be possible for more than one GraphCtrl to update a single Graph, which
  * would allow multiple views to update a document in a doc/view
  * application.
+ *
+ * The GraphCtrl owns a canvas from the underlying graphics library as a
+ * child window. A class derived from GraphCtrl can handle canvas events
+ * by getting the canvas window with GetCanvas(), and connecting to the
+ * required event. For example:
+ *
+ * @code
+ *  wxWindow *canvas = GetCanvas();
+ *
+ *  canvas->SetBackgroundStyle(wxBG_STYLE_CUSTOM);
+ *  canvas->Connect(wxEVT_ERASE_BACKGROUND,
+ *                  wxEraseEventHandler(ProjectDesigner::OnCanvasBackground),
+ *                  NULL, this);
+ * @endcode
  *
  * @see Graph
  */

@@ -69,8 +69,9 @@ public:
 
     /**
      * @brief Indicates what part of the node is at the given point, for
-     * example the text label or image. Returns a value from the HitValue
-     * enumeration.
+     * example the text label or image.
+     *
+     * @returns Returns a value from the HitValue enumeration.
      */
     int HitTest(const wxPoint& pt) const;
 
@@ -130,6 +131,7 @@ public:
     void OnCanvasBackground(wxEraseEvent& event);
     void DrawCanvasBackground(wxDC& dc);
 
+    /** @brief Sets the background colour gradient of the control. */
     void SetBackgroundGradient(const wxColour& from, const wxColour& to);
 
     void SetShowGrid(bool show);

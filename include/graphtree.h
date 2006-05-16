@@ -24,7 +24,12 @@
 namespace tt_solutions {
 
 /**
- * @brief Tree control
+ * @brief Tree control with items that can be dragged onto a GraphCtrl
+ * to create new nodes.
+ *
+ * Dropping a node fires the event <code>EVT_GRAPHTREE_DROP</code>.
+ *
+ * @see GraphTreeEvent
  */
 class GraphTreeCtrl : public wxTreeCtrl
 {
@@ -61,6 +66,25 @@ private:
     DECLARE_NO_COPY_CLASS(GraphTreeCtrl)
 };
 
+/**
+ * @brief Event that fires when an item from the GraphTreeCtrl is dropped
+ * on a GraphCtrl.
+ *
+ * For example:
+ * @code
+ *  void MyFrame::OnGraphTreeDrop(GraphTreeEvent& event)
+ *  {
+ *      ProjectNode *node = new ProjectNode;
+ *      node->SetText(event.GetString());
+ *      node->SetResult(_T("this is a multi-\nline test"));
+ *      node->SetColour(0x16a8fa);
+ *      node->SetIcon(event.GetIcon());
+ *      m_graph->Add(node, event.GetPosition());
+ *  }
+ * @endcode
+ *
+ * @see EVT_GRAPHTREE_DROP
+ */
 class GraphTreeEvent : public wxCommandEvent
 {
 public:
@@ -76,16 +100,24 @@ public:
           m_icon(event.GetIcon())
     { }
 
+    /** @brief The GraphCtrl that is the target of a drop. */
     GraphCtrl *GetTarget() const { return m_target; }
+    /** @brief The GraphCtrl that is the target of a drop. */
     void SetTarget(GraphCtrl *target) { m_target = target; }
 
+    /** @brief The position in Graph coordinates of a drop. */
     wxPoint GetPosition() const { return m_pos; }
+    /** @brief The position in Graph coordinates of a drop. */
     void SetPosition(const wxPoint& pt) { m_pos = pt; }
 
+    /** @brief The tree control item number for the item dropped. */
     int GetItem() const { return m_item; }
+    /** @brief The tree control item number for the item dropped. */
     void SetItem(int item) { m_item = item; }
 
+    /** @brief The image of the item dropped. */
     wxIcon GetIcon() const { return m_icon; }
+    /** @brief The image of the item dropped. */
     void SetIcon(const wxIcon& icon) { m_icon = icon; }
 
 private:
@@ -109,6 +141,23 @@ typedef void (wxEvtHandler::*GraphTreeEventFunction)(GraphTreeEvent&);
     (wxObjectEventFunction)(wxEventFunction) \
         wxStaticCastEvent(tt_solutions::GraphTreeEventFunction, &func)
 
+/**
+ * @brief Event that fires when an item from the GraphTreeCtrl is dropped
+ * on a GraphCtrl.
+ *
+ * For example:
+ * @code
+ *  void MyFrame::OnGraphTreeDrop(GraphTreeEvent& event)
+ *  {
+ *      ProjectNode *node = new ProjectNode;
+ *      node->SetText(event.GetString());
+ *      node->SetResult(_T("this is a multi-\nline test"));
+ *      node->SetColour(0x16a8fa);
+ *      node->SetIcon(event.GetIcon());
+ *      m_graph->Add(node, event.GetPosition());
+ *  }
+ * @endcode
+ */
 #define EVT_GRAPHTREE_DROP(id, fn) \
     DECLARE_EVENT_TABLE_ENTRY(tt_solutions::Evt_GraphTree_Drop, id, \
                               wxID_ANY, GraphTreeEventHandler(fn), NULL),

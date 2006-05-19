@@ -9,6 +9,34 @@
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
+// Notes:
+//
+// One of the requirements of the graph control was that its interface should
+// not depend on the underlying graphics library (OGL). Therefore, the graph
+// control does not derive from a wxShapeCanvas and extend it to add a few
+// features such as graph layout, but instead it owns a wxShapeCanvas as a
+// child window. Similarly for the graph elements, they own wxShapes rather
+// than deriving from them. The wxShape objects are connected to the
+// corresponding GraphElement object using the wxShape's client data field.
+//
+// The graph elements provide two ways to customise their appearance in a way
+// independent of the underlying graphics library. Firstly, there is the
+// SetStyle method, which can select from a limited set of predefined shapes.
+// Or for more control, there is an OnDraw overridable which can be used to
+// draw the element manually.
+//
+// The abstracted API is of course more limited than that of the underlying
+// graphics library, so access to the underlying graphics library is also
+// available, though using it obviously makes makes the user code depend on
+// the particular graphics library.
+//
+// The GraphCtrl has a method GetCanvas which returns the OGL canvas, and
+// graph elements have methods SetShape/GetShape which can be used to assign
+// a wxShape. The graph control customised the behaviour of the shapes added
+// using wxShapeEvtHandler rather than by overriding wxShape methods,
+// therefore pretty much any wxShape can be used, as long as they don't use
+// the client data field for anything else.
+
 #include "graphctrl.h"
 #include <wx/ogl/ogl.h>
 #include <list>
@@ -66,6 +94,7 @@ DEFINE_EVENT_TYPE(Evt_Graph_Edge_Menu)
 
 namespace {
 
+// the wxShape's client data field points back to the GraphElement
 GraphElement *GetElement(wxShape *shape)
 {
     void *data = shape->GetClientData();
@@ -84,11 +113,13 @@ GraphNode *GetNode(wxShape *shape)
     return data ? wxStaticCast(data, GraphNode) : NULL;
 }
 
+// lexicographic order for positions, top to bottom, left to right.
 bool operator<(const wxPoint& pt1, const wxPoint &pt2)
 {
     return pt1.y < pt2.y || (pt1.y == pt2.y && pt1.x < pt2.x);
 }
 
+// a compare functor for elements that orders them by their screen positions
 class ElementCompare
 {
 public:
@@ -241,10 +272,12 @@ void GraphCanvas::OnLeftClick(double, double, int)
 void GraphCanvas::OnBeginDragLeft(double x, double y, int keys)
 {
     if ((keys & KEY_SHIFT) != 0) {
+        // panning
         m_isPanning = true;
         m_ptDrag = wxGetMousePosition();
     }
     else {
+        // rubber banding
         m_ptDrag = wxPoint(int(x), int(y));
     }
     CaptureMouse();
@@ -253,6 +286,12 @@ void GraphCanvas::OnBeginDragLeft(double x, double y, int keys)
 void GraphCanvas::OnDragLeft(bool, double x, double y, int)
 {
     if (m_isPanning) {
+        // The mouse event that lead here may have been in queue before the
+        // last time the origin changed, in which case the x and y parameters
+        // would need adjusting to allow for that. Or OTOH the event may have
+        // come after and the x, y parameters need no adjustment. A simple
+        // way to avoid this problem is to use the global mouse position
+        // instead.
         wxMouseState mouse = wxGetMouseState();
 
         if (mouse.LeftDown()) {
@@ -262,6 +301,7 @@ void GraphCanvas::OnDragLeft(bool, double x, double y, int)
         }
     }
     else {
+        // rubber banding
         wxClientDC dc(this);
         PrepareDC(dc);
 
@@ -280,6 +320,7 @@ void GraphCanvas::OnEndDragLeft(double x, double y, int key)
     ReleaseMouse();
 
     if (m_isPanning) {
+        // finish panning
         m_isPanning = false;
         m_checkBounds = true;
         // these aren't needed I think
@@ -287,6 +328,7 @@ void GraphCanvas::OnEndDragLeft(double x, double y, int key)
         SetScrollPos(wxVERTICAL, GetScrollPos(wxVERTICAL));
     }
     else {
+        // rubber banding
         wxRect rc;
 
         if (x >= m_ptDrag.x) {
@@ -360,6 +402,22 @@ void GraphCanvas::OnScroll(wxScrollWinEvent& event)
         ScrollByOffset(0, pos - m_yScrollPosition);
 }
 
+// The scrollbars are sized to allow scrolling over the bounding rectangle of
+// all the nodes currently in the graph. Panning allows scrolling beyond this
+// region, and in this case the scrollbars adjust to include the current
+// position. Either way the scrollbars always allow scrolling back to the
+// graph origin, i.e. to have graph position (0, 0) in the top-left of the
+// current viewport.
+//
+// Code that moves nodes or otherwise affects the scrollbars, sets the flag
+// SetCheckBounds(). Then in the idle time the bounding rectangle of all the
+// nodes is recalculated and the scrollbars adjusted if necessary.
+//
+// The reason this is done during the idle time, is that scrolling back to
+// the origin may cause the scrollbars to disappear, and when this is done
+// using the mouse, the mouse then stops working. Presumably because the
+// scrollbar is destroyed without releasing the capture.
+//
 void GraphCanvas::OnIdle(wxIdleEvent&)
 {
     if (m_checkBounds && !wxGetMouseState().LeftDown())
@@ -1023,6 +1081,10 @@ public:
     void Redraw(wxDC& dc);
 };
 
+// The custom behaviour of the wxShapes is achieved using wxShapeEvtHandler
+// objects rather than by overriding wxShape methods. This allows any old
+// wxShape to be used.
+//
 void GraphDiagram::SetEventHandler(wxShape *shape)
 {
     wxShapeEvtHandler *handler;
@@ -1052,6 +1114,9 @@ void GraphDiagram::InsertShape(wxShape *shape)
     wxDiagram::InsertShape(shape);
 }
 
+// Override Redraw since the default method displays a busy cursor which
+// flashes on and off during panning.
+//
 void GraphDiagram::Redraw(wxDC& dc)
 {
     if (m_shapeList) {

@@ -10,9 +10,9 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "graphctrl.h"
-#include <wx/hashset.h>
 #include <wx/ogl/ogl.h>
 #include <list>
+#include <set>
 
 #ifndef NO_GRAPHVIZ
 #include <gvc.h>
@@ -31,6 +31,7 @@ using std::pair;
 using std::list;
 using std::min;
 using std::max;
+using std::multiset;
 
 using namespace impl;
 
@@ -83,12 +84,19 @@ GraphNode *GetNode(wxShape *shape)
     return data ? wxStaticCast(data, GraphNode) : NULL;
 }
 
-WX_DECLARE_HASH_SET(GraphNode*, wxPointerHash, wxPointerEqual, NodeSet);
-
 bool operator<(const wxPoint& pt1, const wxPoint &pt2)
 {
     return pt1.y < pt2.y || (pt1.y == pt2.y && pt1.x < pt2.x);
 }
+
+class ElementCompare
+{
+public:
+    bool operator()(const GraphElement *n, const GraphElement *m) const
+    {
+        return n->GetPosition() < m->GetPosition();
+    }
+};
 
 wxString NodeName(const GraphNode& node)
 {
@@ -1624,7 +1632,7 @@ size_t Graph::GetNodeCount() const
 
     for (tie(it, end) = GetNodes(); it != end; ++it)
         count++;
-    
+
     return count;
 }
 
@@ -1635,7 +1643,7 @@ size_t Graph::GetElementCount() const
 
     for (tie(it, end) = GetElements(); it != end; ++it)
         count++;
-    
+
     return count;
 }
 
@@ -1646,7 +1654,7 @@ size_t Graph::GetSelectionCount() const
 
     for (tie(it, end) = GetSelection(); it != end; ++it)
         count++;
-    
+
     return count;
 }
 
@@ -1657,7 +1665,7 @@ size_t Graph::GetSelectionNodeCount() const
 
     for (tie(it, end) = GetSelectionNodes(); it != end; ++it)
         count++;
-    
+
     return count;
 }
 
@@ -1665,6 +1673,10 @@ bool Graph::Layout(const node_iterator_pair& range)
 {
     wxString dot;
 
+    // Create a dot file for all the nodes in the range and the edges that
+    // connect that. To find the edges, first put all the nodes into a set,
+    // then iterate over all the edges of the nodes, looking for the edges
+    // which connect nodes in the set.
     dot << _T("digraph Project {\n");
     dot << _T("\tnode [label=\"\", shape=box, fixedsize=true];\n");
 
@@ -1672,36 +1684,47 @@ bool Graph::Layout(const node_iterator_pair& range)
     wxClientDC dc(canvas);
     canvas->PrepareDC(dc);
     wxSize dpi = dc.GetPPI();
-    GraphNode *fixed = NULL;
+    const GraphNode *fixed = NULL;
     bool externalConnection = false;
     node_iterator i, endi;
-    NodeSet nodeset;
 
+    typedef multiset<const GraphNode*, ElementCompare> NodeSet;
+    typedef multiset<const GraphEdge*, ElementCompare> EdgeSet;
+    NodeSet nodeset;
+    EdgeSet edgeset;
+
+    // First put the nodes into a set. The ElementCompare functor puts them
+    // into the order they appear on the screen, which avoids the nodes
+    // being randomly reordered on screen.
     for (tie(i, endi) = range; i != endi; ++i)
         nodeset.insert(&*i);
 
-    for (i = range.first; i != endi; ++i)
+    // Now iterate over all the edges of all the nodes
+    for (NodeSet::iterator it = nodeset.begin(); it != nodeset.end(); ++it)
     {
-        GraphNode *node = &*i;
-        GraphNode::iterator j, endj;
+        const GraphNode *node = *it;
+        GraphNode::const_iterator j, endj;
         bool extCon = false;
 
         for (tie(j, endj) = node->GetEdges(); j != endj; ++j)
         {
-            GraphEdge::iterator it = j->GetNodes().first;
-            GraphNode *n1 = &*it, *n2 = &*++it;
+            const GraphNode *n1 = j->GetFrom(), *n2 = j->GetTo();
 
+	    // looking for edges which connect nodes in the set
             if (nodeset.count(n1 != node ? n1 : n2)) {
+		// each edge will be found twice, but only add it once
                 if (n1 == node)
-                    dot << _T("\t") << NodeName(*n1)
-                        << _T(" -> ") << NodeName(*n2)
-                        << _T(";\n");
+                    edgeset.insert(&*j);
             }
             else {
                 extCon = true;
             }
         }
 
+	// If the range is a subset of the whole graph, and one of the nodes
+	// has an edge to another node outside the range, then hold that
+	// node fixed when doing the layout. Otherwise just fix the top-left-
+	// most node.
         if (!fixed || (!externalConnection && extCon) ||
             (externalConnection == extCon &&
              node->GetPosition() < fixed->GetPosition()))
@@ -1712,6 +1735,7 @@ bool Graph::Layout(const node_iterator_pair& range)
 
         wxSize size = node->GetSize();
 
+	// add the node to the dot file
         dot << _T("\t") << NodeName(*node)
             << _T(" [width=\"") << double(size.x) / dpi.x
             << _T("\", height=\"") << double(size.y) / dpi.y
@@ -1720,7 +1744,17 @@ bool Graph::Layout(const node_iterator_pair& range)
 
     nodeset.clear();
 
+    // Now add the edges. These are also sorted by ElementCompare into the
+    // order they appear on the screen, to avoid the nodes being reordered
+    // too much.
+    for (EdgeSet::iterator it = edgeset.begin(); it != edgeset.end(); ++it)
+        dot << _T("\t") << NodeName(*(*it)->GetFrom())
+            << _T(" -> ") << NodeName(*(*it)->GetTo())
+            << _T(";\n");
+
     dot << _T("}\n");
+
+    edgeset.clear();
 
 #ifdef NO_GRAPHVIZ
     wxLogError(_("No layout engine available"));
@@ -1771,9 +1805,11 @@ bool Graph::Layout(const node_iterator_pair& range)
         static GraphVizContext theContext;
         context = theContext.get();
 
+	// parse the dot file
         graph = agmemread(unconst(dot.mb_str()));
         wxCHECK(graph, false);
 
+	// do the layout
         ok = gvLayout(context, graph, "dot") == 0;
     }
 
@@ -2614,7 +2650,7 @@ size_t GraphNode::GetInEdgeCount() const
 
     for (tie(it, end) = GetInEdges(); it != end; ++it)
         count++;
-    
+
     return count;
 }
 
@@ -2625,7 +2661,7 @@ size_t GraphNode::GetOutEdgeCount() const
 
     for (tie(it, end) = GetOutEdges(); it != end; ++it)
         count++;
-    
+
     return count;
 }
 

@@ -296,7 +296,7 @@ int ProjectNode::HitTest(const wxPoint& pt) const
 // Recalculates the positions of the things within the node. Only recalcs
 // the sizes of the text lables, m_rcText and m_rcResult, when the rects
 // are null, so usual it runs quickly.
-// 
+//
 void ProjectNode::OnLayout(wxDC &dc)
 {
     int spacing = 0;
@@ -347,7 +347,7 @@ void ProjectNode::OnLayout(wxDC &dc)
     // calcuate the position of the dividing line between the two sections
     m_divide = m_rcText.GetBottom() + 1 + spacing - m_borderThickness;
     m_divide = max(m_divide, m_cornerRadius + m_borderThickness / 2);
-    
+
     // calculate the min size the node must have to fit everything
     m_minSize.x = max(m_rcText.GetRight(), m_rcResult.GetRight()) +
                   spacing + 1;

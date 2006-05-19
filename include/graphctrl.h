@@ -150,10 +150,10 @@ namespace impl
  * necessary to increment the loop iterator before deleting the element that
  * it points to.
  *
- * Also affected in the same way are <code>GraphElement::Select()</code>,
- * <code>GraphElement::SetStyle()</code> and
- * <code>GraphElement::SetShape()</code>.  These also invalidate any
- * iterators pointing to the elements they change. For example:
+ * Also affected in the same way are the <code>Select()</code>,
+ * <code>SetStyle()</code> and <code>SetShape()</code> methods of nodes and
+ * edges. These also invalidate any iterators pointing to the elements they
+ * change. For example:
  *
  * @code
  *  iterator i, j, end;
@@ -421,6 +421,8 @@ public:
     /**
      * @brief A number from the Style enumeration indicating the edge's
      * appearance.
+     *
+     * Invalidates any iterators pointing to this element.
      */
     virtual void SetStyle(int style);
 
@@ -460,6 +462,8 @@ public:
      * library. To avoid a dependency, <code>SetStyle()</code> can be used
      * instead to select from a limit range of prefined appearances. Or for
      * more control <code>OnDraw()</code> can be overridden.
+     *
+     * Invalidates any iterators pointing to this element.
      */
     virtual void SetShape(GraphLineShape *shape);
 
@@ -535,6 +539,8 @@ public:
     /**
      * @brief A number from the Style enumeration indicating the node's
      * appearance.
+     *
+     * Invalidates any iterators pointing to this element.
      */
     virtual void SetStyle(int style);
     /** @brief The colour of the node's text. */
@@ -592,6 +598,17 @@ public:
      */
     virtual void SetSize(const wxSize& size);
 
+    /**
+     * @brief Set a shape object from the underlying graphics library that
+     * will be used to render this edge on the graph control.
+     *
+     * This makes user code dependent on the particular underlying graphics
+     * library. To avoid a dependency, <code>SetStyle()</code> can be used
+     * instead to select from a limit range of prefined appearances. Or for
+     * more control <code>OnDraw()</code> can be overridden.
+     *
+     * Invalidates any iterators pointing to this element.
+     */
     void SetShape(wxShape *shape);
 
     /**

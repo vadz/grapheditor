@@ -1012,6 +1012,7 @@ public:
     void AddShape(wxShape *shape, wxShape *addAfter = NULL);
     void InsertShape(wxShape *shape);
     void SetEventHandler(wxShape *shape);
+    void Redraw(wxDC& dc);
 };
 
 void GraphDiagram::SetEventHandler(wxShape *shape)
@@ -1041,6 +1042,19 @@ void GraphDiagram::InsertShape(wxShape *shape)
 {
     SetEventHandler(shape);
     wxDiagram::InsertShape(shape);
+}
+
+void GraphDiagram::Redraw(wxDC& dc)
+{
+    if (m_shapeList) {
+        wxList::iterator it;
+
+        for (it = m_shapeList->begin(); it != m_shapeList->end(); ++it) {
+            wxShape *object = static_cast<wxShape*>(*it);
+            if (!object->GetParent())
+                object->Draw(dc);
+        }
+    }
 }
 
 } // namespace impl

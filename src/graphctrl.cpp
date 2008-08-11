@@ -1048,7 +1048,7 @@ bool GraphNodeShape::GetPerimeterPoint(double x1, double y1,
     wxPoint pt2 = wxPoint(int(x2), int(y2));
     wxPoint inside, outside;
 
-    if (node->GetBounds().Inside(pt1)) {
+    if (node->GetBounds().Contains(pt1)) {
         inside = pt1;
         outside = pt2;
     } else {

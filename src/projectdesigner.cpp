@@ -274,18 +274,18 @@ int ProjectNode::HitTest(const wxPoint& pt) const
 {
     wxRect bounds = GetBounds();
 
-    if (!bounds.Inside(pt))
+    if (!bounds.Contains(pt))
         return Hit_No;
 
     // for the custom style detect operation, result or icon
     if (GetStyle() == Style_Custom) {
         wxPoint ptNode = pt - bounds.GetTopLeft();
 
-        if (m_rcText.Inside(ptNode))
+        if (m_rcText.Contains(ptNode))
             return Hit_Operation;
-        if (m_rcResult.Inside(ptNode))
+        if (m_rcResult.Contains(ptNode))
             return Hit_Result;
-        if (m_rcIcon.Inside(ptNode))
+        if (m_rcIcon.Contains(ptNode))
             return Hit_Image;
     }
 

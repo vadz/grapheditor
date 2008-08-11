@@ -952,7 +952,7 @@ void MyFrame::OnOpen(wxCommandEvent&)
 
     wxFileDialog dialog(this, _T("Choose a filename"), path, filename,
             _T("Project Designer files (*.des)|*.des|All files (*.*)|*.*"),
-            wxOPEN);
+            wxFD_OPEN);
 
     if (dialog.ShowModal() == wxID_OK)
     {
@@ -970,7 +970,7 @@ void MyFrame::OnSaveAs(wxCommandEvent&)
     wxString filename;
 
     wxFileDialog dialog(this, _T("Choose a filename"), path, filename,
-                        _T("*.des"), wxSAVE);
+                        _T("*.des"), wxFD_SAVE);
 
     if (dialog.ShowModal() == wxID_OK)
     {

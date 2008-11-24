@@ -2483,7 +2483,7 @@ bool wxLineShape::OnLabelMovePre(wxDC& dc, wxLabelShape* labelShape, double x, d
   labelShape->SetY(y);
 
   // Need to reformat to fit region.
-  if (labelShape->m_shapeRegion->GetText())
+  if (!labelShape->m_shapeRegion->GetText().empty())
   {
 
     wxString s(labelShape->m_shapeRegion->GetText());

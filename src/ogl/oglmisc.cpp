@@ -209,9 +209,9 @@ void oglCentreText(wxDC& dc, wxList *text_list,
 
   // First, get maximum dimensions of box enclosing text
 
-  long char_height = 0;
-  long max_width = 0;
-  long current_width = 0;
+  wxCoord char_height = 0;
+  wxCoord max_width = 0;
+  wxCoord current_width = 0;
 
   // Store text extents for speed
   double *widths = new double[n];
@@ -292,9 +292,9 @@ void oglCentreTextNoClipping(wxDC& dc, wxList *text_list,
 
   // First, get maximum dimensions of box enclosing text
 
-  long char_height = 0;
-  long max_width = 0;
-  long current_width = 0;
+  wxCoord char_height = 0;
+  wxCoord max_width = 0;
+  wxCoord current_width = 0;
 
   // Store text extents for speed
   double *widths = new double[n];
@@ -351,9 +351,9 @@ void oglGetCentredTextExtent(wxDC& dc, wxList *text_list,
 
   // First, get maximum dimensions of box enclosing text
 
-  long char_height = 0;
-  long max_width = 0;
-  long current_width = 0;
+  wxCoord char_height = 0;
+  wxCoord max_width = 0;
+  wxCoord current_width = 0;
 
   wxObjectList::compatibility_iterator current = text_list->GetFirst();
   while (current)
@@ -377,57 +377,57 @@ wxStringList *oglFormatText(wxDC& dc, const wxString& text, double width, double
   // First, parse the string into a list of words
   wxStringList word_list;
 
-  // Make new lines into NULL strings at this point
-  int i = 0; int j = 0; int len = text.Length();
-  wxChar word[400]; word[0] = 0;
+  // Make new lines into empty strings at this point
+  wxString::const_iterator i = text.begin(), end = text.end();
+  wxString word;
   bool end_word = false; bool new_line = false;
-  while (i < len)
+
+  while (i != end)
   {
-    switch (text[i])
+    switch ((wxChar)*i)
     {
       case wxT('%'):
       {
-        i ++;
-        if (i == len)
-        { word[j] = wxT('%'); j ++; }
+        ++i;
+        if (i == end)
+        { word += wxT('%'); }
         else
         {
-          if (text[i] == wxT('n'))
-          { new_line = true; end_word = true; i++; }
+          if (*i == wxT('n'))
+          { new_line = true; end_word = true; ++i; }
           else
-          { word[j] = wxT('%'); j ++; word[j] = text[i]; j ++; i ++; }
+          { word += wxT('%'); word += *i; ++i; }
         }
         break;
       }
       case 10:
       {
-        new_line = true; end_word = true; i++;
+        new_line = true; end_word = true; ++i;
         break;
       }
       case 13:
       {
-        new_line = true; end_word = true; i++;
+        new_line = true; end_word = true; ++i;
         break;
       }
       case wxT(' '):
       {
         end_word = true;
-        i ++;
+        ++i;
         break;
       }
       default:
       {
-        word[j] = text[i];
-        j ++; i ++;
+        word += *i;
+        ++i;
         break;
       }
     }
-    if (i == len) end_word = true;
+    if (i == end) end_word = true;
     if (end_word)
     {
-      word[j] = 0;
-      j = 0;
       word_list.Add(word);
+      word.clear();
       end_word = false;
     }
     if (new_line)
@@ -436,12 +436,13 @@ wxStringList *oglFormatText(wxDC& dc, const wxString& text, double width, double
       new_line = false;
     }
   }
+
   // Now, make a list of strings which can fit in the box
   wxStringList *string_list = new wxStringList;
 
   wxString buffer;
   wxStringList::compatibility_iterator node = word_list.GetFirst();
-  long x, y;
+  wxCoord x, y;
 
   while (node)
   {

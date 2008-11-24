@@ -404,7 +404,7 @@ void wxCompositeShape::Copy(wxShape& copy)
     wxOGLConstraint *newConstraint = new wxOGLConstraint(constraint->m_constraintType, newConstraining,
                                             newConstrainedList);
     newConstraint->m_constraintId = constraint->m_constraintId;
-    if (constraint->m_constraintName)
+    if (!constraint->m_constraintName.empty())
     {
       newConstraint->m_constraintName = constraint->m_constraintName;
     }

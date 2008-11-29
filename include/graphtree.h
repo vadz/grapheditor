@@ -110,10 +110,10 @@ public:
     /** @brief The position in Graph coordinates of a drop. */
     void SetPosition(const wxPoint& pt) { m_pos = pt; }
 
-    /** @brief The tree control item number for the item dropped. */
-    int GetItem() const { return m_item; }
-    /** @brief The tree control item number for the item dropped. */
-    void SetItem(int item) { m_item = item; }
+    /** @brief The tree control item id for the item dropped. */
+    wxTreeItemId GetItem() const { return m_item; }
+    /** @brief The tree control item id for the item dropped. */
+    void SetItem(const wxTreeItemId& item) { m_item = item; }
 
     /** @brief The image of the item dropped. */
     wxIcon GetIcon() const { return m_icon; }
@@ -123,7 +123,7 @@ public:
 private:
     GraphCtrl *m_target;
     wxPoint m_pos;
-    int m_item;
+    wxTreeItemId m_item;
     wxIcon m_icon;
 
     DECLARE_DYNAMIC_CLASS(GraphTreeEvent)

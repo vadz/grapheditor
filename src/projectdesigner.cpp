@@ -65,6 +65,12 @@ ProjectDesigner::~ProjectDesigner()
 {
 }
 
+bool ProjectDesigner::SetBackgroundColour(const wxColour& colour)
+{
+    m_background[0] = m_background[1] = colour;
+    return true;
+}
+
 void ProjectDesigner::SetBackgroundGradient(const wxColour& from,
                                             const wxColour& to)
 {

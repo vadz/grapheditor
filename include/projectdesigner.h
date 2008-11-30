@@ -131,6 +131,8 @@ public:
     void OnCanvasBackground(wxEraseEvent& event);
     void DrawCanvasBackground(wxDC& dc);
 
+    /** @brief Sets the background colour of the control. */
+    bool SetBackgroundColour(const wxColour& colour);
     /** @brief Sets the background colour gradient of the control. */
     void SetBackgroundGradient(const wxColour& from, const wxColour& to);
 

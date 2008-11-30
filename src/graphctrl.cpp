@@ -1493,6 +1493,8 @@ GraphEdge *Graph::Add(GraphNode& from, GraphNode& to, GraphEdge *edge)
     event.SetEdge(edge);
     SendEvent(event);
     edge = event.GetEdge();
+    GraphNode *src = event.GetNode();
+    GraphNode *dest = event.GetTarget();
 
     if (event.IsAllowed()) {
         if (!edge)
@@ -1504,8 +1506,8 @@ GraphEdge *Graph::Add(GraphNode& from, GraphNode& to, GraphEdge *edge)
             line = edge->GetShape();
         }
 
-        wxShape *fromshape = from.GetShape();
-        wxShape *toshape = to.GetShape();
+        wxShape *fromshape = src->GetShape();
+        wxShape *toshape = dest->GetShape();
         fromshape->AddLine(line, toshape);
 
         m_diagram->InsertShape(line);

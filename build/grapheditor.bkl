@@ -29,6 +29,7 @@
     </if>
     <set var="SRCDIR">..</set>
     <set var="WX_MONOLITHIC">0</set>
+    <set var="USE_OWN_OGL">0</set>
 
     <!-- ======================================================================
         Common stuff
@@ -37,26 +38,18 @@
     <include file="presets/simple.bkl"/>
     <include file="presets/wx.bkl"/>
 
-    <!-- the wx-lib tag for the gnu format doesn't add the libs to the link
-         so override WX_LIBS here -->
-    <if cond="FORMAT=='gnu'">
-        <set var="WX_LIBS">`$(WX_CONFIG) --libs ogl html core base`</set>
-    </if>
-
-    <!--
     <fragment format="gnu">
 # regenerate Makefile when bakefile changes
-Makefile: grapheditor.bkl
+GNUmakefile: grapheditor.bkl
 	bakefile $(BKLFLAGS_GRAPHEDITOR) -f gnu -o $@ $&lt;
 	@touch $@
     </fragment>
-    -->
 
     <template id="graphcommon" template="simple">
         <warnings>max</warnings>
 
         <include>$(SRCDIR)/include</include>
-        <include>$(WX_DIR)/contrib/include</include>
+        <include cond="USE_OWN_OGL=='0'">$(WX_DIR)/contrib/include</include>
         <cppflags>$(GRAPHVIZ_CPPFLAGS)</cppflags>
     </template>
 
@@ -72,6 +65,24 @@ Makefile: grapheditor.bkl
         </sources>
     </lib>
 
+    <lib id="ogl" cond="USE_OWN_OGL=='1'" template="graphcommon"
+                                          template_append="wx-lib">
+        <sources>
+            src/ogl/basic2.cpp
+            src/ogl/canvas.cpp
+            src/ogl/divided.cpp
+            src/ogl/mfutils.cpp
+            src/ogl/basic.cpp
+            src/ogl/composit.cpp
+            src/ogl/drawn.cpp
+            src/ogl/ogldiag.cpp
+            src/ogl/bmpshape.cpp
+            src/ogl/constrnt.cpp
+            src/ogl/lines.cpp
+            src/ogl/oglmisc.cpp
+        </sources>
+    </lib>
+
      <!-- ======================================================================
         Executables
       ====================================================================== -->
@@ -81,8 +92,9 @@ Makefile: grapheditor.bkl
         <win32-res>samples/graphtest.rc</win32-res>
 
         <library>grapheditor</library>
+        <library cond="USE_OWN_OGL=='1'">ogl</library>
 
-        <wx-lib>ogl</wx-lib>
+        <wx-lib cond="USE_OWN_OGL=='0'">ogl</wx-lib>
         <wx-lib>html</wx-lib>
         <wx-lib>core</wx-lib>
         <wx-lib>base</wx-lib>

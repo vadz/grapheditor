@@ -1775,9 +1775,9 @@ bool Graph::Layout(const node_iterator_pair& range)
         {
             const GraphNode *n1 = j->GetFrom(), *n2 = j->GetTo();
 
-	    // looking for edges which connect nodes in the set
+            // looking for edges which connect nodes in the set
             if (nodeset.count(n1 != node ? n1 : n2)) {
-		// each edge will be found twice, but only add it once
+                // each edge will be found twice, but only add it once
                 if (n1 == node)
                     edgeset.insert(&*j);
             }
@@ -1786,10 +1786,10 @@ bool Graph::Layout(const node_iterator_pair& range)
             }
         }
 
-	// If the range is a subset of the whole graph, and one of the nodes
-	// has an edge to another node outside the range, then hold that
-	// node fixed when doing the layout. Otherwise just fix the top-left-
-	// most node.
+        // If the range is a subset of the whole graph, and one of the nodes
+        // has an edge to another node outside the range, then hold that
+        // node fixed when doing the layout. Otherwise just fix the top-left-
+        // most node.
         if (!fixed || (!externalConnection && extCon) ||
             (externalConnection == extCon &&
              node->GetPosition() < fixed->GetPosition()))
@@ -1800,7 +1800,7 @@ bool Graph::Layout(const node_iterator_pair& range)
 
         wxSize size = node->GetSize();
 
-	// add the node to the dot file
+        // add the node to the dot file
         dot << _T("\t") << NodeName(*node)
             << _T(" [width=\"") << double(size.x) / dpi.x
             << _T("\", height=\"") << double(size.y) / dpi.y
@@ -1870,11 +1870,11 @@ bool Graph::Layout(const node_iterator_pair& range)
         static GraphVizContext theContext;
         context = theContext.get();
 
-	// parse the dot file
+        // parse the dot file
         graph = agmemread(unconst(dot.mb_str()));
         wxCHECK(graph, false);
 
-	// do the layout
+        // do the layout
         ok = gvLayout(context, graph, "dot") == 0;
     }
 

@@ -158,7 +158,7 @@ namespace impl
  * @code
  *  iterator i, j, end;
  *  tie(i, end) = range;
-
+ *
  *  while (i != end) {
  *      // the loop iterator i, must be incremented before Select is called
  *      j = i++;

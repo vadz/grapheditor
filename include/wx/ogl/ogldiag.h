@@ -44,8 +44,10 @@ public:
   virtual void InsertShape(wxShape *object);
 
   void SetSnapToGrid(bool snap);
-  void SetGridSpacing(double spacing);
+  void SetGridSpacing(double spacing) { SetGridSpacing(spacing, spacing); }
+  void SetGridSpacing(double x, double y);
   inline double GetGridSpacing() const { return m_gridSpacing; }
+  void GetGridSpacing(double *x, double *y) const;
   inline bool GetSnapToGrid() const { return m_snapToGrid; }
   void Snap(double *x, double *y);
 
@@ -90,6 +92,7 @@ protected:
   bool                  m_quickEditMode;
   bool                  m_snapToGrid;
   double                m_gridSpacing;
+  double                m_gridSpacingAspect;
   int                   m_mouseTolerance;
   wxList*               m_shapeList;
 };

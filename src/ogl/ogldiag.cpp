@@ -44,6 +44,7 @@ wxDiagram::wxDiagram()
   m_quickEditMode = false;
   m_snapToGrid = true;
   m_gridSpacing = 5.0;
+  m_gridSpacingAspect = 1.0;
   m_shapeList = new wxList;
   m_mouseTolerance = DEFAULT_MOUSE_TOLERANCE;
 }
@@ -59,16 +60,24 @@ void wxDiagram::SetSnapToGrid(bool snap)
   m_snapToGrid = snap;
 }
 
-void wxDiagram::SetGridSpacing(double spacing)
+void wxDiagram::SetGridSpacing(double x, double y)
 {
-  m_gridSpacing = spacing;
+  m_gridSpacing = y;
+  m_gridSpacingAspect = x / y;
+}
+
+void wxDiagram::GetGridSpacing(double *x, double *y) const
+{
+  *y = m_gridSpacing;
+  *x = m_gridSpacing * m_gridSpacingAspect;
 }
 
 void wxDiagram::Snap(double *x, double *y)
 {
   if (m_snapToGrid)
   {
-    *x = m_gridSpacing * ((int)(*x/m_gridSpacing + 0.5));
+    double xspacing = m_gridSpacing * m_gridSpacingAspect;
+    *x = xspacing * ((int)(*x/xspacing + 0.5));
     *y = m_gridSpacing * ((int)(*y/m_gridSpacing + 0.5));
   }
 }

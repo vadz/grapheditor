@@ -19,61 +19,40 @@
 
 #include "testnodes.h"
 
+namespace {
+
 using tt_solutions::Factory;
 
 // Import
-template <> Factory<ImportFileNode>::Impl
-    Factory<ImportFileNode>::sm_impl(_T("importfile"));
-template <> Factory<ImportODBCNode>::Impl
-    Factory<ImportODBCNode>::sm_impl(_T("importodbc"));
+Factory<ImportFileNode>::Impl   importfile(_T("importfile"));
+Factory<ImportODBCNode>::Impl   importodbc(_T("importodbc"));
 
 // Export
-template <> Factory<ExportFileNode>::Impl
-    Factory<ExportFileNode>::sm_impl(_T("exportfile"));
-template <> Factory<ExportODBCNode>::Impl
-    Factory<ExportODBCNode>::sm_impl(_T("exportodbc"));
+Factory<ExportFileNode>::Impl   exportfile(_T("exportfile"));
+Factory<ExportODBCNode>::Impl   exportodbc(_T("exportodbc"));
 
 // Analyse
-template <> Factory<SearchNode>::Impl
-    Factory<SearchNode>::sm_impl(_T("search"));
-template <> Factory<SampleNode>::Impl
-    Factory<SampleNode>::sm_impl(_T("sample"));
-template <> Factory<SortNode>::Impl
-    Factory<SortNode>::sm_impl(_T("sort"));
-template <> Factory<ValidateNode>::Impl
-    Factory<ValidateNode>::sm_impl(_T("validate"));
-template <> Factory<AddressValNode>::Impl
-    Factory<AddressValNode>::sm_impl(_T("addressval"));
+Factory<SearchNode>::Impl       search(_T("search"));
+Factory<SampleNode>::Impl       sample(_T("sample"));
+Factory<SortNode>::Impl         sort(_T("sort"));
+Factory<ValidateNode>::Impl     validate(_T("validate"));
+Factory<AddressValNode>::Impl   addressval(_T("addressval"));
 
 // Re-engineer
-template <> Factory<CleanNode>::Impl
-    Factory<CleanNode>::sm_impl(_T("clean"));
-template <> Factory<ExtractNode>::Impl
-    Factory<ExtractNode>::sm_impl(_T("extract"));
-template <> Factory<SplitNode>::Impl
-    Factory<SplitNode>::sm_impl(_T("split"));
-template <> Factory<UniteNode>::Impl
-    Factory<UniteNode>::sm_impl(_T("unite"));
-template <> Factory<InsertNode>::Impl
-    Factory<InsertNode>::sm_impl(_T("insert"));
-template <> Factory<DeleteNode>::Impl
-    Factory<DeleteNode>::sm_impl(_T("delete"));
-template <> Factory<ArrangeNode>::Impl
-    Factory<ArrangeNode>::sm_impl(_T("arrange"));
-template <> Factory<AppendNode>::Impl
-    Factory<AppendNode>::sm_impl(_T("append"));
-template <> Factory<SQLQueryNode>::Impl
-    Factory<SQLQueryNode>::sm_impl(_T("sqlquery"));
+Factory<CleanNode>::Impl        clean(_T("clean"));
+Factory<ExtractNode>::Impl      extract(_T("extract"));
+Factory<SplitNode>::Impl        split(_T("split"));
+Factory<UniteNode>::Impl        unite(_T("unite"));
+Factory<InsertNode>::Impl       insert(_T("insert"));
+Factory<DeleteNode>::Impl       del(_T("delete"));
+Factory<ArrangeNode>::Impl      arrange(_T("arrange"));
+Factory<AppendNode>::Impl       append(_T("append"));
+Factory<SQLQueryNode>::Impl     sqlquery(_T("sqlquery"));
 
 // Match
-template <> Factory<MatchNode>::Impl
-    Factory<MatchNode>::sm_impl(_T("match"));
-template <> Factory<MatchTableNode>::Impl
-    Factory<MatchTableNode>::sm_impl(_T("matchtable"));
-template <> Factory<MergeNode>::Impl
-    Factory<MergeNode>::sm_impl(_T("merge"));
-
-namespace {
+Factory<MatchNode>::Impl        match(_T("match"));
+Factory<MatchTableNode>::Impl   matchtable(_T("matchtable"));
+Factory<MergeNode>::Impl        merge(_T("merge"));
 
 wxString GetResourceDir()
 {

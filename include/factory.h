@@ -5,7 +5,7 @@
 // Modified by:
 // Created:     January 2009
 // RCS-ID:      $Id$
-// Copyright:   (c) 2006 TT-Solutions SARL
+// Copyright:   (c) 2009 TT-Solutions SARL
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -63,16 +63,29 @@ namespace impl
 
 template <class T> class Factory
 {
-public:
-    Factory() : m_impl(&sm_impl) { }
+private:
+    typedef impl::FactoryBase FactoryBase;
 
-    Factory(const wxString& name) : m_impl(impl::FactoryBase::Get(name)) {
+public:
+    Factory() : m_impl(Impl::Get()) { }
+
+    Factory(const wxString& name)
+      : m_impl(FactoryBase::Get(name)) {
         CheckType();
     }
-    Factory(const std::type_info& ti) : m_impl(impl::FactoryBase::Get(ti)) {
+    Factory(const std::type_info& ti)
+      : m_impl(FactoryBase::Get(ti)) {
         CheckType();
     }
-    Factory(impl::FactoryBase *impl) : m_impl(impl) {
+    Factory(const wxObject *obj)
+      : m_impl(FactoryBase::Get(typeid(*obj))) {
+        CheckType();
+    }
+    Factory(const wxObject& obj)
+      : m_impl(FactoryBase::Get(typeid(obj))) {
+        CheckType();
+    }
+    Factory(FactoryBase *impl) : m_impl(impl) {
         wxASSERT(impl != NULL);
     }
 
@@ -97,17 +110,19 @@ public:
         return m_impl->GetName();
     }
 
-private:
-    class Impl : public impl::FactoryBase
+    class Impl : public FactoryBase
     {
     public:
         Impl(const wxString& name)
-          : impl::FactoryBase(typeid(T), name), m_default(NULL) {
-            impl::FactoryBase::Register();
+          : FactoryBase(typeid(T), name), m_default(NULL) {
+            FactoryBase::Register();
+            wxASSERT(sm_this == NULL);
+            sm_this = this;
         }
         ~Impl() {
-            impl::FactoryBase::Unregister();
+            FactoryBase::Unregister();
             delete m_default;
+            sm_this = NULL;
         }
 
         T *New() const {
@@ -120,18 +135,25 @@ private:
             return m_default;
         }
 
+        static FactoryBase *Get() {
+            return sm_this;
+        }
+
     private:
         mutable T *m_default;
+        static FactoryBase *sm_this;
     };
 
+private:
     void CheckType() {
         if (m_impl && dynamic_cast<const T*>(m_impl->GetDefault()) == NULL)
             m_impl = NULL;
     }
 
-    impl::FactoryBase *m_impl;
-    static Impl sm_impl;
+    FactoryBase *m_impl;
 };
+
+template <class T> impl::FactoryBase *Factory<T>::Impl::sm_this;
 
 } // namespace tt_solutions
 

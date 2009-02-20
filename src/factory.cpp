@@ -5,7 +5,7 @@
 // Modified by:
 // Created:     January 2009
 // RCS-ID:      $Id$
-// Copyright:   (c) 2006 TT-Solutions SARL
+// Copyright:   (c) 2009 TT-Solutions SARL
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 

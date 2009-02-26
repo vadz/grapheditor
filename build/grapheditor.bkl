@@ -6,9 +6,12 @@
         Configuration
      ====================================================================== -->
 
+    <set var="MSVS_PROJECT">
+        $(FORMAT[:2] == 'ms' and FORMAT[-3:] == 'prj')
+    </set>
+
     <set var="GRAPHVIZ_CPPFLAGS_DEFAULT">
         <if cond="FORMAT=='gnu'">`pkg-config libgvc --cflags`</if>
-        <if cond="FORMAT!='gnu'">-DNO_GRAPHVIZ</if>
     </set>
     <option name="GRAPHVIZ_CPPFLAGS">
         <description>Compiler flags needed for graphviz</description>
@@ -16,20 +19,26 @@
     </option>
 
     <set var="GRAPHVIZ_LDFLAGS_DEFAULT">
-        <if cond="FORMAT=='gnu'">`pkg-config libgvc --libs`</if>
-        <if cond="FORMAT=='msvc6prj'">cdt.lib circogen.lib common.lib dotgen.lib fdpgen.lib ft.lib gd.lib graph.lib libexpat.lib neatogen.lib pack.lib plugin.lib pathplan.lib twopigen.lib</if>
+        <if cond="FORMAT=='gnu'">
+            `pkg-config libgvc --libs`
+        </if>
+        <if cond="MSVS_PROJECT=='1'">
+            gvc.lib pack.lib pathplan.lib plugin.lib gd.lib graph.lib
+            cdt.lib common.lib gvc.lib neatogen.lib twopigen.lib fdpgen.lib
+            circogen.lib dotgen.lib z.lib png.lib jpeg.lib ft.lib
+        </if>
     </set>
     <option name="GRAPHVIZ_LDFLAGS">
         <description>Linker flags needed for graphviz</description>
         <default-value>$(GRAPHVIZ_LDFLAGS_DEFAULT)</default-value>
     </option>
 
-    <if cond="FORMAT!='msvc6prj'">
+    <if cond="MSVS_PROJECT=='0'">
         <set var="BUILDDIR">obj</set>
     </if>
     <set var="SRCDIR">..</set>
     <set var="WX_MONOLITHIC">0</set>
-    <set var="USE_OWN_OGL">0</set>
+    <set var="USE_OWN_OGL">1</set>
 
     <!-- ======================================================================
         Common stuff
@@ -62,6 +71,8 @@ GNUmakefile: grapheditor.bkl
             src/graphctrl.cpp
             src/graphtree.cpp
             src/projectdesigner.cpp
+            src/factory.cpp
+            src/archive.cpp
         </sources>
     </lib>
 
@@ -88,13 +99,17 @@ GNUmakefile: grapheditor.bkl
       ====================================================================== -->
 
     <exe id="graphtest" template="graphcommon" template_append="wx">
-        <sources>samples/graphtest.cpp</sources>
+        <sources>
+            samples/graphtest.cpp
+            samples/testnodes.cpp
+        </sources>
         <win32-res>samples/graphtest.rc</win32-res>
 
         <library>grapheditor</library>
         <library cond="USE_OWN_OGL=='1'">ogl</library>
 
         <wx-lib cond="USE_OWN_OGL=='0'">ogl</wx-lib>
+        <wx-lib>xml</wx-lib>
         <wx-lib>html</wx-lib>
         <wx-lib>core</wx-lib>
         <wx-lib>base</wx-lib>

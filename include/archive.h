@@ -196,7 +196,7 @@ bool Extract(const Archive::Item& arc, const wxString& name, T& value)
     if (ss)
         value = val;
 
-    return ss;
+    return ss != NULL;
 }
 
 } // namespace tt_solutions

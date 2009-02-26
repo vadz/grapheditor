@@ -20,23 +20,23 @@
 
 namespace {
 
-const wxChar *tagARCHIVE    = _T("archive");
-const wxChar *tagID         = _T("id");
-const wxChar *tagSORT       = _T("sort");
+const wxChar *TAGARCHIVE    = _T("archive");
+const wxChar *TAGID         = _T("id");
+const wxChar *TAGSORT       = _T("sort");
 
-const wxString tagFONT      = _T("wxFont");
+const wxString TAGFONT      = _T("wxFont");
 
-const wxChar *tagFACE       = _T("face");
-const wxChar *tagPOINTS     = _T("points");
-const wxChar *tagFAMILY     = _T("family");
-const wxChar *tagSTYLE      = _T("style");
-const wxChar *tagWEIGHT     = _T("weight");
-const wxChar *tagUNDERLINE  = _T("underline");
-const wxChar *tagENCODING   = _T("encoding");
+const wxChar *TAGFACE       = _T("face");
+const wxChar *TAGPOINTS     = _T("points");
+const wxChar *TAGFAMILY     = _T("family");
+const wxChar *TAGSTYLE      = _T("style");
+const wxChar *TAGWEIGHT     = _T("weight");
+const wxChar *TAGUNDERLINE  = _T("underline");
+const wxChar *TAGENCODING   = _T("encoding");
 
 wxString FontId(const wxString& desc)
 {
-    return tagFONT + _T(" ") + desc;
+    return TAGFONT + _T(" ") + desc;
 }
 
 } // namespace
@@ -81,7 +81,7 @@ bool Archive::Load(wxInputStream& stream)
 
     wxXmlNode *root = doc.GetRoot();
 
-    if (root->GetName() != tagARCHIVE) {
+    if (root->GetName() != TAGARCHIVE) {
         wxLogError(_("Error loading: unknown root element"));
         return false;
     }
@@ -92,8 +92,8 @@ bool Archive::Load(wxInputStream& stream)
         wxString name = node->GetName();
         wxString id;
 
-        if (node->GetPropVal(tagID, &id)) {
-            wxString sortkey = node->GetPropVal(tagSORT, wxEmptyString);
+        if (node->GetPropVal(TAGID, &id)) {
+            wxString sortkey = node->GetPropVal(TAGSORT, wxEmptyString);
             Item *item = Put(name, id, sortkey);
 
             if (item) {
@@ -105,7 +105,7 @@ bool Archive::Load(wxInputStream& stream)
 
                     if (!item->Put(pname, value))
                         wxLogError(_("Error loading <%s %s='%s'> ignoring duplicate <%s>"),
-                                   name.c_str(), tagID,
+                                   name.c_str(), TAGID,
                                    id.c_str(), pname.c_str());
 
                     attrnode = attrnode->GetNext();
@@ -113,12 +113,12 @@ bool Archive::Load(wxInputStream& stream)
             }
             else {
                 wxLogError(_("Error loading <%s %s='%s'> id is not unique"),
-                           name.c_str(), tagID, id.c_str());
+                           name.c_str(), TAGID, id.c_str());
             }
         }
         else {
             wxLogError(_("Error loading <%s> missing %s"),
-                       name.c_str(), tagID);
+                       name.c_str(), TAGID);
         }
         node = node->GetNext();
     }
@@ -128,7 +128,7 @@ bool Archive::Load(wxInputStream& stream)
 
 bool Archive::Save(wxOutputStream& stream) const
 {
-    wxXmlNode *root = new wxXmlNode(wxXML_ELEMENT_NODE, tagARCHIVE);
+    wxXmlNode *root = new wxXmlNode(wxXML_ELEMENT_NODE, TAGARCHIVE);
     ItemMap::const_iterator i;
 
     for (i = m_items.begin(); i != m_items.end(); ++i) {
@@ -138,9 +138,9 @@ bool Archive::Save(wxOutputStream& stream) const
         wxString sortkey = item->GetSort();
 
         wxXmlNode *node = new wxXmlNode(root, wxXML_ELEMENT_NODE, classname);
-        node->AddProperty(tagID, id);
+        node->AddProperty(TAGID, id);
         if (!sortkey.empty())
-            node->AddProperty(tagSORT, sortkey);
+            node->AddProperty(TAGSORT, sortkey);
 
         Item::const_iterator j, jend;
 
@@ -434,16 +434,16 @@ bool Insert(Archive::Item& arc, const wxString& name, const wxFont& value)
         return false;
 
     Archive& archive = arc.GetArchive();
-    Archive::Item *item = archive.Put(tagFONT, FontId(desc));
+    Archive::Item *item = archive.Put(TAGFONT, FontId(desc));
 
     if (item) {
-        item->Put(tagFACE, value.GetFaceName());
-        item->Put(tagPOINTS, value.GetPointSize());
-        item->Put(tagFAMILY, value.GetFamily());
-        item->Put(tagSTYLE, value.GetStyle());
-        item->Put(tagWEIGHT, value.GetWeight());
-        if (value.GetUnderlined()) item->Put(tagUNDERLINE);
-        item->Put(tagENCODING, value.GetEncoding());
+        item->Put(TAGFACE, value.GetFaceName());
+        item->Put(TAGPOINTS, value.GetPointSize());
+        item->Put(TAGFAMILY, value.GetFamily());
+        item->Put(TAGSTYLE, value.GetStyle());
+        item->Put(TAGWEIGHT, value.GetWeight());
+        if (value.GetUnderlined()) item->Put(TAGUNDERLINE);
+        item->Put(TAGENCODING, value.GetEncoding());
     }
 
     return true;
@@ -470,13 +470,13 @@ bool Extract(const Archive::Item& arc, const wxString& name, wxFont& value)
     wxFont font;
 
     if (!font.SetNativeFontInfo(desc))
-        if (!font.Create(item->Get<int>(tagPOINTS),
-                         item->Get<int>(tagFAMILY),
-                         item->Get<int>(tagSTYLE),
-                         item->Get<int>(tagWEIGHT),
-                         item->Has(tagUNDERLINE),
-                         item->Get(tagFACE),
-                         wxFontEncoding(item->Get<int>(tagENCODING))))
+        if (!font.Create(item->Get<int>(TAGPOINTS),
+                         item->Get<int>(TAGFAMILY),
+                         item->Get<int>(TAGSTYLE),
+                         item->Get<int>(TAGWEIGHT),
+                         item->Has(TAGUNDERLINE),
+                         item->Get(TAGFACE),
+                         wxFontEncoding(item->Get<int>(TAGENCODING))))
             return false;
 
     item->SetInstance(new wxFont(font), true);

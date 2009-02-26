@@ -1461,11 +1461,11 @@ IMPLEMENT_DYNAMIC_CLASS(Graph, wxEvtHandler)
 
 namespace {
 
-const wxChar *tagGRAPH  = _T("graph");
-const wxChar *tagFONT   = _T("font");
-const wxChar *tagSNAP   = _T("snap");
-const wxChar *tagGRID   = _T("grid");
-const wxChar *tagBOUNDS = _T("bounds");
+const wxChar *TAGGRAPH  = _T("graph");
+const wxChar *TAGFONT   = _T("font");
+const wxChar *TAGSNAP   = _T("snap");
+const wxChar *TAGGRID   = _T("grid");
+const wxChar *TAGBOUNDS = _T("bounds");
 
 class GraphInfo : public wxObject
 {
@@ -2125,17 +2125,17 @@ bool Graph::Serialise(Archive& archive, const iterator_pair& range)
         }
     }
 
-    Archive::Item *graph = archive.Put(tagGRAPH, tagGRAPH);
+    Archive::Item *graph = archive.Put(TAGGRAPH, TAGGRAPH);
     if (!graph)
-        graph = archive.Get(tagGRAPH);
+        graph = archive.Get(TAGGRAPH);
 
     GraphCanvas *canvas = GetCanvas();
     if (canvas)
-        graph->Put(tagFONT, canvas->GetFont());
+        graph->Put(TAGFONT, canvas->GetFont());
 
-    graph->Put(tagGRID, GetGridSpacing<Twips>());
-    graph->Put(tagSNAP, GetSnapToGrid());
-    graph->Put(tagBOUNDS, Twips::From<Pixels>(rcBounds, GetDPI()));
+    graph->Put(TAGGRID, GetGridSpacing<Twips>());
+    graph->Put(TAGSNAP, GetSnapToGrid());
+    graph->Put(TAGBOUNDS, Twips::From<Pixels>(rcBounds, GetDPI()));
 
     if (badfactory)
         wxLogError(_("Internal error, not all elements could be saved"));
@@ -2154,21 +2154,21 @@ bool Graph::Deserialise(Archive& archive)
     Delete(GetElements());
     m_diagram->DeleteAllShapes();
 
-    Archive::Item *item = archive.Get(tagGRAPH);
+    Archive::Item *item = archive.Get(TAGGRAPH);
 
     if (item) {
         GraphCanvas *canvas = GetCanvas();
         wxFont font;
 
-        if (canvas && item->Get(tagFONT, font))
+        if (canvas && item->Get(TAGFONT, font))
             canvas->SetFont(font);
 
         int spacing;
-        if (item->Get(tagGRID, spacing))
+        if (item->Get(TAGGRID, spacing))
             SetGridSpacing<Twips>(spacing);
 
         bool snap;
-        if (item->Get(tagSNAP, snap))
+        if (item->Get(TAGSNAP, snap))
             SetSnapToGrid(snap);
 
         if (item->GetInstance() == NULL)
@@ -2186,13 +2186,13 @@ bool Graph::DeserialiseInto(wxInputStream& stream, const wxPoint& pt)
 
 bool Graph::DeserialiseInto(Archive& archive, const wxPoint& pt)
 {
-    Archive::Item *item = archive.Get(tagGRAPH);
+    Archive::Item *item = archive.Get(TAGGRAPH);
 
     if (item && item->GetInstance() == NULL) {
         GraphCanvas *canvas = GetCanvas();
         wxFont font;
 
-        if (canvas && item->Get(tagFONT, font)) {
+        if (canvas && item->Get(TAGFONT, font)) {
             wxString curdesc = canvas->GetFont().GetNativeFontInfoDesc();
             wxString newdesc = font.GetNativeFontInfoDesc();
 
@@ -2203,7 +2203,7 @@ bool Graph::DeserialiseInto(Archive& archive, const wxPoint& pt)
         wxRect rc;
         wxPoint offset;
 
-        if (item->Get(tagBOUNDS, rc)) {
+        if (item->Get(TAGBOUNDS, rc)) {
             rc = Twips::To<Pixels>(rc, GetDPI());
             offset = pt - (rc.GetPosition() + rc.GetSize() / 2);
         }
@@ -3190,7 +3190,7 @@ bool GraphNode::Serialise(Archive::Item& arc)
     arc.Exch(_T("size"), size);
 
     if (arc.IsExtracting()) {
-        GraphInfo *info = archive.GetInstance<GraphInfo>(tagGRAPH);
+        GraphInfo *info = archive.GetInstance<GraphInfo>(TAGGRAPH);
         if (info) {
             if (!m_font.IsOk())
                 m_font = info->GetFont();

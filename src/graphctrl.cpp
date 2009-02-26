@@ -39,7 +39,7 @@
 
 #include "graphctrl.h"
 #include <wx/ogl/ogl.h>
-#include <list>
+#include <bitset>
 #include <set>
 
 #ifndef NO_GRAPHVIZ
@@ -54,13 +54,7 @@
 
 namespace tt_solutions {
 
-using std::make_pair;
-using std::pair;
-using std::list;
-using std::min;
-using std::max;
-using std::multiset;
-
+using namespace std;
 using namespace impl;
 
 // ----------------------------------------------------------------------------
@@ -93,6 +87,10 @@ DEFINE_EVENT_TYPE(Evt_Graph_Edge_Menu)
 // ----------------------------------------------------------------------------
 
 namespace {
+
+// sort order for the elements when loading
+const wxChar *SORT_NODE = _T("1");
+const wxChar *SORT_EDGE = _T("2");
 
 // the wxShape's client data field points back to the GraphElement
 GraphElement *GetElement(wxShape *shape)
@@ -157,7 +155,60 @@ wxPolygonShape *CreatePolygon(int num_points, const int points[][2])
     return shape;
 }
 
+int between(int value, int limit1, int limit2)
+{
+    int lo = min(limit1, limit2);
+    int hi = max(limit1, limit2);
+    value = max(value, lo);
+    value = min(value, hi);
+    return value;
+}
+
+bool ShowLine(GraphEdge *edge, GraphNode *from, GraphNode *to)
+{
+    if (!edge || !from || !to)
+        return false;
+
+    wxLineShape *line = edge->GetShape();
+    wxShape *fromshape = from->GetShape();
+    wxShape *toshape = to->GetShape();
+
+    if (!line || !fromshape || !toshape)
+        return false;
+
+    fromshape->AddLine(line, toshape);
+
+    double x1, y1, x2, y2;
+    line->FindLineEndPoints(&x1, &y1, &x2, &y2);
+    line->SetEnds(x1, y1, x2, y2);
+
+    return true;
+}
+
 } // namespace
+
+// ----------------------------------------------------------------------------
+// Initialisor
+// ----------------------------------------------------------------------------
+
+namespace impl {
+
+int Initialisor::m_initalise;
+
+Initialisor::Initialisor()
+{
+    if (m_initalise++ == 0)
+        wxOGLInitialize();
+}
+
+Initialisor::~Initialisor()
+{
+    wxASSERT(m_initalise > 0);
+    if (--m_initalise == 0)
+        wxOGLCleanUp();
+}
+
+} // namespace impl
 
 // ----------------------------------------------------------------------------
 // GraphEvent
@@ -224,6 +275,9 @@ public:
     wxPoint ScrollByOffset(int x, int y, bool draw = true);
 
     void EnsureVisible(const wxRect& rc);
+
+    wxRect ScreenToGraph(const wxRect& rcScreen);
+    wxRect GraphToScreen(const wxRect& rcGraph);
 
 private:
     Graph *m_graph;
@@ -566,6 +620,28 @@ void GraphCanvas::EnsureVisible(const wxRect& rcGraph)
 
     if (x || y)
         ScrollByOffset(x, y);
+}
+
+wxRect GraphCanvas::ScreenToGraph(const wxRect& rcScreen)
+{
+    wxClientDC dc(this);
+    PrepareDC(dc);
+    wxPoint pt = ScreenToClient(rcScreen.GetTopLeft());
+    return wxRect(dc.DeviceToLogicalX(pt.x),
+                  dc.DeviceToLogicalY(pt.y),
+                  dc.DeviceToLogicalXRel(rcScreen.width),
+                  dc.DeviceToLogicalYRel(rcScreen.height));
+}
+
+wxRect GraphCanvas::GraphToScreen(const wxRect& rcGraph)
+{
+    wxClientDC dc(this);
+    PrepareDC(dc);
+    wxPoint pt( dc.LogicalToDeviceX(rcGraph.x),
+                dc.LogicalToDeviceY(rcGraph.y));
+    wxSize size(dc.LogicalToDeviceXRel(rcGraph.width),
+                dc.LogicalToDeviceYRel(rcGraph.height));
+    return wxRect(ClientToScreen(pt), size);
 }
 
 } // namespace impl
@@ -1383,15 +1459,39 @@ private:
 
 IMPLEMENT_DYNAMIC_CLASS(Graph, wxEvtHandler)
 
-int Graph::m_initalise;
+namespace {
+
+const wxChar *tagGRAPH  = _T("graph");
+const wxChar *tagFONT   = _T("font");
+const wxChar *tagSNAP   = _T("snap");
+const wxChar *tagGRID   = _T("grid");
+const wxChar *tagBOUNDS = _T("bounds");
+
+class GraphInfo : public wxObject
+{
+public:
+    GraphInfo()
+    { }
+
+    GraphInfo(const wxFont& font, const wxPoint& offset)
+      : m_font(font), m_offset(offset)
+    { }
+
+    wxFont  GetFont()   const { return m_font; }
+    wxPoint GetOffset() const { return m_offset; }
+
+private:
+    wxFont m_font;
+    wxPoint m_offset;
+};
+
+} // namespace
 
 Graph::Graph()
+  : m_diagram(new GraphDiagram),
+    m_handler(NULL),
+    m_gridSpacing(1.0 / 18)
 {
-    if (m_initalise++ == 0)
-        wxOGLInitialize();
-
-    m_diagram = new GraphDiagram;
-    m_handler = NULL;
 }
 
 Graph::~Graph()
@@ -1403,9 +1503,6 @@ Graph::~Graph()
     Delete(GetElements());
     m_diagram->DeleteAllShapes();
     delete m_diagram;
-
-    if (--m_initalise == 0)
-        wxOGLCleanUp();
 }
 
 void Graph::SetEventHandler(wxEvtHandler *handler)
@@ -1450,6 +1547,12 @@ void Graph::SetCanvas(GraphCanvas *canvas)
 {
     m_diagram->SetCanvas(canvas);
 
+    if (canvas && m_dpi == wxSize()) {
+        m_dpi = wxClientDC(canvas).GetPPI();
+        if (m_gridSpacing)
+            SetGridSpacing(int(m_gridSpacing * m_dpi.y));
+    }
+
     wxList::iterator it, end;
     wxList *list = m_diagram->GetShapeList();
 
@@ -1463,26 +1566,35 @@ GraphCanvas *Graph::GetCanvas() const
     return canvas ? wxStaticCast(canvas, GraphCanvas) : NULL;
 }
 
-GraphNode *Graph::Add(GraphNode *node, wxPoint pt)
+GraphNode *Graph::Add(GraphNode *node,
+                      wxPoint pt,
+                      wxSize size)
 {
     GraphEvent event(Evt_Graph_Node_Add);
     event.SetNode(node);
     event.SetPosition(pt);
     SendEvent(event);
 
-    if (event.IsAllowed()) {
-        wxShape *shape = node->GetShape();
-        if (!shape) {
-            node->SetStyle(node->GetStyle());
-            shape = node->GetShape();
-        }
-        m_diagram->AddShape(shape);
-        node->SetPosition(pt);
-        return node;
-    }
+    if (event.IsAllowed())
+        return DoAdd(node, pt, size);
 
     delete node;
     return NULL;
+}
+
+GraphNode *Graph::DoAdd(GraphNode *node,
+                        wxPoint pt,
+                        wxSize size)
+{
+    wxASSERT(node != NULL);
+    wxShape *shape = node->EnsureShape();
+    wxASSERT_MSG(!shape->GetCanvas(), _T("Node already inserted into graph"));
+
+    m_diagram->AddShape(shape);
+    node->SetPosition(pt);
+    node->SetSize(size);
+
+    return node;
 }
 
 GraphEdge *Graph::Add(GraphNode& from, GraphNode& to, GraphEdge *edge)
@@ -1495,33 +1607,28 @@ GraphEdge *Graph::Add(GraphNode& from, GraphNode& to, GraphEdge *edge)
     edge = event.GetEdge();
     GraphNode *src = event.GetNode();
     GraphNode *dest = event.GetTarget();
+    wxASSERT(src != NULL && dest != NULL);
 
-    if (event.IsAllowed()) {
-        if (!edge)
-            edge = new GraphEdge;
-
-        wxLineShape *line = edge->GetShape();
-        if (!line) {
-            edge->SetStyle(edge->GetStyle());
-            line = edge->GetShape();
-        }
-
-        wxShape *fromshape = src->GetShape();
-        wxShape *toshape = dest->GetShape();
-        fromshape->AddLine(line, toshape);
-
-        m_diagram->InsertShape(line);
-
-        double x1, y1, x2, y2;
-        line->FindLineEndPoints(&x1, &y1, &x2, &y2);
-        line->SetEnds(x1, y1, x2, y2);
-        edge->Refresh();
-
-        return edge;
-    }
+    if (event.IsAllowed())
+        return DoAdd(*src, *dest, edge);
 
     delete edge;
     return NULL;
+}
+
+GraphEdge *Graph::DoAdd(GraphNode& from, GraphNode& to, GraphEdge *edge)
+{
+    if (!edge)
+        edge = new GraphEdge;
+
+    wxLineShape *line = edge->EnsureShape();
+    wxASSERT_MSG(!line->GetCanvas(), _T("Edge already inserted into graph"));
+
+    m_diagram->InsertShape(line);
+    ShowLine(edge, &from, &to);
+    edge->Refresh();
+
+    return edge;
 }
 
 void Graph::Delete(GraphElement *element)
@@ -1747,10 +1854,7 @@ bool Graph::Layout(const node_iterator_pair& range)
     dot << _T("digraph Project {\n");
     dot << _T("\tnode [label=\"\", shape=box, fixedsize=true];\n");
 
-    wxShapeCanvas *canvas = m_diagram->GetCanvas();
-    wxClientDC dc(canvas);
-    canvas->PrepareDC(dc);
-    wxSize dpi = dc.GetPPI();
+    wxSize dpi = wxSize(Points::Inch, Points::Inch);
     const GraphNode *fixed = NULL;
     bool externalConnection = false;
     node_iterator i, endi;
@@ -1800,7 +1904,7 @@ bool Graph::Layout(const node_iterator_pair& range)
             externalConnection = extCon;
         }
 
-        wxSize size = node->GetSize();
+        wxSize size = node->GetSize<Points>();
 
         // add the node to the dot file
         dot << _T("\t") << NodeName(*node)
@@ -1891,7 +1995,7 @@ bool Graph::Layout(const node_iterator_pair& range)
                 point pos = ND_coord_i(n);
                 double x = PS2INCH(pos.x) * dpi.x;
                 double y = - PS2INCH(pos.y) * dpi.y;
-                wxPoint pt = fixed->GetPosition();
+                wxPoint pt = fixed->GetPosition<Points>();
                 offsetX = pt.x - x;
                 offsetY = pt.y - y;
             }
@@ -1904,7 +2008,7 @@ bool Graph::Layout(const node_iterator_pair& range)
             int y = int(offsetY - PS2INCH(pos.y) * dpi.y);
             GraphNode *node;
             if (sscanf(n->name, "n%p", &node) == 1)
-                node->SetPosition(wxPoint(x, y));
+                node->SetPosition<Points>(wxPoint(x, y));
         }
 
         gvFreeLayout(context, graph);
@@ -1956,7 +2060,11 @@ bool Graph::GetSnapToGrid() const
 
 void Graph::SetGridSpacing(int spacing)
 {
-    m_diagram->SetGridSpacing(spacing);
+    m_gridSpacing = 0;
+    int xspacing = WXROUND(spacing * m_dpi.x / m_dpi.y);
+    if (spacing < 1) spacing = 1;
+    if (xspacing < 1) xspacing = 1;
+    m_diagram->SetGridSpacing(xspacing, spacing);
     wxShapeCanvas *canvas = m_diagram->GetCanvas();
     if (canvas)
         canvas->Refresh();
@@ -1964,7 +2072,11 @@ void Graph::SetGridSpacing(int spacing)
 
 int Graph::GetGridSpacing() const
 {
-    return int(m_diagram->GetGridSpacing());
+    // If the spacing is only known in inches, then SetCanvas must be called
+    // before the spacing can be returned in pixels as m_dpi is unknown until
+    // then.
+    wxCHECK(m_gridSpacing == 0, 0);
+    return WXROUND(m_diagram->GetGridSpacing());
 }
 
 bool Graph::CanClear() const
@@ -1973,22 +2085,228 @@ bool Graph::CanClear() const
     return its.first == its.second;
 }
 
-bool Graph::Serialize(wxOutputStream&) const
+bool Graph::Serialise(wxOutputStream& stream, const iterator_pair& range)
 {
-    wxFAIL;
-    return false;
+    Archive archive;
+    return Serialise(archive, range) && archive.Save(stream);
 }
 
-bool Graph::Serialize(wxOutputStream&, const const_iterator_pair&) const
+bool Graph::Serialise(Archive& archive, const iterator_pair& range)
 {
-    wxFAIL;
-    return false;
+    bool badfactory = false;
+    wxRect rcBounds;
+
+    Graph::iterator it, end;
+
+    if (range == iterator_pair())
+        tie(it, end) = GetElements();
+    else
+        tie(it, end) = range;
+
+    for ( ; it != end; ++it) {
+        Factory<GraphElement> factory(*it);
+
+        if (factory) {
+            wxString name = factory.GetName();
+            wxString id = Archive::MakeId(&*it);
+
+            Archive::Item *arc = archive.Put(name, id);
+            wxASSERT(arc);
+
+            if (!it->Serialise(*arc))
+                archive.Remove(id);
+            else
+                rcBounds += it->GetBounds();
+        }
+        else {
+            wxFAIL_MSG(_T("Define a Factory<type>::Impl instance for ") +
+                       wxString::FromAscii(typeid(*it).name()));
+            badfactory = true;
+        }
+    }
+
+    Archive::Item *graph = archive.Put(tagGRAPH, tagGRAPH);
+    if (!graph)
+        graph = archive.Get(tagGRAPH);
+
+    GraphCanvas *canvas = GetCanvas();
+    if (canvas)
+        graph->Put(tagFONT, canvas->GetFont());
+
+    graph->Put(tagGRID, GetGridSpacing<Twips>());
+    graph->Put(tagSNAP, GetSnapToGrid());
+    graph->Put(tagBOUNDS, Twips::From<Pixels>(rcBounds, GetDPI()));
+
+    if (badfactory)
+        wxLogError(_("Internal error, not all elements could be saved"));
+
+    return true;
 }
 
-bool Graph::Deserialize(wxInputStream&)
+bool Graph::Deserialise(wxInputStream& stream)
 {
-    wxFAIL;
-    return false;
+    Archive archive;
+    return archive.Load(stream) && Deserialise(archive);
+}
+
+bool Graph::Deserialise(Archive& archive)
+{
+    Delete(GetElements());
+    m_diagram->DeleteAllShapes();
+
+    Archive::Item *item = archive.Get(tagGRAPH);
+
+    if (item) {
+        GraphCanvas *canvas = GetCanvas();
+        wxFont font;
+
+        if (canvas && item->Get(tagFONT, font))
+            canvas->SetFont(font);
+
+        int spacing;
+        if (item->Get(tagGRID, spacing))
+            SetGridSpacing<Twips>(spacing);
+
+        bool snap;
+        if (item->Get(tagSNAP, snap))
+            SetSnapToGrid(snap);
+
+        if (item->GetInstance() == NULL)
+            item->SetInstance(new GraphInfo, true);
+    }
+
+    return DeserialiseInto(archive, wxPoint());
+}
+
+bool Graph::DeserialiseInto(wxInputStream& stream, const wxPoint& pt)
+{
+    Archive archive;
+    return archive.Load(stream) && DeserialiseInto(archive, pt);
+}
+
+bool Graph::DeserialiseInto(Archive& archive, const wxPoint& pt)
+{
+    Archive::Item *item = archive.Get(tagGRAPH);
+
+    if (item && item->GetInstance() == NULL) {
+        GraphCanvas *canvas = GetCanvas();
+        wxFont font;
+
+        if (canvas && item->Get(tagFONT, font)) {
+            wxString curdesc = canvas->GetFont().GetNativeFontInfoDesc();
+            wxString newdesc = font.GetNativeFontInfoDesc();
+
+            if (newdesc == curdesc)
+                font = wxFont();
+        }
+
+        wxRect rc;
+        wxPoint offset;
+
+        if (item->Get(tagBOUNDS, rc)) {
+            rc = Twips::To<Pixels>(rc, GetDPI());
+            offset = pt - (rc.GetPosition() + rc.GetSize() / 2);
+        }
+
+        item->SetInstance(new GraphInfo(font, offset), true);
+    }
+
+    Archive::iterator it, end;
+
+    for (tie(it, end) = archive.GetItems(_T(" ")); it != end; ++it) {
+        wxString sortkey = it->first;
+        Archive::Item *arc = it->second;
+
+        wxString classname = arc->GetClass();
+        Factory<GraphElement> factory(classname);
+
+        if (factory) {
+            GraphElement *element = factory.New();
+            wxShape *shape = element->EnsureShape();
+
+            m_diagram->AddShape(shape);
+
+            if (element->Serialise(*arc))
+                element->Layout();
+            else
+                Delete(element);
+        }
+    }
+
+    return true;
+}
+
+wxPoint Graph::FindSpace(const wxSize& spacing, int columns)
+{
+    Graph::node_iterator it, end;
+    wxRect rc;
+
+    for (tie(it, end) = GetNodes(); it != end; ++it)
+        if (it->GetEdgeCount())
+            rc.Union(it->GetBounds());
+
+    wxPoint pt(0, rc.IsEmpty() ? 0 : rc.GetBottom());
+    pt += spacing / 2;
+
+    return FindSpace(pt, spacing, columns);
+}
+
+wxPoint Graph::FindSpace(const wxPoint& position,
+                         const wxSize& spacing,
+                         int columns)
+{
+    if (columns < 1) {
+        columns = 4;
+
+        GraphCanvas *canvas = GetCanvas();
+        if (canvas != NULL) {
+            wxRect rc = canvas->GetClientRect();
+            rc = canvas->ScreenToGraph(rc);
+            columns = rc.GetWidth() / spacing.x;
+            columns = wxMax(columns, 1);
+        }
+    }
+
+    bitset<8192> grid;
+    const int rows = grid.size() / columns;
+
+    wxPoint offset = position;
+    offset -= spacing / 2;
+    offset = -offset;
+
+    Graph::node_iterator it, end;
+
+    for (tie(it, end) = GetNodes(); it != end; ++it) {
+        wxRect rc = it->GetBounds();
+        rc.Offset(offset);
+
+        wxPoint pt1 = rc.GetTopLeft();
+        pt1.x /= spacing.x;
+        pt1.y /= spacing.y;
+        pt1.x = between(pt1.x, 0, columns);
+        pt1.y = between(pt1.y, 0, rows);
+
+        wxPoint pt2 = rc.GetBottomRight();
+        pt2.x = (pt2.x + spacing.x - 1) / spacing.x;
+        pt2.y = (pt2.y + spacing.y - 1) / spacing.y;
+        pt2.x = between(pt2.x, 0, columns);
+        pt2.y = between(pt2.y, 0, rows);
+
+        for (int y = pt1.y; y < pt2.y; y++) {
+            for (int x = pt1.x; x < pt2.x; x++) {
+                int i = y * columns + x;
+                wxASSERT(i >= 0 && size_t(i) < grid.size());
+                grid[i] = true;
+            }
+        }
+    }
+
+    for (size_t i = 0; i < grid.size(); i++)
+        if (!grid[i])
+            return position + wxSize(spacing.x * (i % columns),
+                                     spacing.y * (i / columns));
+
+    return position;
 }
 
 // ----------------------------------------------------------------------------
@@ -2080,21 +2398,12 @@ void GraphCtrl::EnsureVisible(const GraphElement& element)
 
 wxPoint GraphCtrl::ScreenToGraph(const wxPoint& ptScreen) const
 {
-    wxClientDC dc(m_canvas);
-    m_canvas->PrepareDC(dc);
-    wxPoint pt = m_canvas->ScreenToClient(ptScreen);
-    pt.x = dc.DeviceToLogicalX(pt.x);
-    pt.y = dc.DeviceToLogicalY(pt.y);
-    return pt;
+    return m_canvas->ScreenToGraph(wxRect(ptScreen, wxSize())).GetTopLeft();
 }
 
 wxPoint GraphCtrl::GraphToScreen(const wxPoint& ptGraph) const
 {
-    wxClientDC dc(m_canvas);
-    m_canvas->PrepareDC(dc);
-    wxPoint pt(dc.LogicalToDeviceX(ptGraph.x),
-               dc.LogicalToDeviceY(ptGraph.y));
-    return m_canvas->ClientToScreen(pt);
+    return m_canvas->GraphToScreen(wxRect(ptGraph, wxSize())).GetTopLeft();
 }
 
 wxWindow *GraphCtrl::GetCanvas() const
@@ -2113,9 +2422,12 @@ void GraphCtrl::OnSize(wxSizeEvent&)
 
 IMPLEMENT_ABSTRACT_CLASS(GraphElement, wxObject)
 
-GraphElement::GraphElement()
-  : m_colour(*wxBLACK),
-    m_bgcolour(*wxWHITE),
+GraphElement::GraphElement(const wxColour& colour,
+                           const wxColour& bgcolour,
+                           int style)
+  : m_colour(colour),
+    m_bgcolour(bgcolour),
+    m_style(style),
     m_shape(NULL)
 {
 }
@@ -2123,6 +2435,32 @@ GraphElement::GraphElement()
 GraphElement::~GraphElement()
 {
     delete m_shape;
+}
+
+GraphElement::GraphElement(const GraphElement& element)
+  : m_colour(element.m_colour),
+    m_bgcolour(element.m_bgcolour),
+    m_style(element.m_style),
+    m_shape(NULL)
+{
+}
+
+GraphElement& GraphElement::operator=(const GraphElement& element)
+{
+    if (&element != this) {
+        m_colour = element.m_colour;
+        m_bgcolour = element.m_bgcolour;
+
+        if (m_shape)
+            if (element.m_shape)
+                SetStyle(element.GetStyle());
+            else
+                SetShape(NULL);
+
+        m_style = element.m_style;
+    }
+
+    return *this;
 }
 
 void GraphElement::SetShape(wxShape *shape)
@@ -2157,6 +2495,7 @@ void GraphElement::SetShape(wxShape *shape)
     delete m_shape;
 
     m_shape = shape;
+    m_style = Style_Custom;
 
     if (shape) {
         shape->SetClientData(this);
@@ -2177,10 +2516,28 @@ void GraphElement::SetShape(wxShape *shape)
     }
 }
 
+wxShape *GraphElement::DoEnsureShape()
+{
+    wxShape *shape = GetShape();
+
+    if (!shape) {
+        SetStyle(GetStyle());
+        shape = GetShape();
+    }
+
+    return shape;
+}
+
 Graph *GraphElement::GetGraph() const
 {
     wxShapeCanvas *canvas = GetCanvas(m_shape);
     return canvas ? wxStaticCast(canvas, GraphCanvas)->GetGraph() : NULL;
+}
+
+wxSize GraphElement::GetDPI() const
+{
+    Graph *graph = GetGraph();
+    return graph ? graph->GetDPI() : wxSize();
 }
 
 void GraphElement::Refresh()
@@ -2291,14 +2648,28 @@ wxSize GraphElement::GetSize() const
     return size;
 }
 
+bool GraphElement::Serialise(Archive::Item& arc)
+{
+    const GraphElement& def = Factory<GraphElement>(this).GetDefault();
+
+    arc.Exch(_T("colour"), m_colour, def.m_colour);
+    arc.Exch(_T("bgcolour"), m_bgcolour, def.m_bgcolour);
+    arc.Exch(_T("style"), m_style, def.m_style);
+
+    return true;
+}
+
 // ----------------------------------------------------------------------------
 // GraphEdge
 // ----------------------------------------------------------------------------
 
 IMPLEMENT_DYNAMIC_CLASS(GraphEdge, GraphElement)
+Factory<GraphEdge>::Impl graphedgefactory(_T("edge"));
 
-GraphEdge::GraphEdge()
-  : m_style(Style_Arrow)
+GraphEdge::GraphEdge(const wxColour& colour,
+                     const wxColour& bgcolour,
+                     int style)
+  : GraphElement(colour, bgcolour, style)
 {
 }
 
@@ -2309,26 +2680,22 @@ GraphEdge::~GraphEdge()
 void GraphEdge::SetShape(wxLineShape *line)
 {
     wxLineShape *old = GetShape();
+    GraphElement::SetShape(line);
 
     if (old && line) {
-        wxShape *from = old->GetFrom();
-        wxShape *to = old->GetTo();
-        if (from && to) {
-            from->AddLine(line, to);
-            double x1, y1, x2, y2;
-            line->FindLineEndPoints(&x1, &y1, &x2, &y2);
-            line->SetEnds(x1, y1, x2, y2);
-        }
+        ShowLine(this, GetFrom(), GetTo());
         old->Unlink();
     }
-
-    GraphElement::SetShape(line);
-    m_style = Style_Custom;
 }
 
 wxLineShape *GraphEdge::GetShape() const
 {
     return static_cast<wxLineShape*>(GraphElement::DoGetShape());
+}
+
+wxLineShape *GraphEdge::EnsureShape()
+{
+    return static_cast<wxLineShape*>(GraphElement::DoEnsureShape());
 }
 
 void GraphEdge::SetStyle(int style)
@@ -2342,19 +2709,58 @@ void GraphEdge::SetStyle(int style)
         line->AddArrow(ARROW_ARROW);
 
     SetShape(line);
-    m_style = style;
+    GraphElement::SetStyle(style);
 }
 
-bool GraphEdge::Serialize(wxOutputStream&) const
+bool GraphEdge::MoveFront()
 {
-    wxFAIL;
-    return false;
+    wxLineShape *line = GetShape();
+    wxShapeCanvas *canvas = GetCanvas(line);
+
+    if (!canvas)
+        return false;
+
+    wxDiagram *diagram = canvas->GetDiagram();
+    wxList *list = diagram->GetShapeList();
+    wxList::iterator it = list->end();
+
+    while (it != list->begin()) {
+        if (*--it == line) {
+            list->erase(it);
+            list->push_front(line);
+            break;
+        }
+    }
+
+    return true;
 }
 
-bool GraphEdge::Deserialize(wxInputStream&)
+bool GraphEdge::Serialise(Archive::Item& arc)
 {
-    wxFAIL;
-    return false;
+    if (!GraphElement::Serialise(arc))
+        return false;
+
+    Archive& archive = arc.GetArchive();
+    wxString idFrom, idTo;
+
+    if (archive.IsStoring()) {
+        archive.SortItem(arc, SORT_EDGE);
+        idFrom = Archive::MakeId(GetFrom());
+        idTo = Archive::MakeId(GetTo());
+    }
+
+    arc.Exch(_T("from"), idFrom);
+    arc.Exch(_T("to"), idTo);
+
+    if (archive.IsExtracting()) {
+        GraphNode *from = archive.GetInstance<GraphNode>(idFrom);
+        GraphNode *to = archive.GetInstance<GraphNode>(idTo);
+
+        if (!ShowLine(this, from, to) || !MoveFront())
+            return false;
+    }
+
+    return true;
 }
 
 GraphEdge::iterator_pair GraphEdge::GetNodes()
@@ -2395,16 +2801,21 @@ GraphNode *GraphEdge::GetTo() const
     return line ? GetNode(line->GetTo()) : NULL;
 }
 
-
 // ----------------------------------------------------------------------------
 // GraphNode
 // ----------------------------------------------------------------------------
 
 IMPLEMENT_DYNAMIC_CLASS(GraphNode, GraphElement)
+Factory<GraphNode>::Impl graphnodefactory(_T("node"));
 
-GraphNode::GraphNode()
-  : m_style(Style_Rectangle),
-    m_textcolour(*wxBLACK)
+GraphNode::GraphNode(const wxString& text,
+                     const wxColour& colour,
+                     const wxColour& bgcolour,
+                     const wxColour& textcolour,
+                     int style)
+  : GraphElement(colour, bgcolour, style),
+    m_textcolour(textcolour),
+    m_text(text)
 {
 }
 
@@ -2476,7 +2887,6 @@ void GraphNode::SetShape(wxShape *shape)
     }
 
     GraphElement::SetShape(shape);
-    m_style = Style_Custom;
 
     if (old && shape) {
         wxList& lines = shape->GetLines();
@@ -2521,7 +2931,7 @@ void GraphNode::SetStyle(int style)
     shape->Show(true);
 
     SetShape(shape);
-    m_style = style;
+    GraphElement::SetStyle(style);
 }
 
 void GraphNode::Layout()
@@ -2541,10 +2951,10 @@ void GraphNode::SetPosition(const wxPoint& pt)
     wxShapeCanvas *canvas = GetCanvas(shape);
 
     if (canvas) {
-        double x = pt.x, y = pt.y;
-        canvas->Snap(&x, &y);
         wxClientDC dc(canvas);
         canvas->PrepareDC(dc);
+        double x = pt.x, y = pt.y;
+        canvas->Snap(&x, &y);
         shape->Erase(dc);
         shape->Move(dc, x, y, false);
         shape->Erase(dc);
@@ -2757,16 +3167,42 @@ wxPoint GraphNode::GetPerimeterPoint(const wxPoint& inside,
     return pt;
 }
 
-bool GraphNode::Serialize(wxOutputStream&) const
+bool GraphNode::Serialise(Archive::Item& arc)
 {
-    wxFAIL;
-    return false;
-}
+    if (!GraphElement::Serialise(arc))
+        return false;
 
-bool GraphNode::Deserialize(wxInputStream&)
-{
-    wxFAIL;
-    return false;
+    Archive& archive = arc.GetArchive();
+    wxPoint position;
+    wxSize size;
+
+    if (arc.IsStoring()) {
+        archive.SortItem(arc, SORT_NODE);
+        position = GetPosition<Twips>();
+        size = GetSize<Twips>();
+    }
+
+    const GraphNode& def = Factory<GraphNode>(this).GetDefault();
+    arc.Exch(_T("textcolour"), m_textcolour, def.m_textcolour);
+    arc.Exch(_T("font"), m_font, def.m_font);
+    arc.Exch(_T("text"), m_text, def.m_text);
+    arc.Exch(_T("position"), position);
+    arc.Exch(_T("size"), size);
+
+    if (arc.IsExtracting()) {
+        GraphInfo *info = archive.GetInstance<GraphInfo>(tagGRAPH);
+        if (info) {
+            if (!m_font.IsOk())
+                m_font = info->GetFont();
+            position += info->GetOffset();
+        }
+
+        arc.SetInstance(this);
+        SetPosition<Twips>(position);
+        SetSize<Twips>(size);
+    }
+
+    return true;
 }
 
 } // namespace tt_solutions

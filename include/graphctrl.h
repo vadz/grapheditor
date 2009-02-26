@@ -15,8 +15,12 @@
 #include <wx/wx.h>
 
 #include <iterator>
-#include <utility>
 #include <list>
+
+#include "factory.h"
+#include "archive.h"
+#include "coords.h"
+#include "tie.h"
 
 /**
  * @file graphctrl.h
@@ -25,6 +29,8 @@
 
 class wxShape;
 class wxLineShape;
+class wxXmlNode;
+class wxXmlProperty;
 
 namespace tt_solutions {
 
@@ -95,27 +101,15 @@ namespace impl
         GraphIteratorImpl *m_impl;
     };
 
-    template <class A, class B>
-    struct RefPair
+    class Initialisor
     {
-        RefPair(A& a, B& b) : first(a), second(b) { }
+    public:
+        Initialisor();
+        ~Initialisor();
 
-        RefPair& operator=(const std::pair<A, B>& p)
-        {
-            first = p.first;
-            second = p.second;
-            return *this;
-        }
-
-        RefPair& operator=(const RefPair<A, B>& t)
-        {
-            first = t.first;
-            second = t.second;
-            return *this;
-        }
-
-        A& first;
-        B& second;
+    private:
+        Initialisor(const Initialisor&) { }
+        static int m_initalise;
     };
 
 } // namespace impl
@@ -246,24 +240,6 @@ private:
 };
 
 /**
- * @brief A helper to allow a <code>std::pair</code> to be assigned to two
- * variables.
- *
- * For example:
- * @code
- *  Graph::iterator it, end;
- *
- *  for (tie(it, end) = m_graph->GetSelection(); it != end; ++it)
- *      it->SetColour(colour);
- * @endcode
- */
-template <class A, class B>
-impl::RefPair<A, B> tie(A& a, B& b)
-{
-    return impl::RefPair<A, B>(a, b);
-}
-
-/**
  * @brief An abstract base class which provides a common interface for nodes
  * and edges within a Graph object.
  *
@@ -272,10 +248,36 @@ impl::RefPair<A, B> tie(A& a, B& b)
 class GraphElement : public wxObject, public wxClientDataContainer
 {
 public:
+    /** @brief An enumeration of predefined appearances for elements. */
+    enum Style {
+        Style_Custom
+    };
+
     /** @brief Constructor. */
-    GraphElement();
+    GraphElement(const wxColour& colour,
+                 const wxColour& bgcolour,
+                 int style);
     /** @brief Destructor. */
     virtual ~GraphElement();
+
+    /** @brief Copy constructor. */
+    GraphElement(const GraphElement& element);
+    /** @brief Assignment operator. */
+    GraphElement& operator=(const GraphElement& element);
+
+    /**
+     * @brief A number from the Style enumeration indicating the element's
+     * appearance.
+     */
+    virtual int GetStyle() const { return m_style; }
+
+    /**
+     * @brief A number from the Style enumeration indicating the element's
+     * appearance.
+     *
+     * Invalidates any iterators pointing to this element.
+     */
+    virtual void SetStyle(int style) { m_style = style; }
 
     /** @brief The element's main colour. */
     virtual wxColour GetColour() const              { return m_colour; }
@@ -312,16 +314,9 @@ public:
     virtual bool IsSelected() const;
 
     /**
-     * @brief Write a text representation of this element's attributes.
-     * Not yet implemented.
+     * @brief Write or restore this element's attributes to an archive.
      */
-    virtual bool Serialize(wxOutputStream& out) const = 0;
-    /**
-     * @brief Restore this element's attributes from text written by
-     * Serialize.
-     * Not yet implemented.
-     */
-    virtual bool Deserialize(wxInputStream& in) = 0;
+    virtual bool Serialise(Archive::Item& arc);
 
     /**
      * @brief Called by the graph control when the element must draw itself.
@@ -334,6 +329,7 @@ public:
      * underlying graphics library.
      */
     GraphShape *GetShape() const { return DoGetShape(); }
+    GraphShape *EnsureShape() { return DoEnsureShape(); }
 
     /**
      * @brief Returns the graph that this element has been added to, or
@@ -345,10 +341,12 @@ public:
      * @brief Returns the size of the graph element in graph coordinates.
      */
     virtual wxSize GetSize() const;
+    template <class T> wxSize GetSize() const;
     /**
      * @brief Returns the position of the graph element in graph coordinates.
      */
     virtual wxPoint GetPosition() const;
+    template <class T> wxPoint GetPosition() const;
     /**
      * @brief Returns the bounding rectangle of the graph element in graph
      * coordinates.
@@ -361,20 +359,39 @@ public:
      */
     virtual void Refresh();
 
+    virtual void Layout() = 0;
+
 protected:
     virtual void DoSelect(bool select);
     virtual void UpdateShape() = 0;
     virtual void SetShape(GraphShape *shape);
     virtual GraphShape *DoGetShape() const { return m_shape; }
+    virtual GraphShape *DoEnsureShape();
+    virtual wxSize GetDPI() const;
 
 private:
+    impl::Initialisor m_initalise;
+
     wxColour m_colour;
     wxColour m_bgcolour;
 
+    int m_style;
     GraphShape *m_shape;
 
     DECLARE_ABSTRACT_CLASS(GraphElement)
 };
+
+// Inline defintions
+
+template <class T> wxSize GraphElement::GetSize() const
+{
+    return Pixels::To<T>(GetSize(), GetDPI());
+}
+
+template <class T> wxPoint GraphElement::GetPosition() const
+{
+    return Pixels::To<T>(GetPosition(), GetDPI());
+}
 
 /**
  * @brief Represents an edge in a Graph.
@@ -401,22 +418,18 @@ public:
 
     /** @brief An enumeration of predefined appearances for edges. */
     enum Style {
-        Style_Custom,
+        Style_Custom = GraphElement::Style_Custom,
         Style_Line,
         Style_Arrow,
         Num_Styles
     };
 
     /** @brief Constructor. */
-    GraphEdge();
+    GraphEdge(const wxColour& colour = *wxBLACK,
+              const wxColour& bgcolour = *wxWHITE,
+              int style = Style_Line);
     /** @brief Destructor. */
     ~GraphEdge();
-
-    /**
-     * @brief A number from the Style enumeration indicating the edge's
-     * appearance.
-     */
-    virtual int GetStyle() const { return m_style; }
 
     /**
      * @brief A number from the Style enumeration indicating the edge's
@@ -449,10 +462,10 @@ public:
      */
     virtual GraphNode *GetTo() const;
 
-    bool Serialize(wxOutputStream& out) const;
-    bool Deserialize(wxInputStream& in);
+    bool Serialise(Archive::Item& arc);
 
     GraphLineShape *GetShape() const;
+    GraphLineShape *EnsureShape();
 
     /**
      * @brief Set a shape object from the underlying graphics library that
@@ -467,12 +480,13 @@ public:
      */
     virtual void SetShape(GraphLineShape *shape);
 
+    virtual void Layout() { }
+
 protected:
     void UpdateShape() { }
+    bool MoveFront();
 
 private:
-    int m_style;
-
     DECLARE_DYNAMIC_CLASS(GraphEdge)
 };
 
@@ -501,7 +515,7 @@ public:
 
     /** @brief An enumeration of predefined appearances for nodes. */
     enum Style {
-        Style_Custom,
+        Style_Custom = GraphElement::Style_Custom,
         Style_Rectangle,
         Style_Elipse,
         Style_Triangle,
@@ -510,7 +524,11 @@ public:
     };
 
     /** @brief Constructor. */
-    GraphNode();
+    GraphNode(const wxString& text = wxEmptyString,
+              const wxColour& colour = *wxBLACK,
+              const wxColour& bgcolour = *wxWHITE,
+              const wxColour& textcolour = *wxBLACK,
+              int style = Style_Rectangle);
     /** @brief Destructor. */
     ~GraphNode();
 
@@ -518,11 +536,6 @@ public:
     virtual wxString GetText() const        { return m_text; }
     /** @brief The node's font. */
     virtual wxFont GetFont() const;
-    /**
-     * @brief A number from the Style enumeration indicating the node's
-     * appearance.
-     */
-    virtual int GetStyle() const            { return m_style; }
 
     /** @brief The colour of the node's text. */
     virtual wxColour GetTextColour() const  { return m_textcolour; }
@@ -586,17 +599,18 @@ public:
      */
     size_t GetOutEdgeCount() const;
 
-    bool Serialize(wxOutputStream& out) const;
-    bool Deserialize(wxInputStream& in);
+    bool Serialise(Archive::Item& arc);
 
     /**
      * @brief Move the node, centering it on the given point.
      */
     virtual void SetPosition(const wxPoint& pt);
+    template <class T> void SetPosition(const wxPoint& pt);
     /**
      * @brief Resize the node.
      */
     virtual void SetSize(const wxSize& size);
+    template <class T> void SetSize(const wxSize& size);
 
     /**
      * @brief Set a shape object from the underlying graphics library that
@@ -651,13 +665,23 @@ protected:
     virtual void Layout();
 
 private:
-    int m_style;
     wxColour m_textcolour;
     wxString m_text;
     wxFont m_font;
 
     DECLARE_DYNAMIC_CLASS(GraphNode)
 };
+
+// Inline definitions
+
+template <class T> void GraphNode::SetPosition(const wxPoint& pt)
+{
+    SetPosition(Pixels::From<T>(pt, GetDPI()));
+}
+template <class T> void GraphNode::SetSize(const wxSize& size)
+{
+    SetSize(Pixels::From<T>(size, GetDPI()));
+}
 
 /**
  * @brief A control for interactive editing of a Graph object.
@@ -763,6 +787,7 @@ public:
     static const wxChar DefaultName[];
 
 private:
+    impl::Initialisor m_initalise;
     impl::GraphCanvas *m_canvas;
     Graph *m_graph;
 
@@ -804,7 +829,12 @@ public:
     ~Graph();
 
     /** @brief Adds a node to the graph. The Graph object takes ownership. */
-    virtual GraphNode *Add(GraphNode *node, wxPoint pt);
+    virtual GraphNode *Add(GraphNode *node,
+                           wxPoint pt = wxPoint(),
+                           wxSize size = wxSize());
+    template <class T> GraphNode *Add(GraphNode *node,
+                                      wxPoint pt = wxPoint(),
+                                      wxSize size = wxSize());
     /**
      * @brief Adds an edge to the Graph, between the two nodes.
      *
@@ -831,6 +861,31 @@ public:
      * specified by the given iterator range.
      */
     virtual bool Layout(const node_iterator_pair& range);
+
+    /**
+     * @brief Finds an empty space for a new node.
+     *
+     * Searches in a grid like pattern searching across then down line by
+     * line. Begins from a default start position below any existing
+     * connected nodes.
+     *
+     * @param spacing The grid spacing for the search pattern.
+     * @param columns The columns for the grid pattern or 0 for the default.
+     */
+    wxPoint FindSpace(const wxSize& spacing, int columns = 0);
+    /**
+     * @brief Finds an empty space for a new node.
+     *
+     * Searches in a grid like pattern starting at <code>position</code>,
+     * searching across then down line by line.
+     *
+     * @param position Start searching at this point.
+     * @param spacing The grid spacing for the search pattern.
+     * @param columns The columns for the grid pattern or 0 for the default.
+     */
+    wxPoint FindSpace(const wxPoint& position,
+                      const wxSize& spacing,
+                      int columns = 0);
 
     /**
      * @brief Adds the nodes and edges specified by the given iterator range
@@ -900,21 +955,24 @@ public:
     size_t GetSelectionNodeCount() const;
 
     /**
-     * @brief Write a text representation of the graph and all its elements.
-     * Not yet implemented.
+     * @brief Write a text representation of the graph and all its elements
+     * or a subrange of them.
      */
-    virtual bool Serialize(wxOutputStream& out) const;
+    virtual bool Serialise(wxOutputStream& out,
+                           const iterator_pair& range = iterator_pair());
+    virtual bool Serialise(Archive& archive,
+                           const iterator_pair& range = iterator_pair());
     /**
-     * @brief Write a text representation of the graph elements specified by
-     * the given iterator range. Not yet implemented.
+     * @brief Load a serialised graph.
      */
-    virtual bool Serialize(wxOutputStream& out,
-                           const const_iterator_pair& range) const;
+    virtual bool Deserialise(wxInputStream& in);
+    virtual bool Deserialise(Archive& archive);
+
     /**
-     * @brief Restore the elements from text written by Serialize.
-     * Not yet implemented.
+     * @brief Import serialised elements into the current graph.
      */
-    virtual bool Deserialize(wxInputStream& in);
+    virtual bool DeserialiseInto(wxInputStream& in, const wxPoint& pt);
+    virtual bool DeserialiseInto(Archive& archive, const wxPoint& pt);
 
     /**
      * @brief The positions of any nodes added or moved are adjusted so that
@@ -930,10 +988,12 @@ public:
      * @brief The spacing of the grid used when SetSnapToGrid is switched on.
      */
     virtual void SetGridSpacing(int spacing);
+    template <class T> void SetGridSpacing(int spacing);
     /**
      * @brief The spacing of the grid used when SetSnapToGrid is switched on.
      */
     virtual int GetGridSpacing() const;
+    template <class T> int GetGridSpacing() const;
 
     /** @brief Undo the last operation. Not yet implemented. */
     virtual void Undo() { wxFAIL; }
@@ -1005,6 +1065,16 @@ public:
     /* helper to send an event to the graph event handler. */
     void SendEvent(wxEvent& event);
 
+    wxSize GetDPI() const { return m_dpi; }
+
+protected:
+    virtual GraphNode *DoAdd(GraphNode *node,
+                             wxPoint pt,
+                             wxSize size);
+    virtual GraphEdge *DoAdd(GraphNode& from,
+                             GraphNode& to,
+                             GraphEdge *edge = NULL);
+
 private:
     friend void GraphCtrl::SetGraph(Graph *graph);
 
@@ -1012,14 +1082,41 @@ private:
     impl::GraphCanvas *GetCanvas() const;
     void DoDelete(GraphElement *element);
 
+    impl::Initialisor m_initalise;
     impl::GraphDiagram *m_diagram;
     mutable wxRect m_rcBounds;
     wxEvtHandler *m_handler;
-    static int m_initalise;
+    wxSize m_dpi;
+    double m_gridSpacing;
 
     DECLARE_DYNAMIC_CLASS(Graph)
     DECLARE_NO_COPY_CLASS(Graph)
 };
+
+// Inline definitions
+
+template <class T>
+GraphNode *Graph::Add(GraphNode *node, wxPoint pt, wxSize size)
+{
+    return Add(node, Pixels::From<T>(pt, m_dpi),
+                     Pixels::From<T>(size, m_dpi));
+}
+
+template <class T> void Graph::SetGridSpacing(int spacing)
+{
+    if (m_dpi == wxSize() && T::Inch)
+        m_gridSpacing = double(spacing) / T::Inch;
+    else
+        SetGridSpacing(Pixels::From<T>(spacing, m_dpi.y));
+}
+
+template <class T> int Graph::GetGridSpacing() const
+{
+    if (m_dpi == wxSize() && T::Inch)
+        return int(m_gridSpacing * T::Inch + 0.5);
+    else
+        return Pixels::To<T>(GetGridSpacing(), m_dpi.y);
+}
 
 /**
  * @brief Graph event

@@ -153,6 +153,7 @@ private:
     void Sort() const;
     void SortAdd(Item *item) const;
     void SortRemove(Item *item) const;
+    iterator_pair DoGetItems(const wxString& prefix) const;
 
     ItemMap m_items;
     mutable SortMap m_sort;

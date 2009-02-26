@@ -253,18 +253,29 @@ void Archive::SortItem(Item& item, const wxString& key)
     else {
         item.m_sort = key;
     }
+
 }
 
-Archive::iterator_pair Archive::GetItems(const wxString& first)
+Archive::iterator_pair Archive::DoGetItems(const wxString& prefix) const
 {
     Sort();
-    return make_pair(m_sort.lower_bound(first), m_sort.end());
+
+    if (prefix.empty())
+        return make_pair(m_sort.begin(), m_sort.end());
+
+    wxString last = prefix;
+    (*last.rbegin())++;
+    return make_pair(m_sort.lower_bound(prefix), m_sort.lower_bound(last));
 }
 
-Archive::const_iterator_pair Archive::GetItems(const wxString& first) const
+Archive::iterator_pair Archive::GetItems(const wxString& prefix)
 {
-    Sort();
-    return make_pair(m_sort.lower_bound(first), m_sort.end());
+    return DoGetItems(prefix);
+}
+
+Archive::const_iterator_pair Archive::GetItems(const wxString& prefix) const
+{
+    return DoGetItems(prefix);
 }
 
 // ----------------------------------------------------------------------------
@@ -469,7 +480,7 @@ bool Extract(const Archive::Item& arc, const wxString& name, wxFont& value)
 
     wxFont font;
 
-    if (!font.SetNativeFontInfo(desc))
+    //if (!font.SetNativeFontInfo(desc))
         if (!font.Create(item->Get<int>(TAGPOINTS),
                          item->Get<int>(TAGFAMILY),
                          item->Get<int>(TAGSTYLE),

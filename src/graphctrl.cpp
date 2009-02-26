@@ -89,8 +89,9 @@ DEFINE_EVENT_TYPE(Evt_Graph_Edge_Menu)
 namespace {
 
 // sort order for the elements when loading
-const wxChar *SORT_NODE = _T("1");
-const wxChar *SORT_EDGE = _T("2");
+const wxString SORT_ELEMENT = _T("el");
+const wxString SORT_NODE    = SORT_ELEMENT + _T("1");
+const wxString SORT_EDGE    = SORT_ELEMENT + _T("2");
 
 // the wxShape's client data field points back to the GraphElement
 GraphElement *GetElement(wxShape *shape)
@@ -2213,7 +2214,7 @@ bool Graph::DeserialiseInto(Archive& archive, const wxPoint& pt)
 
     Archive::iterator it, end;
 
-    for (tie(it, end) = archive.GetItems(_T(" ")); it != end; ++it) {
+    for (tie(it, end) = archive.GetItems(SORT_ELEMENT); it != end; ++it) {
         wxString sortkey = it->first;
         Archive::Item *arc = it->second;
 

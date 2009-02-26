@@ -146,8 +146,8 @@ public:
     typedef std::pair<iterator, iterator> iterator_pair;
     typedef std::pair<const_iterator, const_iterator> const_iterator_pair;
 
-    iterator_pair GetItems();
-    const_iterator_pair GetItems() const;
+    iterator_pair GetItems(const wxString& first = wxEmptyString);
+    const_iterator_pair GetItems(const wxString& first = wxEmptyString) const;
 
 private:
     void Sort() const;

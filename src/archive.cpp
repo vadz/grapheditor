@@ -255,16 +255,16 @@ void Archive::SortItem(Item& item, const wxString& key)
     }
 }
 
-Archive::iterator_pair Archive::GetItems()
+Archive::iterator_pair Archive::GetItems(const wxString& first)
 {
     Sort();
-    return make_pair(m_sort.begin(), m_sort.end());
+    return make_pair(m_sort.lower_bound(first), m_sort.end());
 }
 
-Archive::const_iterator_pair Archive::GetItems() const
+Archive::const_iterator_pair Archive::GetItems(const wxString& first) const
 {
     Sort();
-    return make_pair(m_sort.begin(), m_sort.end());
+    return make_pair(m_sort.lower_bound(first), m_sort.end());
 }
 
 // ----------------------------------------------------------------------------

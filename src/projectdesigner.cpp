@@ -14,7 +14,8 @@
 
 namespace datactics {
 
-using tt_solutions::GraphCtrl;
+using namespace tt_solutions;
+
 using std::min;
 using std::max;
 using std::abs;
@@ -216,14 +217,23 @@ void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
 
 IMPLEMENT_DYNAMIC_CLASS(ProjectNode, GraphNode)
 
-ProjectNode::ProjectNode()
+ProjectNode::ProjectNode(const wxString& operation,
+                         const wxString& result,
+                         const wxString& id,
+                         const wxIcon& icon,
+                         const wxColour& colour,
+                         const wxColour& bgcolour,
+                         const wxColour& textcolour)
+  : GraphNode(operation, colour, bgcolour, textcolour),
+    m_id(id),
+    m_result(result),
+    m_icon(icon)
 {
-    m_borderThickness = 6;
-    m_cornerRadius = 10;
+    m_borderThickness = 90;
+    m_cornerRadius = 150;
     m_divide = 0;
     SetStyle(Style_Custom);
 }
-
 
 ProjectNode::~ProjectNode()
 {
@@ -262,20 +272,6 @@ void ProjectNode::SetIcon(const wxIcon& icon)
     Refresh();
 }
 
-void ProjectNode::SetBorderThickness(int thickness)
-{
-    m_borderThickness = thickness;
-    Layout();
-    Refresh();
-}
-
-void ProjectNode::SetCornerRadius(int radius)
-{
-    m_cornerRadius = radius;
-    Layout();
-    Refresh();
-}
-
 int ProjectNode::HitTest(const wxPoint& pt) const
 {
     wxRect bounds = GetBounds();
@@ -306,15 +302,16 @@ int ProjectNode::HitTest(const wxPoint& pt) const
 void ProjectNode::OnLayout(wxDC &dc)
 {
     int spacing = 0;
+    int border = GetBorderThickness();
+    int corner = GetCornerRadius();
 
     // this keeps the text within the inner radius of the curved corners
-    if (m_cornerRadius > m_borderThickness)
-        spacing = m_cornerRadius + m_borderThickness / 2 -
-                  (m_cornerRadius - m_borderThickness / 2)
+    if (corner > border)
+        spacing = corner + border / 2 - (corner - border / 2)
                   * 1000000 / 1414214;
     // if the border is thicker than the corner curve then just allow 3
-    if (spacing < m_borderThickness + 3)
-        spacing = m_borderThickness + 3;
+    if (spacing < border + 3)
+        spacing = border + 3;
 
     if (m_rcText.IsEmpty() || m_rcResult.IsEmpty())
         dc.SetFont(GetFont());
@@ -351,16 +348,16 @@ void ProjectNode::OnLayout(wxDC &dc)
     m_rcResult.x = spacing + iconHSpace;
 
     // calcuate the position of the dividing line between the two sections
-    m_divide = m_rcText.GetBottom() + 1 + spacing - m_borderThickness;
-    m_divide = max(m_divide, m_cornerRadius + m_borderThickness / 2);
+    m_divide = m_rcText.GetBottom() + 1 + spacing - border;
+    m_divide = max(m_divide, corner + border / 2);
 
     // calculate the min size the node must have to fit everything
     m_minSize.x = max(m_rcText.GetRight(), m_rcResult.GetRight()) +
                   spacing + 1;
-    m_minSize.x = max(m_minSize.x, 2 * m_cornerRadius + m_borderThickness);
+    m_minSize.x = max(m_minSize.x, 2 * corner + border);
     m_minSize.y = max(m_rcIcon.GetHeight(), m_rcResult.GetHeight()) +
                   m_rcText.GetBottom() + 2 + 2 * spacing;
-    m_minSize.y = max(m_minSize.y, m_divide + m_cornerRadius + m_borderThickness / 2);
+    m_minSize.y = max(m_minSize.y, m_divide + corner + border / 2);
 
     wxRect bounds = GetBounds();
 
@@ -382,13 +379,16 @@ void ProjectNode::OnLayout(wxDC &dc)
 void ProjectNode::OnDraw(wxDC& dc)
 {
     if (GetStyle() == Style_Custom) {
+        int border = GetBorderThickness();
+        int corner = GetCornerRadius();
+
         wxRect bounds = GetBounds();
         wxRect rc = bounds;
         // deflate by half the border thickness so that the whole stays
         // within the bounds
-        rc.Deflate(m_borderThickness / 2);
+        rc.Deflate(border / 2);
 
-        dc.SetPen(wxPen(GetColour(), m_borderThickness));
+        dc.SetPen(wxPen(GetColour(), border));
         dc.SetBrush(GetBackgroundColour());
         dc.SetFont(GetFont());
         dc.SetTextForeground(GetTextColour());
@@ -398,7 +398,7 @@ void ProjectNode::OnDraw(wxDC& dc)
 
         // fill top section with the border color
         dc.SetBrush(GetColour());
-        int r = m_cornerRadius;
+        int r = corner;
         int x1 = rc.x, x2 = rc.GetRight();
         dc.DrawArc(x1 + r, rc.y, x1, rc.y + r, x1 + r, rc.y + r);
         dc.DrawArc(x2, rc.y + r, x2 - r, rc.y, x2 - r, rc.y + r);
@@ -461,10 +461,13 @@ wxPoint ProjectNode::GetCornerPoint(const wxPoint& centre,
 wxPoint ProjectNode::GetPerimeterPoint(const wxPoint& inside,
                                        const wxPoint& outside) const
 {
+    int border = GetBorderThickness();
+    int corner = GetCornerRadius();
+
     wxPoint pt = GraphNode::GetPerimeterPoint(inside, outside);
 
     wxRect b = GetBounds();
-    int r = m_cornerRadius + m_borderThickness / 2;
+    int r = corner + border / 2;
 
     // deflate so that the corners are the centres of the corner circles
     b.Deflate(r);
@@ -487,6 +490,20 @@ wxPoint ProjectNode::GetPerimeterPoint(const wxPoint& inside,
         pt = GetCornerPoint(b.GetBottomRight(), r, 1, inside, outside);
 
     return pt;
+}
+
+bool ProjectNode::Serialise(Archive::Item& arc)
+{
+    if (!GraphNode::Serialise(arc))
+        return false;
+
+    const ProjectNode& def = Factory<ProjectNode>(this).GetDefault();
+    arc.Exch(_T("result"), m_result, def.m_result);
+    arc.Exch(_T("id"), m_id, def.m_id);
+    arc.Exch(_T("borderthickness"), m_borderThickness, def.m_borderThickness);
+    arc.Exch(_T("cornerradius"), m_cornerRadius, def.m_cornerRadius);
+
+    return true;
 }
 
 } // namespace datactics

@@ -42,7 +42,13 @@ public:
     };
 
     /** @brief Constructor. */
-    ProjectNode();
+    ProjectNode(const wxString& operation = wxEmptyString,
+                const wxString& result = wxEmptyString,
+                const wxString& id = wxEmptyString,
+                const wxIcon& icon = wxIcon(),
+                const wxColour& colour = *wxLIGHT_GREY,
+                const wxColour& bgcolour = *wxWHITE,
+                const wxColour& textcolour = *wxBLACK);
     /** @brief Destructor. */
     ~ProjectNode();
 
@@ -50,7 +56,7 @@ public:
     void SetFont(const wxFont& font);
     /** @brief The node's id. */
     wxString GetId() const                  { return m_id; }
-    /** @brief The node's operation label. */
+    /** @brief The node's operation label. Synonym for GetText(). */
     wxString GetOperation() const           { return GetText(); }
     /** @brief The node's result label. */
     wxString GetResult() const              { return m_result; }
@@ -58,14 +64,13 @@ public:
 
     /** @brief The node's id. */
     void SetId(const wxString& text);
-    /** @brief The node's operation label. */
+    /** @brief The node's operation label. Synonym for SetText(). */
     void SetOperation(const wxString& text) { SetText(text); }
     /** @brief The node's result label. */
     void SetResult(const wxString& text);
     void SetIcon(const wxIcon& icon);
 
-    //bool Serialize(wxOutputStream& out);
-    //bool Deserialize(wxInputStream& in);
+    bool Serialise(tt_solutions::Archive::Item& arc);
 
     /**
      * @brief Indicates what part of the node is at the given point, for
@@ -75,11 +80,17 @@ public:
      */
     int HitTest(const wxPoint& pt) const;
 
-    int GetBorderThickness() const          { return m_borderThickness; }
-    void SetBorderThickness(int thickness);
+    int GetBorderThickness() const;
+    template <class T> int GetBorderThickness() const;
 
-    int GetCornerRadius() const             { return m_cornerRadius; }
+    void SetBorderThickness(int thickness);
+    template <class T> void SetBorderThickness(int thickness);
+
+    int GetCornerRadius() const;
+    template <class T> int GetCornerRadius() const;
+
     void SetCornerRadius(int radius);
+    template <class T> void SetCornerRadius(int radius);
 
     void OnDraw(wxDC& dc);
     void OnLayout(wxDC &dc);
@@ -88,6 +99,9 @@ public:
                               const wxPoint& outside) const;
 
 private:
+    typedef tt_solutions::Pixels Pixels;
+    typedef tt_solutions::Twips Twips;
+
     wxPoint GetCornerPoint(const wxPoint& centre,
                            int radius, int sign,
                            const wxPoint& inside,
@@ -150,6 +164,54 @@ private:
     DECLARE_DYNAMIC_CLASS(ProjectDesigner)
     DECLARE_NO_COPY_CLASS(ProjectDesigner)
 };
+
+// ----------------------------------------------------------------------------
+// Inline definitions
+// ----------------------------------------------------------------------------
+
+inline int ProjectNode::GetBorderThickness() const
+{
+    return GetBorderThickness<Pixels>();
+}
+
+template <class T> int ProjectNode::GetBorderThickness() const
+{
+    return Twips::To<T>(m_borderThickness, GetDPI().y);
+}
+
+inline void ProjectNode::SetBorderThickness(int thickness)
+{
+    SetBorderThickness<Pixels>(thickness);
+}
+
+template <class T> void ProjectNode::SetBorderThickness(int thickness)
+{
+    m_borderThickness = Twips::From<T>(thickness, GetDPI().y);
+    Layout();
+    Refresh();
+}
+
+inline int ProjectNode::GetCornerRadius() const
+{
+    return GetCornerRadius<Pixels>();
+}
+
+template <class T> int ProjectNode::GetCornerRadius() const
+{
+    return Twips::To<T>(m_cornerRadius, GetDPI().y);
+}
+
+inline void ProjectNode::SetCornerRadius(int radius)
+{
+    SetCornerRadius<Pixels>(radius);
+}
+
+template <class T> void ProjectNode::SetCornerRadius(int radius)
+{
+    m_cornerRadius = Twips::From<T>(radius, GetDPI().y);
+    Layout();
+    Refresh();
+}
 
 } // namespace datactics
 

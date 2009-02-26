@@ -9,8 +9,6 @@
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
-#include <sstream>
-
 #include <wx/xml/xml.h>
 
 #include "archive.h"
@@ -21,9 +19,6 @@
 // ----------------------------------------------------------------------------
 
 namespace {
-
-typedef std::basic_istringstream<wxChar> istringstream;
-typedef std::basic_ostringstream<wxChar> ostringstream;
 
 const wxChar *tagARCHIVE    = _T("archive");
 const wxChar *tagID         = _T("id");
@@ -87,7 +82,7 @@ bool Archive::Load(wxInputStream& stream)
     wxXmlNode *root = doc.GetRoot();
 
     if (root->GetName() != tagARCHIVE) {
-        wxLogError(_("Error loading: unknown root node"));
+        wxLogError(_("Error loading: unknown root element"));
         return false;
     }
 
@@ -341,31 +336,6 @@ Archive::Item::const_iterator_pair Archive::Item::GetAttribs() const
 // Insertors/Extractors
 // ----------------------------------------------------------------------------
 
-template <class T>
-bool Insert(Archive::Item& arc, const wxString& name, const T& value)
-{
-    ostringstream ss;
-    ss << value;
-    return arc.Put(name, wxString(ss.str()));
-}
-
-template <class T>
-bool Extract(const Archive::Item& arc, const wxString& name, T& value)
-{
-    wxString str;
-    if (!arc.Get(name, str))
-        return false;
-
-    istringstream ss(str.c_str());
-    T val;
-    ss >> val;
-
-    if (ss)
-        value = val;
-
-    return ss;
-}
-
 namespace {
 
 template <class T>
@@ -410,6 +380,32 @@ bool Insert(Archive::Item& arc, const wxString& name, const wxSize& value)
 bool Extract(const Archive::Item& arc, const wxString& name, wxSize& value)
 {
     return GetPair(arc, name, value);
+}
+
+bool Insert(Archive::Item& arc, const wxString& name, const wxRect& value)
+{
+    wxString str;
+
+    str << value.x << _T(",")
+        << value.y << _T(",")
+        << value.width << _T(",")
+        << value.height;
+
+    return arc.Put(name, str);
+}
+
+bool Extract(const Archive::Item& arc, const wxString& name, wxRect& value)
+{
+    wxString str;
+    if (!arc.Get(name, str))
+        return false;
+
+    int x, y, w, h;
+    if (wxSscanf(str.c_str(), _T("%d,%d,%d,%d"), &x, &y, &w, &h) != 4)
+        return false;
+
+    value = wxRect(x, y, w, h);
+    return true;
 }
 
 bool Insert(Archive::Item& arc, const wxString& name, const wxColour& value)
@@ -465,9 +461,9 @@ bool Extract(const Archive::Item& arc, const wxString& name, wxFont& value)
     if (!item)
         return false;
 
-    wxObject *obj = item->GetInstance();
+    wxFont *obj = item->GetInstance<wxFont>();
     if (obj) {
-        value = *wxStaticCast(obj, wxFont);
+        value = *obj;
         return true;
     }
 

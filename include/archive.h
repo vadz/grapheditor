@@ -14,6 +14,7 @@
 
 #include <wx/wx.h>
 
+#include <sstream>
 #include <map>
 
 /**
@@ -47,6 +48,10 @@ public:
 
         void SetInstance(wxObject *instance, bool owns = false);
         wxObject *GetInstance() const { return m_instance; }
+
+        template <class T> T* GetInstance() const {
+            return dynamic_cast<T*>(m_instance);
+        }
 
         Archive& GetArchive() const { return m_archive; }
 
@@ -128,6 +133,9 @@ public:
     const Item *Get(const wxString& id) const;
 
     wxObject *GetInstance(const wxString& id) const;
+    template <class T> T* GetInstance(const wxString& id) const {
+        return dynamic_cast<T*>(GetInstance(id));
+    }
     static wxString MakeId(const void *p);
 
     void SortItem(Item& item, const wxString& key);
@@ -151,22 +159,45 @@ private:
     bool m_storing;
 };
 
-template <class T>
-bool Insert(Archive::Item& arc, const wxString& name, const T& value);
-template <class T>
-bool Extract(const Archive::Item& arc, const wxString& name, T& value);
-
 bool Insert(Archive::Item& arc, const wxString& name, const wxPoint& value);
 bool Extract(const Archive::Item& arc, const wxString& name, wxPoint& value);
 
 bool Insert(Archive::Item& arc, const wxString& name, const wxSize& value);
 bool Extract(const Archive::Item& arc, const wxString& name, wxSize& value);
 
+bool Insert(Archive::Item& arc, const wxString& name, const wxRect& value);
+bool Extract(const Archive::Item& arc, const wxString& name, wxRect& value);
+
 bool Insert(Archive::Item& arc, const wxString& name, const wxColour& value);
 bool Extract(const Archive::Item& arc, const wxString& name, wxColour& value);
 
 bool Insert(Archive::Item& arc, const wxString& name, const wxFont& value);
 bool Extract(const Archive::Item& arc, const wxString& name, wxFont& value);
+
+template <class T>
+bool Insert(Archive::Item& arc, const wxString& name, const T& value)
+{
+    std::basic_ostringstream<wxChar> ss;
+    ss << value;
+    return arc.Put(name, wxString(ss.str()));
+}
+
+template <class T>
+bool Extract(const Archive::Item& arc, const wxString& name, T& value)
+{
+    wxString str;
+    if (!arc.Get(name, str))
+        return false;
+
+    std::basic_istringstream<wxChar> ss(str.c_str());
+    T val;
+    ss >> val;
+
+    if (ss)
+        value = val;
+
+    return ss;
+}
 
 } // namespace tt_solutions
 

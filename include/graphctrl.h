@@ -427,7 +427,7 @@ public:
     /** @brief Constructor. */
     GraphEdge(const wxColour& colour = *wxBLACK,
               const wxColour& bgcolour = *wxWHITE,
-              int style = Style_Line);
+              int style = Style_Arrow);
     /** @brief Destructor. */
     ~GraphEdge();
 
@@ -1066,6 +1066,9 @@ public:
     void SendEvent(wxEvent& event);
 
     wxSize GetDPI() const { return m_dpi; }
+
+    void SetFont(const wxFont& font);
+    wxFont GetFont() const;
 
 protected:
     virtual GraphNode *DoAdd(GraphNode *node,

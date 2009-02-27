@@ -165,16 +165,15 @@ int between(int value, int limit1, int limit2)
     return value;
 }
 
-bool ShowLine(GraphEdge *edge, GraphNode *from, GraphNode *to)
+bool ShowLine(wxLineShape *line, GraphNode *from, GraphNode *to)
 {
-    if (!edge || !from || !to)
+    if (!line || !from || !to)
         return false;
 
-    wxLineShape *line = edge->GetShape();
     wxShape *fromshape = from->GetShape();
     wxShape *toshape = to->GetShape();
 
-    if (!line || !fromshape || !toshape)
+    if (!fromshape || !toshape)
         return false;
 
     fromshape->AddLine(line, toshape);
@@ -184,6 +183,12 @@ bool ShowLine(GraphEdge *edge, GraphNode *from, GraphNode *to)
     line->SetEnds(x1, y1, x2, y2);
 
     return true;
+}
+
+wxFont DefaultFont()
+{
+    static wxFont font(10, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Arial"));
+    return font;
 }
 
 } // namespace
@@ -317,6 +322,7 @@ GraphCanvas::GraphCanvas(
     m_checkBounds(false)
 {
     SetScrollRate(1, 1);
+    SetFont(DefaultFont());
 }
 
 void GraphCanvas::OnLeftClick(double, double, int)
@@ -1567,6 +1573,21 @@ GraphCanvas *Graph::GetCanvas() const
     return canvas ? wxStaticCast(canvas, GraphCanvas) : NULL;
 }
 
+void Graph::SetFont(const wxFont& font)
+{
+    GraphCanvas *canvas = GetCanvas();
+    if (canvas)
+        canvas->SetFont(font);
+}
+
+wxFont Graph::GetFont() const
+{
+    GraphCanvas *canvas = GetCanvas();
+    if (canvas)
+        return canvas->GetFont();
+    return wxFont();
+}
+
 GraphNode *Graph::Add(GraphNode *node,
                       wxPoint pt,
                       wxSize size)
@@ -1626,7 +1647,7 @@ GraphEdge *Graph::DoAdd(GraphNode& from, GraphNode& to, GraphEdge *edge)
     wxASSERT_MSG(!line->GetCanvas(), _T("Edge already inserted into graph"));
 
     m_diagram->InsertShape(line);
-    ShowLine(edge, &from, &to);
+    ShowLine(line, &from, &to);
     edge->Refresh();
 
     return edge;
@@ -2681,12 +2702,13 @@ GraphEdge::~GraphEdge()
 void GraphEdge::SetShape(wxLineShape *line)
 {
     wxLineShape *old = GetShape();
-    GraphElement::SetShape(line);
 
     if (old && line) {
-        ShowLine(this, GetFrom(), GetTo());
+        ShowLine(line, GetFrom(), GetTo());
         old->Unlink();
     }
+
+    GraphElement::SetShape(line);
 }
 
 wxLineShape *GraphEdge::GetShape() const
@@ -2757,7 +2779,7 @@ bool GraphEdge::Serialise(Archive::Item& arc)
         GraphNode *from = archive.GetInstance<GraphNode>(idFrom);
         GraphNode *to = archive.GetInstance<GraphNode>(idTo);
 
-        if (!ShowLine(this, from, to) || !MoveFront())
+        if (!ShowLine(GetShape(), from, to) || !MoveFront())
             return false;
     }
 

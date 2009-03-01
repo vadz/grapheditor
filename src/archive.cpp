@@ -39,6 +39,25 @@ wxString FontId(const wxString& desc)
     return TAGFONT + _T(" ") + desc;
 }
 
+#if wxUSE_UNICODE
+
+wxString FromUTF8(const wxString& str)  { return str; }
+wxString ToUTF8(const wxString& str)    { return str; }
+
+#else
+
+wxString FromUTF8(const wxString& str)
+{
+    return wxConvUI->cWC2MB(wxConvUTF8.cMB2WC(str));
+}
+
+wxString ToUTF8(const wxString& str)
+{
+    return wxConvUTF8.cWC2MB(wxConvUI->cMB2WC(str));
+}
+
+#endif
+
 } // namespace
 
 // ----------------------------------------------------------------------------
@@ -101,7 +120,7 @@ bool Archive::Load(wxInputStream& stream)
 
                 while (attrnode) {
                     wxString pname = attrnode->GetName();
-                    wxString value = attrnode->GetNodeContent();
+                    wxString value = FromUTF8(attrnode->GetNodeContent());
 
                     if (!item->Put(pname, value))
                         wxLogError(_("Error loading <%s %s='%s'> ignoring duplicate <%s>"),
@@ -146,7 +165,7 @@ bool Archive::Save(wxOutputStream& stream) const
 
         for (tie(j, jend) = item->GetAttribs(); j != jend; ++j) {
             wxString pname = j->first;
-            wxString value = j->second;
+            wxString value = ToUTF8(j->second);
 
             wxXmlNode *text = new wxXmlNode(node, wxXML_ELEMENT_NODE, pname);
             if (!value.empty())
@@ -253,7 +272,6 @@ void Archive::SortItem(Item& item, const wxString& key)
     else {
         item.m_sort = key;
     }
-
 }
 
 Archive::iterator_pair Archive::DoGetItems(const wxString& prefix) const
@@ -486,8 +504,8 @@ bool Extract(const Archive::Item& arc, const wxString& name, wxFont& value)
                          item->Get<int>(TAGSTYLE),
                          item->Get<int>(TAGWEIGHT),
                          item->Has(TAGUNDERLINE),
-                         item->Get(TAGFACE),
-                         wxFontEncoding(item->Get<int>(TAGENCODING))))
+                         item->Get(TAGFACE)))
+                         //wxFontEncoding(item->Get<int>(TAGENCODING))))
             return false;
 
     item->SetInstance(new wxFont(font), true);

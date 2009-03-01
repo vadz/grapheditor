@@ -42,6 +42,8 @@ void FactoryBase::Unregister()
     int n1 = sm_typeidx->erase(m_type);
     int n2 = sm_nameidx->erase(m_name);
     wxASSERT(n1 == 1 && n2 == 1);
+    (void)n1;
+    (void)n2;
 
     if (sm_nameidx->size() == 0) {
         delete sm_typeidx;

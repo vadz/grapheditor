@@ -128,7 +128,7 @@ void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
 
     if (IsGridShown()) {
         factor = 5;
-        int zoom = GetZoom();
+        double zoom = GetZoom();
 
         if (zoom) {
             while (zoom <= 50) {

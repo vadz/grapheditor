@@ -2392,7 +2392,7 @@ void GraphCtrl::SetGraph(Graph *graph)
     Refresh();
 }
 
-void GraphCtrl::SetZoom(int percent)
+void GraphCtrl::SetZoom(double percent)
 {
     wxPoint pt;
     {
@@ -2411,9 +2411,9 @@ void GraphCtrl::SetZoom(int percent)
     m_canvas->ScrollTo(pt, false);
 }
 
-int GraphCtrl::GetZoom()
+double GraphCtrl::GetZoom()
 {
-    return int(m_canvas->GetScaleX() * 100.0);
+    return m_canvas->GetScaleX() * 100.0;
 }
 
 void GraphCtrl::ScrollTo(const GraphElement& element)

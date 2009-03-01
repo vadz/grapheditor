@@ -738,11 +738,11 @@ public:
     /**
      * @brief Scales the image by the given percantage.
      */
-    virtual void SetZoom(int percent);
+    virtual void SetZoom(double percent);
     /**
      * @brief Returns the current scaling as a percentage.
      */
-    virtual int GetZoom();
+    virtual double GetZoom();
 
     /**
      * @brief Sets the Graph object that this GraphCtrl will operate on.

@@ -116,9 +116,12 @@
 #include <wx/fontdlg.h>
 #include <wx/filename.h>
 #include <wx/wxhtml.h>
+#include <wx/imaglist.h>
+#include <wx/wfstream.h>
+#include <wx/stdpaths.h>
 
 #include "graphtree.h"
-#include "projectdesigner.h"
+#include "testnodes.h"
 
 // ----------------------------------------------------------------------------
 // resources
@@ -138,8 +141,8 @@ _T("  </head>                                                               ")
 _T("  <body>                                                                ")
 _T("    <h3>Adding Nodes</h3>                                               ")
 _T("                                                                        ")
-_T("    <p>To add a node drag a leaf from the tree control onto the graph   ")
-_T("    editor.                                                             ")
+_T("    <p>To add a node, double click a leaf of the tree control, or drag  ")
+_T("    it onto the graph editor.                                           ")
 _T("                                                                        ")
 _T("    <h3>Adding Links</h3>                                               ")
 _T("                                                                        ")
@@ -183,19 +186,25 @@ _T("</html>                                                                 ")
 // types
 // ----------------------------------------------------------------------------
 
+using std::type_info;
+
 using datactics::ProjectDesigner;
 using datactics::ProjectNode;
-using tt_solutions::GraphTreeEvent;
-using tt_solutions::GraphTreeCtrl;
-using tt_solutions::GraphElement;
-using tt_solutions::GraphEdge;
-using tt_solutions::GraphNode;
-using tt_solutions::GraphEvent;
-using tt_solutions::Graph;
+
+using namespace tt_solutions;
 
 // ----------------------------------------------------------------------------
 // private classes
 // ----------------------------------------------------------------------------
+
+class TreeItemData : public wxTreeItemData
+{
+public:
+    TreeItemData(const Factory<ProjectNode>& factory) : m_factory(factory) { }
+    ProjectNode *New() const { return m_factory.New(); }
+private:
+    const Factory<ProjectNode> m_factory;
+};
 
 // Define a new application type, each program should derive a class from wxApp
 class MyApp : public wxApp
@@ -221,6 +230,7 @@ public:
 
     // tree control events
     void OnGraphTreeDrop(GraphTreeEvent& event);
+    void OnTreeItemActivated(wxTreeEvent& event);
 
     // graph events
     void OnAddNode(GraphEvent& event);
@@ -239,9 +249,9 @@ public:
     void OnMenuEdge(GraphEvent& event);
 
     // file menu
+    void OnNew(wxCommandEvent &event);
     void OnOpen(wxCommandEvent &event);
     void OnSave(wxCommandEvent& event);
-    void OnSaveAs(wxCommandEvent& event);
     void OnQuit(wxCommandEvent& event);
 
     // edit menu
@@ -255,8 +265,11 @@ public:
     void OnLayoutAll(wxCommandEvent& event);
     void OnZoomIn(wxCommandEvent& event);
     void OnZoomOut(wxCommandEvent& event);
+    void OnSetZoom(wxCommandEvent&);
     void OnShowGrid(wxCommandEvent& event);
+    void OnUIShowGrid(wxUpdateUIEvent& event);
     void OnSnapToGrid(wxCommandEvent&);
+    void OnUISnapToGrid(wxUpdateUIEvent& event);
     void OnSetGrid(wxCommandEvent&);
 
     // help menu
@@ -276,6 +289,14 @@ public:
     void OnSetCornerRadius(wxCommandEvent& event);
 
     wxString TextPrompt(const wxString& prompt, const wxString& value);
+    ProjectNode *NewNode(const wxTreeItemId& id, const wxPoint& pt);
+    bool PickFile(int flags);
+
+    template <class T> void AppendTreeItem(const wxTreeItemId& id);
+
+    wxTreeItemId AppendTreeItem(const wxTreeItemId& id,
+                                const ProjectNode& node,
+                                TreeItemData *tid = NULL);
 
     enum {
         ZoomMin = 25,
@@ -284,11 +305,13 @@ public:
     };
 
 private:
+    GraphTreeCtrl *m_tree;
     ProjectDesigner *m_graphctrl;
     GraphElement *m_element;
     GraphEdge *m_edge;
     GraphNode *m_node;
     Graph *m_graph;
+    wxString m_filename;
 
     // any class wishing to process wxWidgets events must use this macro
     DECLARE_EVENT_TABLE()
@@ -304,6 +327,7 @@ enum {
     ID_SHOWGRID,
     ID_SNAPTOGRID,
     ID_SETGRID,
+    ID_ZOOM,
     ID_LAYOUT,
     ID_SETSIZE,
     ID_SETFONT,
@@ -331,9 +355,10 @@ enum {
 // simple menu events like this the static method is much simpler.
 BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(wxID_EXIT, MyFrame::OnQuit)
+    EVT_MENU(wxID_NEW, MyFrame::OnNew)
     EVT_MENU(wxID_OPEN, MyFrame::OnOpen)
     EVT_MENU(wxID_SAVE, MyFrame::OnSave)
-    EVT_MENU(wxID_SAVEAS, MyFrame::OnSaveAs)
+    EVT_MENU(wxID_SAVEAS, MyFrame::OnSave)
 
     EVT_MENU(wxID_CUT, MyFrame::OnCut)
     EVT_MENU(wxID_COPY, MyFrame::OnCopy)
@@ -344,8 +369,11 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(ID_LAYOUTALL, MyFrame::OnLayoutAll)
     EVT_MENU(wxID_ZOOM_IN, MyFrame::OnZoomIn)
     EVT_MENU(wxID_ZOOM_OUT, MyFrame::OnZoomOut)
+    EVT_MENU(ID_ZOOM, MyFrame::OnSetZoom)
     EVT_MENU(ID_SHOWGRID, MyFrame::OnShowGrid)
+    EVT_UPDATE_UI(ID_SHOWGRID, MyFrame::OnUIShowGrid)
     EVT_MENU(ID_SNAPTOGRID, MyFrame::OnSnapToGrid)
+    EVT_UPDATE_UI(ID_SNAPTOGRID, MyFrame::OnUISnapToGrid)
     EVT_MENU(ID_SETGRID, MyFrame::OnSetGrid)
 
     EVT_MENU(ID_LAYOUT, MyFrame::OnLayout)
@@ -368,6 +396,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(wxID_ABOUT, MyFrame::OnAbout)
 
     EVT_GRAPHTREE_DROP(wxID_ANY, MyFrame::OnGraphTreeDrop)
+    EVT_TREE_ITEM_ACTIVATED(wxID_ANY, MyFrame::OnTreeItemActivated)
 
     EVT_GRAPH_NODE_ADD(MyFrame::OnAddNode)
     EVT_GRAPH_NODE_DELETE(MyFrame::OnDeleteNode)
@@ -404,6 +433,8 @@ IMPLEMENT_APP(MyApp)
 // 'Main program' equivalent: the program execution "starts" here
 bool MyApp::OnInit()
 {
+    wxImage::AddHandler(new wxPNGHandler);
+
     // create the main application window
     MyFrame *frame = new MyFrame(_T("GraphTest Example"));
 
@@ -438,23 +469,24 @@ MyFrame::MyFrame(const wxString& title)
 
     // file menu
     wxMenu *fileMenu = new wxMenu;
-    fileMenu->Append(wxID_OPEN, _T("&Open\tCtrl+O"), _T("Open a file"))->Enable(false);
-    fileMenu->Append(wxID_SAVE, _T("&Save\tCtrl+S"), _T("Save a file"))->Enable(false);
-    fileMenu->Append(wxID_SAVEAS, _T("&Save As...\tF12"), _T("Save to a new file"))->Enable(false);
+    fileMenu->Append(wxID_NEW);
+    fileMenu->Append(wxID_OPEN);
+    fileMenu->Append(wxID_SAVE);
+    fileMenu->Append(wxID_SAVEAS);
     fileMenu->AppendSeparator();
-    fileMenu->Append(wxID_EXIT, _T("E&xit\tAlt-X"), _T("Quit this program"));
+    fileMenu->Append(wxID_EXIT);
 
     // edit menu
     wxMenu *editMenu = new wxMenu;
-    editMenu->Append(wxID_UNDO, _T("&Undo\tCtrl+Z"))->Enable(false);
-    editMenu->Append(wxID_REDO, _T("&Redo\tCtrl+Y"))->Enable(false);
+    editMenu->Append(wxID_UNDO)->Enable(false);
+    editMenu->Append(wxID_REDO)->Enable(false);
     editMenu->AppendSeparator();
-    editMenu->Append(wxID_CUT, _T("Cu&t\tCtrl+X"))->Enable(false);
-    editMenu->Append(wxID_COPY, _T("&Copy\tCtrl+C"))->Enable(false);
-    editMenu->Append(wxID_PASTE, _T("&Paste\tCtrl+V"))->Enable(false);
-    editMenu->Append(wxID_CLEAR, _T("&Delete\tDel"));
+    editMenu->Append(wxID_CUT)->Enable(false);
+    editMenu->Append(wxID_COPY)->Enable(false);
+    editMenu->Append(wxID_PASTE)->Enable(false);
+    editMenu->Append(wxID_CLEAR);
     editMenu->AppendSeparator();
-    editMenu->Append(wxID_SELECTALL, _T("Select &All\tCtrl+A"));
+    editMenu->Append(wxID_SELECTALL);
 
     // test menu
     wxMenu *testMenu = new wxMenu;
@@ -463,17 +495,16 @@ MyFrame::MyFrame(const wxString& title)
     testMenu->AppendCheckItem(ID_SHOWGRID, _T("&Show &Grid\tCtrl+G"))->Check();
     testMenu->AppendCheckItem(ID_SNAPTOGRID, _T("Snap &To Grid\tCtrl+T"))->Check();
     testMenu->Append(ID_SETGRID, _T("Set Grid &Spacing..."));
-#ifndef __WXMSW__
     testMenu->AppendSeparator();
     testMenu->Append(wxID_ZOOM_IN, _T("Zoom&In\t+"));
     testMenu->Append(wxID_ZOOM_OUT, _T("Zoom&Out\t-"));
-#endif
+    testMenu->Append(ID_ZOOM, _T("Zoom\tAlt+Z"));
 
     // help menu
     wxMenu *helpMenu = new wxMenu;
-    helpMenu->Append(wxID_HELP, _T("&Help...\tF1"), _T("Show help"));
+    helpMenu->Append(wxID_HELP);
     helpMenu->AppendSeparator();
-    helpMenu->Append(wxID_ABOUT, _T("&About..."), _T("Show about dialog"));
+    helpMenu->Append(wxID_ABOUT);
 
     // menu bar
     wxMenuBar *menuBar = new wxMenuBar();
@@ -488,56 +519,60 @@ MyFrame::MyFrame(const wxString& title)
     // Example of creating the graph control and graph.
     // Call Graph::SetEventHandler to receive events from the graph.
     wxSplitterWindow *splitter = new wxSplitterWindow(this);
-    GraphTreeCtrl *tree = new GraphTreeCtrl(splitter);
+    m_tree = new GraphTreeCtrl(splitter);
     m_graphctrl = new ProjectDesigner(splitter);
     m_graph = new Graph;
     m_graph->SetEventHandler(this);
     m_graphctrl->SetGraph(m_graph);
-    splitter->SplitVertically(tree, m_graphctrl, 240);
+    splitter->SplitVertically(m_tree, m_graphctrl, 240);
 
-    // give the graph control a gradient background
-    m_graphctrl->SetBackgroundGradient(*wxWHITE, wxColour(0x1f97f6));
-    // and white grid
-    m_graphctrl->SetForegroundColour(*wxWHITE);
+    // grey grid on a white background
+    m_graphctrl->SetForegroundColour(*wxLIGHT_GREY);
+    m_graphctrl->SetBackgroundColour(*wxWHITE);
 
     enum { Icon_Normal };
     wxImageList *images = new wxImageList(16, 16);
     images->Add(icon);
-    tree->AssignImageList(images);
+    m_tree->AssignImageList(images);
 
     // populate the tree control
-    wxTreeItemId id, idRoot = tree->AddRoot(_T("Root"));
-    id = tree->AppendItem(idRoot, _T("Import"), Icon_Normal);
-    tree->AppendItem(id, _T("Flat File Import"), Icon_Normal);
-    tree->AppendItem(id, _T("Fixed Width Import"), Icon_Normal);
-    tree->AppendItem(id, _T("ODBC Import"), Icon_Normal);
-    tree->Expand(id);
-    id = tree->AppendItem(idRoot, _T("Export"), Icon_Normal);
-    tree->AppendItem(id, _T("File Export"), Icon_Normal);
-    tree->AppendItem(id, _T("ODBC Export"), Icon_Normal);
-    tree->Expand(id);
-    id = tree->AppendItem(idRoot, _T("Clean"), Icon_Normal);
-    tree->AppendItem(id, _T("Insert"), Icon_Normal);
-    tree->AppendItem(id, _T("Delete"), Icon_Normal);
-    tree->AppendItem(id, _T("Unite"), Icon_Normal);
-    tree->AppendItem(id, _T("Append"), Icon_Normal);
-    tree->AppendItem(id, _T("Clean"), Icon_Normal);
-    tree->AppendItem(id, _T("Sort"), Icon_Normal);
-    tree->AppendItem(id, _T("Split"), Icon_Normal);
-    tree->AppendItem(id, _T("Sample"), Icon_Normal);
-    tree->Expand(id);
-    id = tree->AppendItem(idRoot, _T("Match"), Icon_Normal);
-    tree->AppendItem(id, _T("Match"), Icon_Normal);
-    tree->AppendItem(id, _T("Match export"), Icon_Normal);
-    tree->Expand(id);
-    id = tree->AppendItem(idRoot, _T("Merge"), Icon_Normal);
-    tree->AppendItem(id, _T("Merge"), Icon_Normal);
-    tree->Expand(id);
-    id = tree->AppendItem(idRoot, _T("Profile"), Icon_Normal);
-    tree->AppendItem(id, _T("Validate"), Icon_Normal);
-    tree->AppendItem(id, _T("SQL Query"), Icon_Normal);
-    tree->AppendItem(id, _T("Search"), Icon_Normal);
-    tree->Expand(id);
+    wxTreeItemId id, idRoot = m_tree->AddRoot(_T("Root"));
+
+    id = AppendTreeItem(idRoot, ImportNode());
+    AppendTreeItem<ImportFileNode>(id);
+    AppendTreeItem<ImportODBCNode>(id);
+    m_tree->Expand(id);
+
+    id = AppendTreeItem(idRoot, ExportNode());
+    AppendTreeItem<ExportFileNode>(id);
+    AppendTreeItem<ExportODBCNode>(id);
+    m_tree->Expand(id);
+
+    id = AppendTreeItem(idRoot, AnalyseNode());
+    AppendTreeItem<SearchNode>(id);
+    AppendTreeItem<SampleNode>(id);
+    AppendTreeItem<SortNode>(id);
+    AppendTreeItem<ValidateNode>(id);
+    AppendTreeItem<AddressValNode>(id);
+    m_tree->Expand(id);
+
+    id = AppendTreeItem(idRoot, ReEngNode());
+    AppendTreeItem<CleanNode>(id);
+    AppendTreeItem<ExtractNode>(id);
+    AppendTreeItem<SplitNode>(id);
+    AppendTreeItem<UniteNode>(id);
+    AppendTreeItem<InsertNode>(id);
+    AppendTreeItem<DeleteNode>(id);
+    AppendTreeItem<ArrangeNode>(id);
+    AppendTreeItem<AppendNode>(id);
+    AppendTreeItem<SQLQueryNode>(id);
+    m_tree->Expand(id);
+
+    id = AppendTreeItem(idRoot, MatchUpNode());
+    AppendTreeItem<MatchNode>(id);
+    AppendTreeItem<MatchTableNode>(id);
+    AppendTreeItem<MergeNode>(id);
+    m_tree->Expand(id);
 
     // create a status bar just for fun (by default with 1 pane only)
     CreateStatusBar(2);
@@ -550,6 +585,36 @@ MyFrame::~MyFrame()
     delete m_graph;
 }
 
+template <class T> void MyFrame::AppendTreeItem(const wxTreeItemId& id)
+{
+    Factory<T> factory;
+    const ProjectNode& node = factory.GetDefault();
+    AppendTreeItem(id, node, new TreeItemData(factory));
+}
+
+wxTreeItemId MyFrame::AppendTreeItem(const wxTreeItemId& id,
+                                     const ProjectNode& node,
+                                     TreeItemData *tid)
+{
+    wxImageList *imglist = m_tree->GetImageList();
+    int imgnum = imglist->Add(node.GetIcon());
+    return m_tree->AppendItem(id, node.GetText(), imgnum, -1, tid);
+}
+
+ProjectNode *MyFrame::NewNode(const wxTreeItemId& id, const wxPoint& pt)
+{
+    TreeItemData *tid = static_cast<TreeItemData*>(m_tree->GetItemData(id));
+    ProjectNode *node = NULL;
+
+    if (tid) {
+        node = tid->New();
+        node->SetResult(_T("this is a multi-\nline test"));
+        m_graph->Add(node, pt);
+    }
+
+    return node;
+}
+
 // event handlers
 
 // Example of handling a drop event from the tree control and using
@@ -557,12 +622,24 @@ MyFrame::~MyFrame()
 //
 void MyFrame::OnGraphTreeDrop(GraphTreeEvent& event)
 {
-    ProjectNode *node = new ProjectNode;
-    node->SetText(event.GetString());
-    node->SetResult(_T("this is a multi-\nline test"));
-    node->SetColour(0x16a8fa);
-    node->SetIcon(event.GetIcon());
-    m_graph->Add(node, event.GetPosition());
+    wxTreeItemId id = event.GetItem();
+    NewNode(id, event.GetPosition());
+}
+
+// Tree item double clicked. Insert a node, searching for clear space to put
+// it in.
+//
+void MyFrame::OnTreeItemActivated(wxTreeEvent& event)
+{
+    wxTreeItemId id = event.GetItem();
+    wxPoint pt = m_graph->FindSpace(wxSize(200, 150));
+    ProjectNode *node = NewNode(id, pt);
+
+    if (node) {
+        m_graph->UnselectAll();
+        node->Select();
+        m_graphctrl->EnsureVisible(*node);
+    }
 }
 
 void MyFrame::OnAddNode(GraphEvent&)
@@ -812,7 +889,7 @@ void MyFrame::OnAbout(wxCommandEvent&)
 void MyFrame::OnSetSize(wxCommandEvent&)
 {
     wxString str;
-    wxSize size = m_element->GetSize();
+    wxSize size = m_element->GetSize<Points>();
 
     str << size.x << _T(", ") << size.y;
 
@@ -827,7 +904,7 @@ void MyFrame::OnSetSize(wxCommandEvent&)
         Graph::node_iterator it, end;
 
         for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it)
-            it->SetSize(size);
+            it->SetSize<Points>(size);
     }
 }
 
@@ -908,7 +985,7 @@ void MyFrame::OnSetLineStyle(wxCommandEvent& event)
 void MyFrame::OnSetBorderThickness(wxCommandEvent&)
 {
     ProjectNode *node = wxDynamicCast(m_node, ProjectNode);
-    long thickness = node ? node->GetBorderThickness() : 0;
+    long thickness = node ? node->GetBorderThickness<Points>() : 0;
 
     thickness = wxGetNumberFromUser(
         _T("Enter a new thickness for the selected nodes' borders:"), _T(""),
@@ -920,7 +997,7 @@ void MyFrame::OnSetBorderThickness(wxCommandEvent&)
         for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it) {
             node = wxDynamicCast(&*it, ProjectNode);
             if (node)
-                node->SetBorderThickness(thickness);
+                node->SetBorderThickness<Points>(thickness);
         }
     }
 }
@@ -928,7 +1005,7 @@ void MyFrame::OnSetBorderThickness(wxCommandEvent&)
 void MyFrame::OnSetCornerRadius(wxCommandEvent&)
 {
     ProjectNode *node = wxDynamicCast(m_node, ProjectNode);
-    long radius = node ? node->GetCornerRadius() : 0;
+    long radius = node ? node->GetCornerRadius<Points>() : 0;
 
     radius = wxGetNumberFromUser(
         _T("Enter a new radius for the selected nodes' corners:"), _T(""),
@@ -940,41 +1017,58 @@ void MyFrame::OnSetCornerRadius(wxCommandEvent&)
         for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it) {
             node = wxDynamicCast(&*it, ProjectNode);
             if (node)
-                node->SetCornerRadius(radius);
+                node->SetCornerRadius<Points>(radius);
         }
     }
 }
 
+void MyFrame::OnNew(wxCommandEvent&)
+{
+    m_graphctrl->SetGraph(NULL);
+    delete m_graph;
+    m_graph = new Graph;
+    m_graphctrl->SetGraph(m_graph);
+    m_graph->SetEventHandler(this);
+    m_filename.clear();
+}
+
+bool MyFrame::PickFile(int flags)
+{
+    wxString filename = wxFileSelector(
+        _T("Choose a filename"),
+        wxEmptyString,
+        wxEmptyString,
+        _T("xml"),
+        _T("Project Designer files (*.xml)|*.xml|All files (*.*)|*.*"),
+        flags,
+        this);
+
+    if (filename.empty())
+        return false;
+
+    m_filename = filename;
+    return true;
+}
+
 void MyFrame::OnOpen(wxCommandEvent&)
 {
-    wxString path;
-    wxString filename;
+    if (!PickFile(wxFD_OPEN))
+        return;
 
-    wxFileDialog dialog(this, _T("Choose a filename"), path, filename,
-            _T("Project Designer files (*.des)|*.des|All files (*.*)|*.*"),
-            wxFD_OPEN);
-
-    if (dialog.ShowModal() == wxID_OK)
-    {
-    }
+    wxFFileInputStream stream(m_filename);
+    if (stream.IsOk())
+        m_graph->Deserialise(stream);
 }
 
 void MyFrame::OnSave(wxCommandEvent& event)
 {
-    OnSaveAs(event);
-}
+    if (event.GetId() == wxID_SAVEAS || m_filename.empty())
+        if (!PickFile(wxFD_SAVE))
+            return;
 
-void MyFrame::OnSaveAs(wxCommandEvent&)
-{
-    wxString path;
-    wxString filename;
-
-    wxFileDialog dialog(this, _T("Choose a filename"), path, filename,
-                        _T("*.des"), wxFD_SAVE);
-
-    if (dialog.ShowModal() == wxID_OK)
-    {
-    }
+    wxFFileOutputStream stream(m_filename);
+    if (stream.IsOk())
+        m_graph->Serialise(stream);
 }
 
 void MyFrame::OnCut(wxCommandEvent&)
@@ -1014,7 +1108,7 @@ void MyFrame::OnLayoutAll(wxCommandEvent&)
 
 void MyFrame::OnZoomIn(wxCommandEvent&)
 {
-    int zoom = m_graphctrl->GetZoom();
+    double zoom = m_graphctrl->GetZoom();
     zoom += ZoomStep;
     if (zoom <= ZoomMax)
         m_graphctrl->SetZoom(zoom);
@@ -1022,9 +1116,20 @@ void MyFrame::OnZoomIn(wxCommandEvent&)
 
 void MyFrame::OnZoomOut(wxCommandEvent&)
 {
-    int zoom = m_graphctrl->GetZoom();
+    double zoom = m_graphctrl->GetZoom();
     zoom -= ZoomStep;
     if (zoom >= ZoomMin)
+        m_graphctrl->SetZoom(zoom);
+}
+
+void MyFrame::OnSetZoom(wxCommandEvent&)
+{
+    wxString str;
+    str << m_graphctrl->GetZoom();
+    str = wxGetTextFromUser(_T("Enter a new zoom percentage:"),
+                            _T("Set Zoom"), str, this);
+    double zoom;
+    if (str.ToDouble(&zoom) && zoom >= ZoomMin && zoom <= ZoomMax)
         m_graphctrl->SetZoom(zoom);
 }
 
@@ -1033,17 +1138,27 @@ void MyFrame::OnShowGrid(wxCommandEvent&)
     m_graphctrl->SetShowGrid(!m_graphctrl->IsGridShown());
 }
 
+void MyFrame::OnUIShowGrid(wxUpdateUIEvent& event)
+{
+    event.Check(m_graphctrl->IsGridShown());
+}
+
 void MyFrame::OnSnapToGrid(wxCommandEvent&)
 {
     m_graph->SetSnapToGrid(!m_graph->GetSnapToGrid());
+}
+
+void MyFrame::OnUISnapToGrid(wxUpdateUIEvent& event)
+{
+    event.Check(m_graph->GetSnapToGrid());
 }
 
 void MyFrame::OnSetGrid(wxCommandEvent&)
 {
     long spacing = wxGetNumberFromUser(_T(""), _T("Grid Spacing:"),
                                        _T("Grid Spacing"),
-                                       m_graph->GetGridSpacing(),
+                                       m_graph->GetGridSpacing<Points>(),
                                        1, 100, this);
     if (spacing >= 1)
-        m_graph->SetGridSpacing(spacing);
+        m_graph->SetGridSpacing<Points>(spacing);
 }

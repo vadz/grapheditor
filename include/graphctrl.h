@@ -992,7 +992,7 @@ public:
     /**
      * @brief The spacing of the grid used when SetSnapToGrid is switched on.
      */
-    virtual int GetGridSpacing() const;
+    virtual wxSize GetGridSpacing() const;
     template <class T> int GetGridSpacing() const;
 
     /** @brief Undo the last operation. Not yet implemented. */
@@ -1118,7 +1118,7 @@ template <class T> int Graph::GetGridSpacing() const
     if (m_dpi == wxSize() && T::Inch)
         return int(m_gridSpacing * T::Inch + 0.5);
     else
-        return Pixels::To<T>(GetGridSpacing(), m_dpi.y);
+        return Pixels::To<T>(GetGridSpacing().y, m_dpi.y);
 }
 
 /**

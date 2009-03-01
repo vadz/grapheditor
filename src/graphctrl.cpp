@@ -2083,7 +2083,7 @@ bool Graph::GetSnapToGrid() const
 void Graph::SetGridSpacing(int spacing)
 {
     m_gridSpacing = 0;
-    int xspacing = WXROUND(spacing * m_dpi.x / m_dpi.y);
+    int xspacing = WXROUND(double(spacing) * m_dpi.x / m_dpi.y);
     if (spacing < 1) spacing = 1;
     if (xspacing < 1) xspacing = 1;
     m_diagram->SetGridSpacing(xspacing, spacing);
@@ -2092,13 +2092,21 @@ void Graph::SetGridSpacing(int spacing)
         canvas->Refresh();
 }
 
-int Graph::GetGridSpacing() const
+wxSize Graph::GetGridSpacing() const
 {
+    wxSize spacing;
+
     // If the spacing is only known in inches, then SetCanvas must be called
     // before the spacing can be returned in pixels as m_dpi is unknown until
     // then.
-    wxCHECK(m_gridSpacing == 0, 0);
-    return WXROUND(m_diagram->GetGridSpacing());
+    wxCHECK(m_gridSpacing == 0, spacing);
+
+    double x, y;
+    m_diagram->GetGridSpacing(&x, &y);
+    spacing.x = WXROUND(x);
+    spacing.y = WXROUND(y);
+
+    return spacing;
 }
 
 bool Graph::CanClear() const
@@ -2460,7 +2468,9 @@ GraphElement::~GraphElement()
 }
 
 GraphElement::GraphElement(const GraphElement& element)
-  : m_colour(element.m_colour),
+  : wxObject(element),
+    wxClientDataContainer(element),
+    m_colour(element.m_colour),
     m_bgcolour(element.m_bgcolour),
     m_style(element.m_style),
     m_shape(NULL)

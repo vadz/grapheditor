@@ -123,7 +123,8 @@ void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
     rc.SetBottom(dc.DeviceToLogicalY(rcClip.GetBottom()));
     rcClip = rc;
 
-    int factor, spacing;
+    wxSize spacing = GetGraph()->GetGridSpacing();
+    int factor;
 
     if (IsGridShown()) {
         factor = 5;
@@ -136,17 +137,16 @@ void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
             }
         }
 
-        spacing = factor * GetGraph()->GetGridSpacing();
+        spacing *= factor;
     }
     else {
         factor = 1;
-        spacing = GetGraph()->GetGridSpacing();
     }
 
-    rc.x -= rc.x % spacing;
+    rc.x -= rc.x % spacing.x;
     if (rcClip.x < 0)
-        rc.x -= spacing;
-    rc.width = spacing + 1;
+        rc.x -= spacing.x;
+    rc.width = spacing.x + 1;
 
     int lastred = -1, lastgreen = -1, lastblue = -1;
     int red0 = m_background[0].Red();
@@ -160,7 +160,7 @@ void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
 
     while (rc.x < rcClip.GetRight())
     {
-        int i = min(abs(rc.x / spacing) * factor, 255);
+        int i = min(abs(rc.x / spacing.x) * factor, 255);
 
         int red = red0 + (red1 - red0) * i / 255;
         int green = green0 + (green1 - green0) * i / 255;
@@ -174,39 +174,39 @@ void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
         }
 
         dc.DrawRectangle(rc);
-        rc.x += spacing;
+        rc.x += spacing.x;
     }
 
     if (IsGridShown()) {
         dc.SetPen(GetForegroundColour());
         wxCoord x1, y1, x2, y2;
 
-        x1 = rcClip.x - rcClip.x % spacing;
+        x1 = rcClip.x - rcClip.x % spacing.x;
         if (rcClip.x < 0)
-            x1 -= spacing;
-        x2 = rcClip.GetRight() - rcClip.GetRight() % spacing;
+            x1 -= spacing.x;
+        x2 = rcClip.GetRight() - rcClip.GetRight() % spacing.x;
         if (rcClip.GetRight() > 0)
-            x2 += spacing;
+            x2 += spacing.x;
         y1 = rcClip.y;
         y2 = rcClip.GetBottom();
 
         while (x1 <= x2) {
             dc.DrawLine(x1, y1, x1, y2);
-            x1 += spacing;
+            x1 += spacing.x;
         }
 
         x1 = rcClip.x;
         x2 = rcClip.GetRight();
-        y1 = rcClip.y - rcClip.y % spacing;
+        y1 = rcClip.y - rcClip.y % spacing.y;
         if (rcClip.y < 0)
-            y1 -= spacing;
-        y2 = rcClip.GetBottom() - rcClip.GetBottom() % spacing;
+            y1 -= spacing.y;
+        y2 = rcClip.GetBottom() - rcClip.GetBottom() % spacing.y;
         if (rcClip.GetBottom() > 0)
-            y2 += spacing;
+            y2 += spacing.y;
 
         while (y1 <= y2) {
             dc.DrawLine(x1, y1, x2, y1);
-            y1 += spacing;
+            y1 += spacing.y;
         }
     }
 }

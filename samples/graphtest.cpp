@@ -484,7 +484,7 @@ MyFrame::MyFrame(const wxString& title)
     editMenu->Append(wxID_CUT)->Enable(false);
     editMenu->Append(wxID_COPY)->Enable(false);
     editMenu->Append(wxID_PASTE)->Enable(false);
-    editMenu->Append(wxID_CLEAR);
+    editMenu->Append(wxID_CLEAR, _T("&Delete\tDel"));
     editMenu->AppendSeparator();
     editMenu->Append(wxID_SELECTALL);
 

@@ -61,51 +61,124 @@ namespace impl
 
 } // namespace impl
 
+/**
+ * @brief Object factory.
+ *
+ * To allow a class to be created by <code>Factory</code>, it is necessary
+ * to define <code>Factory::Impl</code> for that class:
+ * @code
+ *  Factory<MyClass>::Impl myclass("myclass");
+ * @endcode
+ *
+ * Instances of the class can then be created using the string name used
+ * when defining the <code>Impl</code>, e.g.:
+ * @code
+ *  Factory<MyBase> factory(classname);
+ *  MyBase *p = factory.New();
+ * @endcode
+ *
+ * where <code>MyBase</code> is a base class for <code>MyClass</code> and
+ * <code>classname</code> is the name "myclass".
+ *
+ * <code>Factory::Impl</code> doesn't need to be defined for
+ * <code>MyBase</code>, just for the types that will actually be created.
+ *
+ * There are also constructors that will create a factory for the same type
+ * as another existing object, or for a given typeid.
+ *
+ * The factory caches a default instance of the object, which you can
+ * obtain using <code>factory.GetDefault()</code>. The <code>New</code>
+ * function creates new objects by copy constructing them from the default
+ * object.
+ */
 template <class T> class Factory
 {
 private:
     typedef impl::FactoryBase FactoryBase;
 
 public:
+    /**
+     * @brief Default constructor, defaults to its own type.
+     */
     Factory() : m_impl(Impl::Get()) { }
 
+    /**
+     * @brief Constructor, will create objects of the type given by the
+     * <code>name</code>. 
+     * 
+     * The name is the name given when the <code>Impl</code> is defined.
+     */
     Factory(const wxString& name)
       : m_impl(FactoryBase::Get(name)) {
         CheckType();
     }
+
+    /**
+     * @brief Constructor, will create objects of the type given by the
+     * <code>type_info</code>.
+     */
     Factory(const std::type_info& ti)
       : m_impl(FactoryBase::Get(ti)) {
         CheckType();
     }
+
+    /**
+     * @brief Constructor, will create objects of the same type as
+     * <code>obj</code>.
+     */
     Factory(const wxObject *obj)
       : m_impl(FactoryBase::Get(typeid(*obj))) {
         CheckType();
     }
+
+    /**
+     * @brief Constructor, will create objects of the same type as
+     * <code>obj</code>.
+     */
     Factory(const wxObject& obj)
       : m_impl(FactoryBase::Get(typeid(obj))) {
         CheckType();
     }
+
     Factory(FactoryBase *impl) : m_impl(impl) {
         wxASSERT(impl != NULL);
     }
 
+    /**
+     * @brief Conversion, makes the factory assignable to factories of
+     * the base class.
+     */
     template <class U> operator Factory<U>() const {
         U* u = (T*)NULL;
         (void)u;
         return Factory<U>(m_impl);
     }
 
+    /**
+     * @brief True if the factory could be created.
+     */
     operator bool() const {
         return m_impl != NULL;
     }
 
+    /**
+     * @brief Create a new instance, uses the copy constructor to copy
+     * the default object.
+     */
     T *New() const {
         return static_cast<T*>(m_impl->New());
     }
+
+    /**
+     * @brief Returns the default object.
+     */
     const T& GetDefault() const {
         return *static_cast<const T*>(m_impl->GetDefault());
     }
 
+    /**
+     * @brief Returns the name used to define the <code>Impl</code>.
+     */
     wxString GetName() const {
         return m_impl->GetName();
     }

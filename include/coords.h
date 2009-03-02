@@ -24,35 +24,135 @@ namespace tt_solutions {
 
 /**
  * @brief Convert coordinates between pixels and points or twips.
+ *
+ * Defines the classes Pixels, Points and Twips.  When used to convert scaler
+ * values the second parameter must be the screen DPI in the corresponding
+ * direction. E.g.:
+ * @code
+ *  x = Pixels::From<Points>(x, xdpi);
+ * @endcode
+ *
+ * Or they can be used to convert wxPoint, wxSize or wxRect values. In
+ * this case the second parameter must be a wxSize giving screen DPI in
+ * the x and y directions. E.g.:
+ * @code
+ *  rc = Pixels::To<Points>(rc, dpi);
+ * @endcode
+ *
+ * For integer values <code>From</code> rounds down and <code>To</code> rounds
+ * up.  Conversion to higher resolution coordinates and back is a bijection
+ * assuming <code>From</code> is used one way and <code>To</code> the other.
  */
 template <int UnitsPerInch> class Coords
 {
 public:
+    /**
+     * @brief For Points 72, for Twips 1440, or the special value 0 for
+     * Pixels.
+     */
     enum { Inch = UnitsPerInch };
 
+    /**
+     * @brief Convert a scalar value.
+     *
+     * For example:
+     * @code
+     * x = Pixels::From<Points>(x, xdpi);
+     * @endcode
+     *
+     * @param i An integer or floating point x or y value.
+     * @param dpi An integer giving the DPI in the correspoinding x or y
+     * direction.
+     *
+     * When i is integer <code>From</code> rounds <em>down</em>.
+     */
     template <class C, class T> static T From(T i, int dpi) {
         return Trans<Inch, C::Inch, T>::From(i, dpi);
     }
+    /**
+     * @brief Convert a scalar value.
+     *
+     * For example:
+     * @code
+     * x = Pixels::To<Points>(x, xdpi);
+     * @endcode
+     *
+     * @param i An integer or floating point x or y value.
+     * @param dpi An integer giving the DPI in the correspoinding x or y
+     * direction.
+     *
+     * When i is integer <code>To</code> rounds <em>up</em>.
+     */
     template <class C, class T> static T To(T i, int dpi) {
         return Trans<Inch, C::Inch, T>::To(i, dpi);
     }
 
+    /**
+     * @brief Convert a wxPoint or a wxSize value.
+     *
+     * For example:
+     * @code
+     * pt = Pixels::From<Points>(pt, dpi);
+     * @endcode
+     *
+     * @param pt A wxPoint or wxSize value.
+     * @param dpi A wxSize giving the DPIs in the x and y directions.
+     *
+     * <code>From</code> rounds <em>down</em>.
+     */
     template <class C, class T> static T From(const T& pt, const wxSize& dpi) {
         return T(From<C>(pt.x, dpi.x), From<C>(pt.y, dpi.y));
     }
+    /**
+     * @brief Convert a wxPoint or a wxSize value.
+     *
+     * For example:
+     * @code
+     * pt = Pixels::To<Points>(pt, dpi);
+     * @endcode
+     *
+     * @param pt A wxPoint or wxSize value.
+     * @param dpi A wxSize giving the DPIs in the x and y directions.
+     *
+     * <code>To</code> rounds <em>up</em>.
+     */
     template <class C, class T> static T To(const T& pt, const wxSize& dpi) {
         return T(To<C>(pt.x, dpi.x), To<C>(pt.y, dpi.y));
     }
 
-    template <class C>
-    static wxRect From(const wxRect& rect, const wxSize& dpi) {
-        return wxRect(From<C>(rect.GetPosition(), dpi),
-                      From<C>(rect.GetSize(), dpi));
+    /**
+     * @brief Convert a wxRect value.
+     *
+     * For example:
+     * @code
+     * rc = Pixels::From<Points>(rc, dpi);
+     * @endcode
+     *
+     * @param rc A wxRect value.
+     * @param dpi A wxSize giving the DPIs in the x and y directions.
+     *
+     * <code>From</code> rounds <em>down</em>.
+     */
+    template <class C> static wxRect From(const wxRect& rc, const wxSize& dpi) {
+        return wxRect(From<C>(rc.GetPosition(), dpi),
+                      From<C>(rc.GetSize(), dpi));
     }
-    template <class C>
-    static wxRect To(const wxRect& rect, const wxSize& dpi) {
-        return wxRect(To<C>(rect.GetPosition(), dpi),
-                      To<C>(rect.GetSize(), dpi));
+    /**
+     * @brief Convert a wxRect value.
+     *
+     * For example:
+     * @code
+     * rc = Pixels::To<Points>(rc, dpi);
+     * @endcode
+     *
+     * @param rc A wxRect value.
+     * @param dpi A wxSize giving the DPIs in the x and y directions.
+     *
+     * <code>To</code> rounds <em>up</em>.
+     */
+    template <class C> static wxRect To(const wxRect& rc, const wxSize& dpi) {
+        return wxRect(To<C>(rc.GetPosition(), dpi),
+                      To<C>(rc.GetSize(), dpi));
     }
 
 private:

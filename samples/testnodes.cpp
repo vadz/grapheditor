@@ -9,11 +9,6 @@
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
-/**
- * @file testnodes.cpp
- * @brief Hierarchy of nodes for the test program.
- */
-
 #include <wx/filename.h>
 #include <wx/stdpaths.h>
 

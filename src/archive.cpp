@@ -60,6 +60,15 @@ wxString ToUTF8(const wxString& str)
 
 } // namespace
 
+// the old functions are deprecated in the latest wxWidgets versions however
+// the new ones don't exist in 2.8 so we can't just use it here, use this hack
+// to avoid the warnings (and also let this code build with future wxWidgets
+// version which won't have GetPropVal() at all)
+#if wxCHECK_VERSION(2, 9, 0)
+    #define AddProperty AddAttribute
+    #define GetPropVal GetAttribute
+#endif
+
 // ----------------------------------------------------------------------------
 // Archive
 // ----------------------------------------------------------------------------

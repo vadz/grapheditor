@@ -54,7 +54,7 @@ GNUmakefile: grapheditor.bkl
 	@touch $@
     </fragment>
 
-    <template id="graphcommon" template="simple">
+    <template id="graphcommon">
         <warnings>max</warnings>
 
         <include>$(SRCDIR)/include</include>

@@ -120,6 +120,8 @@ public:
     /** @brief The image of the item dropped. */
     void SetIcon(const wxIcon& icon) { m_icon = icon; }
 
+    wxEvent *Clone() const { return new GraphTreeEvent(*this); }
+
 private:
     GraphCtrl *m_target;
     wxPoint m_pos;

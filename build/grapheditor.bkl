@@ -97,6 +97,15 @@ GNUmakefile: grapheditor.bkl
             src/ogl/lines.cpp
             src/ogl/oglmisc.cpp
         </sources>
+
+        <!--
+            There are too many warnings about conversions between pointers
+            and integers in OGL code so just disable them as fixing them
+            doesn't seem to be practical.
+         -->
+        <if cond="FORMAT=='msvs2003prj'">
+            <cxxflags>/wd4311 /wd4312</cxxflags>
+        </if>
     </lib>
 
      <!-- ======================================================================

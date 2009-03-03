@@ -156,7 +156,7 @@ public:
     }
 
 private:
-    template <class T, bool isint = std::numeric_limits<T>::is_integer>
+    template <class T, bool isint>
     struct Trans0
     {
         static T From(T i, int I1, int I2) { return i * I1 / I2; }
@@ -176,20 +176,26 @@ private:
 
     template <int I1, int I2, class T> struct Trans
     {
-        static T From(T i, int)     { return Trans0<T>::From(i, I1, I2); }
-        static T To(T i, int)       { return Trans0<T>::To(i, I1, I2); }
+        enum { isint = std::numeric_limits<T>::is_integer };
+
+        static T From(T i, int)    { return Trans0<T, isint>::From(i, I1, I2); }
+        static T To(T i, int)      { return Trans0<T, isint>::To(i, I1, I2); }
     };
 
     template <int I2, class T> struct Trans<0, I2, T>
     {
-        static T From(T i, int I1)  { return Trans0<T>::From(i, I1, I2); }
-        static T To(T i, int I1)    { return Trans0<T>::To(i, I1, I2); }
+        enum { isint = std::numeric_limits<T>::is_integer };
+
+        static T From(T i, int I1) { return Trans0<T, isint>::From(i, I1, I2); }
+        static T To(T i, int I1)   { return Trans0<T, isint>::To(i, I1, I2); }
     };
 
     template <int I1, class T> struct Trans<I1, 0, T>
     {
-        static T From(T i, int I2)  { return Trans0<T>::From(i, I1, I2); }
-        static T To(T i, int I2)    { return Trans0<T>::To(i, I1, I2); }
+        enum { isint = std::numeric_limits<T>::is_integer };
+
+        static T From(T i, int I2) { return Trans0<T, isint>::From(i, I1, I2); }
+        static T To(T i, int I2)   { return Trans0<T, isint>::To(i, I1, I2); }
     };
 
     template <class T> struct Trans<0, 0, T>

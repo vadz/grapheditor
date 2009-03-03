@@ -58,16 +58,33 @@ wxString ToUTF8(const wxString& str)
 
 #endif
 
-} // namespace
-
-// the old functions are deprecated in the latest wxWidgets versions however
-// the new ones don't exist in 2.8 so we can't just use it here, use this hack
-// to avoid the warnings (and also let this code build with future wxWidgets
-// version which won't have GetPropVal() at all)
 #if wxCHECK_VERSION(2, 9, 0)
-    #define AddProperty AddAttribute
-    #define GetPropVal GetAttribute
+
+void AddAttribute(wxXmlNode *node, const wxString& name, const wxString& value)
+{
+    node->AddAttribute(name, value);
+}
+
+bool GetAttribute(const wxXmlNode *node, const wxString& name, wxString *value)
+{
+    return node->GetAttribute(name, value);
+}
+
+#else
+
+void AddAttribute(wxXmlNode *node, const wxString& name, const wxString& value)
+{
+    node->AddProperty(name, value);
+}
+
+bool GetAttribute(const wxXmlNode *node, const wxString& name, wxString *value)
+{
+    return node->GetPropVal(name, value);
+}
+
 #endif
+
+} // namespace
 
 // ----------------------------------------------------------------------------
 // Archive
@@ -120,8 +137,9 @@ bool Archive::Load(wxInputStream& stream)
         wxString name = node->GetName();
         wxString id;
 
-        if (node->GetPropVal(TAGID, &id)) {
-            wxString sortkey = node->GetPropVal(TAGSORT, wxEmptyString);
+        if (GetAttribute(node, TAGID, &id)) {
+            wxString sortkey;
+            GetAttribute(node, TAGSORT, &sortkey);
             Item *item = Put(name, id, sortkey);
 
             if (item) {
@@ -166,9 +184,9 @@ bool Archive::Save(wxOutputStream& stream) const
         wxString sortkey = item->GetSort();
 
         wxXmlNode *node = new wxXmlNode(root, wxXML_ELEMENT_NODE, classname);
-        node->AddProperty(TAGID, id);
+        AddAttribute(node, TAGID, id);
         if (!sortkey.empty())
-            node->AddProperty(TAGSORT, sortkey);
+            AddAttribute(node, TAGSORT, sortkey);
 
         Item::const_iterator j, jend;
 
@@ -291,7 +309,9 @@ Archive::iterator_pair Archive::DoGetItems(const wxString& prefix) const
         return make_pair(m_sort.begin(), m_sort.end());
 
     wxString last = prefix;
-    (*last.rbegin())++;
+    wxString::reference ch = *last.rbegin();
+    ch = wxChar(ch) + 1;
+
     return make_pair(m_sort.lower_bound(prefix), m_sort.lower_bound(last));
 }
 
@@ -509,9 +529,9 @@ bool Extract(const Archive::Item& arc, const wxString& name, wxFont& value)
 
     //if (!font.SetNativeFontInfo(desc))
         if (!font.Create(item->Get<int>(TAGPOINTS),
-                         item->Get<wxFontFamily>(TAGFAMILY),
-                         item->Get<wxFontStyle>(TAGSTYLE),
-                         item->Get<wxFontWeight>(TAGWEIGHT),
+                         wxFontFamily(item->Get<int>(TAGFAMILY)),
+                         wxFontStyle(item->Get<int>(TAGSTYLE)),
+                         wxFontWeight(item->Get<int>(TAGWEIGHT)),
                          item->Has(TAGUNDERLINE),
                          item->Get(TAGFACE)))
                          //wxFontEncoding(item->Get<int>(TAGENCODING))))

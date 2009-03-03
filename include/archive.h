@@ -386,11 +386,15 @@ bool Insert(Archive::Item& arc, const wxString& name, const T& value)
 template <class T>
 bool Extract(const Archive::Item& arc, const wxString& name, T& value)
 {
+    struct CStr {
+        const wxChar *operator()(const wxString& str) { return str; }
+    } c_str;
+
     wxString str;
     if (!arc.Get(name, str))
         return false;
 
-    std::basic_istringstream<wxChar> ss(str.wx_str());
+    std::basic_istringstream<wxChar> ss(c_str(str));
     T val;
     ss >> val;
 

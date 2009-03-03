@@ -509,9 +509,9 @@ bool Extract(const Archive::Item& arc, const wxString& name, wxFont& value)
 
     //if (!font.SetNativeFontInfo(desc))
         if (!font.Create(item->Get<int>(TAGPOINTS),
-                         item->Get<int>(TAGFAMILY),
-                         item->Get<int>(TAGSTYLE),
-                         item->Get<int>(TAGWEIGHT),
+                         item->Get<wxFontFamily>(TAGFAMILY),
+                         item->Get<wxFontStyle>(TAGSTYLE),
+                         item->Get<wxFontWeight>(TAGWEIGHT),
                          item->Has(TAGUNDERLINE),
                          item->Get(TAGFACE)))
                          //wxFontEncoding(item->Get<int>(TAGENCODING))))

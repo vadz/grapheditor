@@ -36,6 +36,11 @@
     <if cond="MSVS_PROJECT=='0'">
         <set var="BUILDDIR">obj</set>
     </if>
+    <if cond="MSVS_PROJECT=='1'">
+        <!-- exclude wxUniv configurations from the generated projects -->
+        <set var="WX_PORT">msw</set>
+    </if>
+
     <set var="SRCDIR">..</set>
     <set var="WX_MONOLITHIC">0</set>
     <set var="USE_OWN_OGL">1</set>

@@ -390,7 +390,7 @@ bool Extract(const Archive::Item& arc, const wxString& name, T& value)
     if (!arc.Get(name, str))
         return false;
 
-    std::basic_istringstream<wxChar> ss(str.c_str());
+    std::basic_istringstream<wxChar> ss(str.wx_str());
     T val;
     ss >> val;
 

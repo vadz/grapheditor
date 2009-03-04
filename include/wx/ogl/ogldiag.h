@@ -18,6 +18,7 @@
 #include "wx/deprecated/wxexpr.h"
 #endif
 
+#define oglHAVE_XY_GRID
 
 class WXDLLIMPEXP_OGL wxDiagram: public wxObject
 {

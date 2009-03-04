@@ -2083,10 +2083,18 @@ bool Graph::GetSnapToGrid() const
 void Graph::SetGridSpacing(int spacing)
 {
     m_gridSpacing = 0;
+    if (spacing < 1)
+        spacing = 1;
+
+#ifdef oglHAVE_XY_GRID
     int xspacing = WXROUND(double(spacing) * m_dpi.x / m_dpi.y);
-    if (spacing < 1) spacing = 1;
-    if (xspacing < 1) xspacing = 1;
+    if (xspacing < 1)
+        xspacing = 1;
     m_diagram->SetGridSpacing(xspacing, spacing);
+#else
+    m_diagram->SetGridSpacing(spacing);
+#endif
+
     wxShapeCanvas *canvas = m_diagram->GetCanvas();
     if (canvas)
         canvas->Refresh();
@@ -2102,7 +2110,13 @@ wxSize Graph::GetGridSpacing() const
     wxCHECK(m_gridSpacing == 0, spacing);
 
     double x, y;
+
+#ifdef oglHAVE_XY_GRID
     m_diagram->GetGridSpacing(&x, &y);
+#else
+    x = y = m_diagram->GetGridSpacing();
+#endif
+
     spacing.x = WXROUND(x);
     spacing.y = WXROUND(y);
 

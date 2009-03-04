@@ -64,6 +64,7 @@ GNUmakefile: grapheditor.bkl
 
         <include>$(SRCDIR)/include</include>
         <include cond="USE_OWN_OGL=='0'">$(WX_DIR)/contrib/include</include>
+        <include cond="USE_OWN_OGL=='1'">$(SRCDIR)/ogl/include</include>
         <cppflags>$(GRAPHVIZ_CPPFLAGS)</cppflags>
     </template>
 
@@ -84,18 +85,18 @@ GNUmakefile: grapheditor.bkl
     <lib id="ogl" cond="USE_OWN_OGL=='1'" template="graphcommon"
                                           template_append="wx-lib">
         <sources>
-            src/ogl/basic2.cpp
-            src/ogl/canvas.cpp
-            src/ogl/divided.cpp
-            src/ogl/mfutils.cpp
-            src/ogl/basic.cpp
-            src/ogl/composit.cpp
-            src/ogl/drawn.cpp
-            src/ogl/ogldiag.cpp
-            src/ogl/bmpshape.cpp
-            src/ogl/constrnt.cpp
-            src/ogl/lines.cpp
-            src/ogl/oglmisc.cpp
+            ogl/src/basic2.cpp
+            ogl/src/canvas.cpp
+            ogl/src/divided.cpp
+            ogl/src/mfutils.cpp
+            ogl/src/basic.cpp
+            ogl/src/composit.cpp
+            ogl/src/drawn.cpp
+            ogl/src/ogldiag.cpp
+            ogl/src/bmpshape.cpp
+            ogl/src/constrnt.cpp
+            ogl/src/lines.cpp
+            ogl/src/oglmisc.cpp
         </sources>
 
         <!--

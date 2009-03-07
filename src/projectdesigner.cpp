@@ -502,6 +502,7 @@ bool ProjectNode::Serialise(Archive::Item& arc)
     arc.Exch(_T("id"), m_id, def.m_id);
     arc.Exch(_T("borderthickness"), m_borderThickness, def.m_borderThickness);
     arc.Exch(_T("cornerradius"), m_cornerRadius, def.m_cornerRadius);
+    arc.Exch(_T("icon"), m_icon, def.m_icon);
 
     return true;
 }

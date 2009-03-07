@@ -156,8 +156,14 @@ public:
         bool Put(const wxString& name, const wxString& value = wxEmptyString);
         bool Put(const wxString& name, const wxChar *value);
 
-        template <class T> bool Put(const wxString& name, const T& value) {
+        template <class T>
+        bool Put(const wxString& name, const T& value) {
             return Insert(*this, name, value);
+        }
+
+        template <class T, class U>
+        bool Put(const wxString& name, const T& value, const U& param) {
+            return Insert(*this, name, value, param);
         }
         //@}
 
@@ -174,8 +180,14 @@ public:
         bool Get(const wxString& name, wxString& value) const;
         wxString Get(const wxString& name) const;
 
-        template <class T> bool Get(const wxString& name, T& value) const {
+        template <class T>
+        bool Get(const wxString& name, T& value) const {
             return Extract(*this, name, value);
+        }
+
+        template <class T, class U>
+        bool Get(const wxString& name, T& value, const U& param) const {
+            return Extract(*this, name, value, param);
         }
 
         template <class T> T Get(const wxString& name) const {
@@ -190,7 +202,6 @@ public:
         /** @brief Removes an attribute. */
         bool Remove(const wxString& name);
 
-        //@{
         /**
          * @brief Puts an attribute if <code>IsStoring()</code> or
          * gets it otherwise.
@@ -206,10 +217,17 @@ public:
         void Exch(const wxString& name, T& value, const T& def = T()) {
             if (m_archive.IsExtracting())
                 Get(name, value);
-            else if (value != def)
+            else if (ShouldInsert(value, def))
                 Put(name, value);
         }
-        //@}
+
+        template <class T, class U>
+        void Exch(const wxString& name, T& value, const T& def, const U& param) {
+            if (m_archive.IsExtracting())
+                Get(name, value, param);
+            else if (ShouldInsert(value, def))
+                Put(name, value, param);
+        }
 
         typedef StringMap::iterator iterator;
         typedef StringMap::const_iterator const_iterator;
@@ -375,6 +393,36 @@ bool Extract(const Archive::Item& arc, const wxString& name, wxColour& value);
 bool Insert(Archive::Item& arc, const wxString& name, const wxFont& value);
 bool Extract(const Archive::Item& arc, const wxString& name, wxFont& value);
 
+bool Insert(Archive::Item& arc,
+            const wxString& name,
+            const wxIcon& value,
+            wxBitmapType type = wxBITMAP_TYPE_PNG);
+
+bool Extract(const Archive::Item& arc,
+            const wxString& name,
+            wxIcon& value,
+            wxBitmapType type = wxBITMAP_TYPE_ANY);
+
+bool Insert(Archive::Item& arc,
+            const wxString& name,
+            const wxBitmap& value,
+            wxBitmapType type = wxBITMAP_TYPE_PNG);
+
+bool Extract(const Archive::Item& arc,
+            const wxString& name,
+            wxBitmap& value,
+            wxBitmapType type = wxBITMAP_TYPE_ANY);
+
+bool Insert(Archive::Item& arc,
+            const wxString& name,
+            const wxImage& value,
+            wxBitmapType type = wxBITMAP_TYPE_PNG);
+
+bool Extract(const Archive::Item& arc,
+            const wxString& name,
+            wxImage& value,
+            wxBitmapType type = wxBITMAP_TYPE_ANY);
+
 template <class T>
 bool Insert(Archive::Item& arc, const wxString& name, const T& value)
 {
@@ -402,6 +450,31 @@ bool Extract(const Archive::Item& arc, const wxString& name, T& value)
         value = val;
 
     return ss != NULL;
+}
+
+template <class T> bool ShouldInsert(const T& value, const T& def)
+{
+    return value != def;
+}
+
+inline bool ShouldInsert(const wxFont& value, const wxFont& def)
+{
+    return !value.IsSameAs(def);
+}
+
+inline bool ShouldInsert(const wxIcon& value, const wxIcon& def)
+{
+    return !value.IsSameAs(def);
+}
+
+inline bool ShouldInsert(const wxBitmap& value, const wxBitmap& def)
+{
+    return !value.IsSameAs(def);
+}
+
+inline bool ShouldInsert(const wxImage& value, const wxImage& def)
+{
+    return !value.IsSameAs(def);
 }
 
 } // namespace tt_solutions

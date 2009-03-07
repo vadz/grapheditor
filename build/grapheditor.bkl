@@ -6,9 +6,32 @@
         Configuration
      ====================================================================== -->
 
+    <set var="SRCDIR">..</set>
+    <set var="WX_MONOLITHIC">0</set>
+    <set var="USE_OWN_OGL">1</set>
+    <set var="NO_EXPAT">0</set>
+
     <set var="MSVS_PROJECT">
         $(FORMAT[:2] == 'ms' and FORMAT[-3:] == 'prj')
     </set>
+
+    <set var="EXPAT_CPPFLAGS_DEFAULT">
+        <if cond="MSVS_PROJECT=='1'">-DXML_UNICODE_WCHAR_T</if>
+        <if cond="NO_EXPAT=='1'">-DNO_EXPAT</if>
+    </set>
+    <option name="EXPAT_CPPFLAGS">
+        <description>Compiler flags needed for expat</description>
+        <default-value>$(EXPAT_CPPFLAGS_DEFAULT)</default-value>
+    </option>
+
+    <set var="EXPAT_LDFLAGS_DEFAULT">
+        <if cond="FORMAT=='gnu'">-lexpat</if>
+        <if cond="MSVS_PROJECT=='1'">libexpatw.lib</if>
+    </set>
+    <option name="EXPAT_LDFLAGS">
+        <description>Linker flags needed for expat</description>
+        <default-value>$(EXPAT_LDFLAGS_DEFAULT)</default-value>
+    </option>
 
     <set var="GRAPHVIZ_CPPFLAGS_DEFAULT">
         <if cond="FORMAT=='gnu'">`pkg-config libgvc --cflags`</if>
@@ -41,10 +64,6 @@
         <set var="WX_PORT">msw</set>
     </if>
 
-    <set var="SRCDIR">..</set>
-    <set var="WX_MONOLITHIC">0</set>
-    <set var="USE_OWN_OGL">1</set>
-
     <!-- ======================================================================
         Common stuff
      ====================================================================== -->
@@ -59,13 +78,14 @@ GNUmakefile: grapheditor.bkl
 	@touch $@
     </fragment>
 
-    <template id="graphcommon">
+    <template id="graphcommon" template="simple">
         <warnings>max</warnings>
 
         <include>$(SRCDIR)/include</include>
         <include cond="USE_OWN_OGL=='0'">$(WX_DIR)/contrib/include</include>
         <include cond="USE_OWN_OGL=='1'">$(SRCDIR)/ogl/include</include>
         <cppflags>$(GRAPHVIZ_CPPFLAGS)</cppflags>
+        <cppflags cond="NO_EXPAT=='0'">$(EXPAT_CPPFLAGS)</cppflags>
     </template>
 
     <!-- ======================================================================
@@ -79,6 +99,7 @@ GNUmakefile: grapheditor.bkl
             src/projectdesigner.cpp
             src/factory.cpp
             src/archive.cpp
+            src/base64.cpp
         </sources>
     </lib>
 
@@ -124,12 +145,13 @@ GNUmakefile: grapheditor.bkl
         <library cond="USE_OWN_OGL=='1'">ogl</library>
 
         <wx-lib cond="USE_OWN_OGL=='0'">ogl</wx-lib>
-        <wx-lib>xml</wx-lib>
+        <wx-lib cond="NO_EXPAT=='1'">xml</wx-lib>
         <wx-lib>html</wx-lib>
         <wx-lib>core</wx-lib>
         <wx-lib>base</wx-lib>
 
         <ldflags>$(GRAPHVIZ_LDFLAGS)</ldflags>
+        <ldflags cond="NO_EXPAT=='0'">$(EXPAT_LDFLAGS)</ldflags>
         <app-type>gui</app-type>
     </exe>
 

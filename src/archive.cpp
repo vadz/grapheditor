@@ -9,16 +9,27 @@
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
+#define _CRT_SECURE_NO_WARNINGS
+
+#if NO_EXPAT
 #include <wx/xml/xml.h>
+#else
+#include <expat.h>
+#endif
+
+#include <wx/mstream.h>
 
 #include "archive.h"
+#include "base64.h"
 #include "tie.h"
+
+namespace tt_solutions {
+
+namespace {
 
 // ----------------------------------------------------------------------------
 // Local definitions
 // ----------------------------------------------------------------------------
-
-namespace {
 
 const wxChar *TAGARCHIVE    = _T("archive");
 const wxChar *TAGID         = _T("id");
@@ -34,63 +45,303 @@ const wxChar *TAGWEIGHT     = _T("weight");
 const wxChar *TAGUNDERLINE  = _T("underline");
 const wxChar *TAGENCODING   = _T("encoding");
 
+const wxString TAGIMAGE     = _T("wxImage");
+const wxChar *TAGBASE64     = _T("base64");
+
 wxString FontId(const wxString& desc)
 {
     return TAGFONT + _T(" ") + desc;
 }
 
+// ----------------------------------------------------------------------------
+// XML parser
+// ----------------------------------------------------------------------------
+
+#ifndef NO_EXPAT
+
+class Parser
+{
+public:
+    Parser(Archive *archive);
+
+    void StartElement(const XML_Char *name, const XML_Char **atts);
+    void EndElement(const XML_Char *name);
+    void CharData(const XML_Char *s, int len);
+
+protected:
+    wxString FromXml(const char *str, size_t len = wxString::npos);
+    wxString FromXml(const wchar_t *str, size_t len = wxString::npos);
+
+private:
+    int m_depth;
+
+    Archive *m_archive;
+    Archive::Item *m_item;
+    wxString m_value;
+};
+
+Parser::Parser(Archive *archive)
+  : m_depth(0),
+    m_archive(archive),
+    m_item(NULL)
+{
+}
+
+wxString Parser::FromXml(const wchar_t *str, size_t len)
+{
+    return wxString(str, *wxConvUI, len);
+}
+
+wxString Parser::FromXml(const char *str, size_t len)
+{
+    size_t wlen;
+    wxWCharBuffer wbuf = wxConvUTF8.cMB2WC(str, len, &wlen);
+    return FromXml(wbuf, wlen);
+}
+
+void Parser::StartElement(const XML_Char *name, const XML_Char **atts)
+{
+    m_depth++;
+
+    if (m_depth == 1) {
+        if (FromXml(name) != TAGARCHIVE)
+            wxLogError(_("Error loading: unknown root element"));
+    }
+    else if (m_depth == 2) {
+        wxASSERT(m_item == NULL);
+        wxString classname = FromXml(name);
+        wxString id;
+        wxString sortkey;
+
+        while (*atts) {
+            wxString atname = FromXml(*atts++);
+            wxString atvalue = FromXml(*atts++);
+
+            if (atname == TAGID)
+                id = atvalue;
+            else if (atname == TAGSORT)
+                sortkey = atvalue;
+        }
+
+        if (id.empty()) {
+            wxLogError(_("Error loading <%s> missing %s"),
+                       classname.c_str(), TAGID);
+        }
+        else {
+            m_item = m_archive->Put(classname, id, sortkey);
+
+            if (!m_item)
+                wxLogError(_("Error loading <%s %s='%s'> id is not unique"),
+                           classname.c_str(), TAGID, id.c_str());
+        }
+    }
+}
+
+void Parser::EndElement(const XML_Char *name)
+{
+    if (m_depth == 2) {
+        m_item = NULL;
+    }
+    else if (m_depth == 3) {
+        wxString pname = FromXml(name);
+        if (m_item && !m_item->Put(pname, m_value))
+            wxLogError(_("Error loading <%s %s='%s'> ignoring duplicate <%s>"),
+                       m_item->GetClass().c_str(), TAGID,
+                       m_item->GetId().c_str(), pname.c_str());
+        m_value.clear();
+    }
+
+    m_depth--;
+}
+
+void Parser::CharData(const XML_Char *s, int len)
+{
+    if (m_depth >= 3)
+        m_value += FromXml(s, len);
+}
+
+extern "C" {
+
+void //XMLCALL
+start_element(void *userData, const XML_Char *name, const XML_Char **atts)
+{
+    static_cast<Parser*>(userData)->StartElement(name, atts);
+}
+
+void //XMLCALL
+end_element(void *userData, const XML_Char *name)
+{
+    static_cast<Parser*>(userData)->EndElement(name);
+}
+
+void //XMLCALL
+char_data(void *userData, const XML_Char *s, int len)
+{
+    static_cast<Parser*>(userData)->CharData(s, len);
+}
+
+} // extern "C"
+
+#endif // NO_EXPAT
+
+// ----------------------------------------------------------------------------
+// XML generator
+// ----------------------------------------------------------------------------
+
+class Generator
+{
+public:
+    Generator(wxOutputStream& out);
+
+    void Write(const wxString& str);
+    void Write(const char *utf, size_t len = wxString::npos);
+
+    void Pair(const wxString& name_and_attrs, const wxString& value);
+    void Start(const wxString& name_and_attrs);
+    void End(const wxString& name);
+    void CharData(const wxString& str);
+
+protected:
+    wxString FromXml(const char *str, size_t len = wxString::npos);
+    wxString FromXml(const wchar_t *str, size_t len = wxString::npos);
+
+private:
+    int m_depth;
+    bool m_leaf;
+    wxOutputStream& m_stream;
+};
+
+Generator::Generator(wxOutputStream& stream)
+  : m_depth(0),
+    m_leaf(false),
+    m_stream(stream)
+{
+}
+
+void Generator::Write(const char *utf, size_t len)
+{
+    if (len == wxString::npos)
+        len = strlen(utf);
+    m_stream.Write(utf, len);
+}
+
+void Generator::Write(const wxString& str)
+{
 #if wxUSE_UNICODE
-
-wxString FromUTF8(const wxString& str)  { return str; }
-wxString ToUTF8(const wxString& str)    { return str; }
-
+    size_t clen;
+    wxCharBuffer cbuf = wxConvUTF8.cWC2MB(str, str.length(), &clen);
 #else
-
-wxString FromUTF8(const wxString& str)
-{
-    return wxConvUI->cWC2MB(wxConvUTF8.cMB2WC(str));
-}
-
-wxString ToUTF8(const wxString& str)
-{
-    return wxConvUTF8.cWC2MB(wxConvUI->cMB2WC(str));
-}
-
+    size_t wlen, clen;
+    wxWCharBuffer wbuf = wxConvUI->cMB2WC(str, str.length(), &wlen);
+    wxCharBuffer cbuf = wxConvUTF8.cWC2MB(wbuf, wlen, &clen);
 #endif
-
-#if wxCHECK_VERSION(2, 9, 0)
-
-void AddAttribute(wxXmlNode *node, const wxString& name, const wxString& value)
-{
-    node->AddAttribute(name, value);
+    Write(cbuf, clen);
 }
 
-bool GetAttribute(const wxXmlNode *node, const wxString& name, wxString *value)
+void Generator::Pair(const wxString& name_and_attrs, const wxString& value)
 {
-    return node->GetAttribute(name, value);
+    if (value.empty()) {
+        Start(name_and_attrs + _T("/"));
+        End(wxEmptyString);
+    }
+    else {
+        Start(name_and_attrs);
+        CharData(value);
+        End(name_and_attrs.BeforeFirst(_T(' ')));
+    }
 }
 
-#else
-
-void AddAttribute(wxXmlNode *node, const wxString& name, const wxString& value)
+void Generator::Start(const wxString& name_and_attrs)
 {
-    node->AddProperty(name, value);
+    m_leaf = true;
+
+    wxString buf;
+    buf << _T("\n") << wxString(_T(' '), m_depth * 2)
+        << _T("<") << name_and_attrs << _T(">");
+    Write(buf);
+
+    m_depth++;
 }
 
-bool GetAttribute(const wxXmlNode *node, const wxString& name, wxString *value)
+void Generator::End(const wxString& name)
 {
-    return node->GetPropVal(name, value);
+    m_depth--;
+
+    if (!name.empty()) {
+        wxString buf;
+        if (!m_leaf)
+            buf << _T("\n") << wxString(_T(' '), m_depth * 2);
+        buf << _T("</") + name + _T(">");
+        Write(buf);
+    }
+
+    m_leaf = false;
 }
 
-#endif
+void Generator::CharData(const wxString& str)
+{
+    wxString::const_iterator it = str.begin();
+    wxString buf;
+    int square = 0;
+
+    while (it != str.end()) {
+        wxChar ch = *it++;
+        switch (ch) {
+            case _T('&'):
+                buf += _T("&amp;");
+                break;
+            case _T('<'):
+                buf += _T("&lt;");
+                break;
+            case _T('>'):
+                if (square >= 2)
+                    buf += _T("&gt;");
+                else
+                    buf += ch;
+                break;
+            default:
+                buf += ch;
+        }
+        square = ch == _T(']') ? square + 1 : 0;
+
+        if (buf.length() >= 8192) {
+            Write(buf);
+            buf.clear();
+        }
+    }
+
+    if (!buf.empty())
+        Write(buf);
+}
+
+wxString Attribute(const wxString& name, const wxString& str)
+{
+    wxString::const_iterator it = str.begin();
+    wxString attr;
+
+    attr += _T(" ");
+    attr += name;
+    attr += _T("=\"");
+
+    while (it != str.end()) {
+        wxChar ch = *it++;
+        switch (ch) {
+            case _T('<'): attr += _T("&lt;"); break;
+            case _T('&'): attr += _T("&amp;"); break;
+            case _T('"'): attr += _T("&quot;"); break;
+            default:      attr += ch;
+        }
+    }
+
+    attr += _T("\"");
+    return attr;
+}
 
 } // namespace
 
 // ----------------------------------------------------------------------------
 // Archive
 // ----------------------------------------------------------------------------
-
-namespace tt_solutions {
 
 using std::pair;
 using std::make_pair;
@@ -113,6 +364,41 @@ void Archive::Clear()
     m_items.clear();
     m_sort.clear();
 }
+
+#ifdef NO_EXPAT
+
+namespace {
+
+#if wxUSE_UNICODE
+
+wxString FromXml(const wxString& str)  { return str; }
+
+#else
+
+wxString FromXml(const wxString& str)
+{
+    return wxConvUI->cWC2MB(wxConvUTF8.cMB2WC(str));
+}
+
+#endif
+
+#if wxCHECK_VERSION(2, 9, 0)
+
+bool GetAttribute(const wxXmlNode *node, const wxString& name, wxString *value)
+{
+    return node->GetAttribute(name, value);
+}
+
+#else
+
+bool GetAttribute(const wxXmlNode *node, const wxString& name, wxString *value)
+{
+    return node->GetPropVal(name, value);
+}
+
+#endif
+
+} // namespace
 
 bool Archive::Load(wxInputStream& stream)
 {
@@ -147,7 +433,7 @@ bool Archive::Load(wxInputStream& stream)
 
                 while (attrnode) {
                     wxString pname = attrnode->GetName();
-                    wxString value = FromUTF8(attrnode->GetNodeContent());
+                    wxString value = FromXml(attrnode->GetNodeContent());
 
                     if (!item->Put(pname, value))
                         wxLogError(_("Error loading <%s %s='%s'> ignoring duplicate <%s>"),
@@ -172,9 +458,40 @@ bool Archive::Load(wxInputStream& stream)
     return true;
 }
 
+#else // NO_EXPAT
+
+bool Archive::Load(wxInputStream& stream)
+{
+    m_storing = false;
+    Clear();
+
+    Parser handler(this);
+    XML_Parser parser = XML_ParserCreate(NULL);
+    XML_SetUserData(parser, &handler);
+    XML_SetElementHandler(parser, start_element, end_element);
+    XML_SetCharacterDataHandler(parser, char_data);
+
+    const size_t bufsize = 8192;
+    wxCharBuffer buf(bufsize);
+    XML_Status status = XML_STATUS_OK;
+
+    size_t len;
+    while (status == XML_STATUS_OK &&
+            (len = stream.Read(buf.data(), bufsize).LastRead()) != 0)
+        status = XML_Parse(parser, buf, len, len < bufsize);
+
+    XML_ParserFree(parser);
+    return status == XML_STATUS_OK;
+}
+
+#endif // NO_EXPAT
+
 bool Archive::Save(wxOutputStream& stream) const
 {
-    wxXmlNode *root = new wxXmlNode(wxXML_ELEMENT_NODE, TAGARCHIVE);
+    Generator out(stream);
+    out.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+    out.Start(TAGARCHIVE);
+
     ItemMap::const_iterator i;
 
     for (i = m_items.begin(); i != m_items.end(); ++i) {
@@ -183,26 +500,27 @@ bool Archive::Save(wxOutputStream& stream) const
         wxString classname = item->GetClass();
         wxString sortkey = item->GetSort();
 
-        wxXmlNode *node = new wxXmlNode(root, wxXML_ELEMENT_NODE, classname);
-        AddAttribute(node, TAGID, id);
+        wxString attrs = Attribute(TAGID, id);
         if (!sortkey.empty())
-            AddAttribute(node, TAGSORT, sortkey);
+            attrs += Attribute(TAGSORT, sortkey);
+        out.Start(classname + attrs);
 
         Item::const_iterator j, jend;
 
         for (tie(j, jend) = item->GetAttribs(); j != jend; ++j) {
             wxString pname = j->first;
-            wxString value = ToUTF8(j->second);
+            wxString value = j->second;
 
-            wxXmlNode *text = new wxXmlNode(node, wxXML_ELEMENT_NODE, pname);
-            if (!value.empty())
-                new wxXmlNode(text, wxXML_TEXT_NODE, wxEmptyString, value);
+            out.Pair(pname, value);
         }
+
+        out.End(classname);
     }
 
-    wxXmlDocument doc;
-    doc.SetRoot(root);
-    return doc.Save(stream);
+    out.End(TAGARCHIVE);
+    out.Write("\n");
+
+    return stream.IsOk();
 }
 
 Archive::Item *Archive::Put(const wxString& name,
@@ -539,6 +857,195 @@ bool Extract(const Archive::Item& arc, const wxString& name, wxFont& value)
 
     item->SetInstance(new wxFont(font), true);
     value = font;
+    return true;
+}
+
+namespace {
+
+void PutImage(Archive::Item *item, const wxImage& img, wxBitmapType type)
+{
+    wxString value;
+
+    {
+        wxCharBuffer buf;
+        size_t len;
+
+        {
+            wxMemoryOutputStream stream;
+            img.SaveFile(stream, type);
+
+            len = size_t(stream.GetLength());
+            buf = wxCharBuffer(len);
+
+            stream.CopyTo(buf.data(), len);
+        }
+
+        value = wxBase64Encode(buf, len);
+    }
+
+    item->Put(TAGBASE64, value);
+}
+
+wxImage GetImage(Archive::Item *item)
+{
+    wxMemoryBuffer buf = wxBase64Decode(item->Get(TAGBASE64));
+    wxImage img;
+    wxMemoryInputStream stream(buf, buf.GetDataLen());
+    img.LoadFile(stream);
+    return img;
+}
+
+} // namespace
+
+bool Insert(Archive::Item& arc,
+            const wxString& name,
+            const wxIcon& value,
+            wxBitmapType type)
+{
+    wxString id = Archive::MakeId(value.GetRefData());
+    if (!arc.Put(name, id))
+        return false;
+
+    Archive& archive = arc.GetArchive();
+    Archive::Item *item = archive.Put(TAGIMAGE, id);
+
+    if (item) {
+        wxImage img;
+
+        {
+            wxBitmap bmp;
+            bmp.CopyFromIcon(value);
+            img = bmp.ConvertToImage();
+        }
+
+        PutImage(item, img, type);
+    }
+
+    return true;
+}
+
+bool Extract(const Archive::Item& arc,
+             const wxString& name,
+             wxIcon& value,
+             wxBitmapType)
+{
+    wxString id;
+    if (!arc.Get(name, id))
+        return false;
+
+    Archive& archive = arc.GetArchive();
+    Archive::Item* item = archive.Get(id);
+
+    if (!item)
+        return false;
+
+    wxIcon *obj = item->GetInstance<wxIcon>();
+    if (obj) {
+        value = *obj;
+        return true;
+    }
+
+    wxIcon icon;
+
+    {
+        wxBitmap bmp(GetImage(item));
+        icon.CopyFromBitmap(bmp);
+    }
+
+    item->SetInstance(new wxIcon(icon), true);
+    value = icon;
+    return true;
+}
+
+bool Insert(Archive::Item& arc,
+            const wxString& name,
+            const wxBitmap& value,
+            wxBitmapType type)
+{
+    wxString id = Archive::MakeId(value.GetRefData());
+    if (!arc.Put(name, id))
+        return false;
+
+    Archive& archive = arc.GetArchive();
+    Archive::Item *item = archive.Put(TAGIMAGE, id);
+
+    if (item)
+        PutImage(item, value.ConvertToImage(), type);
+
+    return true;
+}
+
+bool Extract(const Archive::Item& arc,
+             const wxString& name,
+             wxBitmap& value,
+             wxBitmapType)
+{
+    wxString id;
+    if (!arc.Get(name, id))
+        return false;
+
+    Archive& archive = arc.GetArchive();
+    Archive::Item* item = archive.Get(id);
+
+    if (!item)
+        return false;
+
+    wxBitmap *obj = item->GetInstance<wxBitmap>();
+    if (obj) {
+        value = *obj;
+        return true;
+    }
+
+    wxBitmap bmp(GetImage(item));
+
+    item->SetInstance(new wxBitmap(bmp), true);
+    value = bmp;
+    return true;
+}
+
+bool Insert(Archive::Item& arc,
+            const wxString& name,
+            const wxImage& value,
+            wxBitmapType type)
+{
+    wxString id = Archive::MakeId(value.GetRefData());
+    if (!arc.Put(name, id))
+        return false;
+
+    Archive& archive = arc.GetArchive();
+    Archive::Item *item = archive.Put(TAGIMAGE, id);
+
+    if (item)
+        PutImage(item, value, type);
+
+    return true;
+}
+
+bool Extract(const Archive::Item& arc,
+             const wxString& name,
+             wxImage& value,
+             wxBitmapType)
+{
+    wxString id;
+    if (!arc.Get(name, id))
+        return false;
+
+    Archive& archive = arc.GetArchive();
+    Archive::Item* item = archive.Get(id);
+
+    if (!item)
+        return false;
+
+    wxImage *obj = item->GetInstance<wxImage>();
+    if (obj) {
+        value = *obj;
+        return true;
+    }
+
+    wxImage img = GetImage(item);
+
+    item->SetInstance(new wxImage(img), true);
+    value = img;
     return true;
 }
 

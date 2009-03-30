@@ -431,13 +431,11 @@ bool Insert(Archive::Item& arc, const wxString& name, const T& value)
     return arc.Put(name, wxString(ss.str()));
 }
 
+inline const wxChar *c_str(const wxString& str) { return str; }
+
 template <class T>
 bool Extract(const Archive::Item& arc, const wxString& name, T& value)
 {
-    struct CStr {
-        const wxChar *operator()(const wxString& str) { return str; }
-    } c_str;
-
     wxString str;
     if (!arc.Get(name, str))
         return false;

@@ -120,7 +120,10 @@
 #include <wx/wfstream.h>
 #include <wx/stdpaths.h>
 
+#include <vector>
+
 #include "graphtree.h"
+#include "graphprint.h"
 #include "testnodes.h"
 
 // ----------------------------------------------------------------------------
@@ -186,8 +189,6 @@ _T("</html>                                                                 ")
 // types
 // ----------------------------------------------------------------------------
 
-using std::type_info;
-
 using datactics::ProjectDesigner;
 using datactics::ProjectNode;
 
@@ -252,6 +253,11 @@ public:
     void OnNew(wxCommandEvent &event);
     void OnOpen(wxCommandEvent &event);
     void OnSave(wxCommandEvent& event);
+    void OnSaveImage(wxCommandEvent& event);
+    void OnPrint(wxCommandEvent &event);
+    void OnPreview(wxCommandEvent &event);
+    void OnPrintSetup(wxCommandEvent &event);
+    void OnPrintScaling(wxCommandEvent&);
     void OnQuit(wxCommandEvent& event);
 
     // edit menu
@@ -313,6 +319,14 @@ private:
     Graph *m_graph;
     wxString m_filename;
 
+    // the application's printer setup
+    wxPrintDialogData m_printDialogData;
+    // the application's page setup
+    wxPageSetupDialogData m_pageSetupDialogData;
+
+    MaxPages m_pages;
+    double m_printscale;
+
     // any class wishing to process wxWidgets events must use this macro
     DECLARE_EVENT_TABLE()
 };
@@ -323,6 +337,9 @@ private:
 
 // IDs for the controls and the menu commands
 enum {
+    ID_SAVEIMAGE,
+    ID_PRINT_SCALING,
+    ID_LIMIT_PAGES,
     ID_LAYOUTALL,
     ID_SHOWGRID,
     ID_SNAPTOGRID,
@@ -359,6 +376,11 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(wxID_OPEN, MyFrame::OnOpen)
     EVT_MENU(wxID_SAVE, MyFrame::OnSave)
     EVT_MENU(wxID_SAVEAS, MyFrame::OnSave)
+    EVT_MENU(ID_SAVEIMAGE, MyFrame::OnSaveImage)
+    EVT_MENU(wxID_PRINT, MyFrame::OnPrint)
+    EVT_MENU(wxID_PREVIEW, MyFrame::OnPreview)
+    EVT_MENU(wxID_PRINT_SETUP, MyFrame::OnPrintSetup)
+    EVT_MENU(ID_PRINT_SCALING, MyFrame::OnPrintScaling)
 
     EVT_MENU(wxID_CUT, MyFrame::OnCut)
     EVT_MENU(wxID_COPY, MyFrame::OnCopy)
@@ -433,7 +455,7 @@ IMPLEMENT_APP(MyApp)
 // 'Main program' equivalent: the program execution "starts" here
 bool MyApp::OnInit()
 {
-    wxImage::AddHandler(new wxPNGHandler);
+    wxInitAllImageHandlers();
 
     // create the main application window
     MyFrame *frame = new MyFrame(_T("GraphTest Example"));
@@ -471,8 +493,15 @@ MyFrame::MyFrame(const wxString& title)
     wxMenu *fileMenu = new wxMenu;
     fileMenu->Append(wxID_NEW);
     fileMenu->Append(wxID_OPEN);
+    fileMenu->AppendSeparator();
     fileMenu->Append(wxID_SAVE);
     fileMenu->Append(wxID_SAVEAS);
+    fileMenu->Append(ID_SAVEIMAGE, _T("Save &Image..."));
+    fileMenu->AppendSeparator();
+    fileMenu->Append(wxID_PRINT);
+    fileMenu->Append(wxID_PREVIEW);
+    fileMenu->Append(wxID_PRINT_SETUP, _T("Print Set&up..."));
+    fileMenu->Append(ID_PRINT_SCALING, _T("Print S&caling..."));
     fileMenu->AppendSeparator();
     fileMenu->Append(wxID_EXIT);
 
@@ -577,6 +606,14 @@ MyFrame::MyFrame(const wxString& title)
     // create a status bar just for fun (by default with 1 pane only)
     CreateStatusBar(2);
     SetStatusText(_T("Welcome to GraphTest!"));
+
+    m_pageSetupDialogData.SetMarginTopLeft(wxPoint(15, 15));
+    m_pageSetupDialogData.SetMarginBottomRight(wxPoint(15, 15));
+
+    m_printDialogData.GetPrintData().SetOrientation(wxLANDSCAPE);
+
+    m_printscale = 100;
+    m_pages = MaxPages(1, 1);
 }
 
 MyFrame::~MyFrame()
@@ -1063,12 +1100,197 @@ void MyFrame::OnOpen(wxCommandEvent&)
 void MyFrame::OnSave(wxCommandEvent& event)
 {
     if (event.GetId() == wxID_SAVEAS || m_filename.empty())
-        if (!PickFile(wxFD_SAVE))
+        if (!PickFile(wxFD_SAVE | wxFD_OVERWRITE_PROMPT))
             return;
 
     wxFFileOutputStream stream(m_filename);
     if (stream.IsOk())
         m_graph->Serialise(stream);
+}
+
+void MyFrame::OnSaveImage(wxCommandEvent&)
+{
+    wxList& handlers = wxImage::GetHandlers();
+    wxList::const_iterator it;
+    wxString filter;
+    std::vector<wxBitmapType> types;
+    int index = 0;
+
+    for (it = handlers.begin(); it != handlers.end(); ++it) {
+        wxImageHandler *h = static_cast<wxImageHandler*>(*it);
+        types.push_back(wxBitmapType(h->GetType()));
+        if (!filter.empty())
+            filter << _T("|");
+        filter << h->GetName() << _T(" (*.")
+              << h->GetExtension() << _T(")|*.")
+              << h->GetExtension();
+    }
+
+    wxString filename = wxFileSelectorEx(
+        _T("Choose a filename"),
+        wxEmptyString,
+        wxEmptyString,
+        &index,
+        filter,
+        wxFD_SAVE | wxFD_OVERWRITE_PROMPT,
+        this);
+
+    if (filename.empty())
+        return;
+
+    wxRect rc = m_graph->GetBounds();
+    int w = rc.GetWidth(), h = rc.GetHeight(), b = 0;
+    wxString str;
+    str << w << _T(", ") << h << _T(", ") << b;
+
+    str = wxGetTextFromUser(
+        _T("Enter a size in pixels for the output image 'height, width, border'."),
+        _T("Image Size"), str, this);
+
+    wxSscanf(str.c_str(), _T("%d , %d , %d"), &w, &h, &b);
+    if (w < 0 || h < 0 || b < 0 || w + h + b == 0)
+        return;
+
+    wxBitmap bmp(w + 2 * b, h + 2 * b, 32);
+    {
+        wxMemoryDC dc(bmp);
+
+        // Draw doesn't clear the background
+        dc.SetBackground(*wxWHITE_BRUSH);
+        dc.Clear();
+
+        // this is needed to position the graph's bounding box in the bitmap
+        dc.SetLogicalOrigin(rc.x, rc.y);
+
+        // this is optional, it offsets the image 'b' pixels to leave a border
+        dc.SetDeviceOrigin(b, b);
+
+        // this is optional too, it scales the image to the size w x h pixels
+        if (!rc.IsEmpty())
+            dc.SetUserScale(double(w) / rc.GetWidth(),
+                            double(h) / rc.GetHeight());
+
+        m_graph->Draw(&dc);
+    }
+    bmp.SaveFile(filename, types[index]);
+}
+
+// Print the graph
+//
+void MyFrame::OnPrint(wxCommandEvent&)
+{
+    GraphPrintout printout(
+        m_graph, m_pageSetupDialogData, m_printscale, m_pages);
+    wxPrinter printer(&m_printDialogData);
+    printer.Print(this, &printout);
+}
+
+// Show the page setup dialog
+//
+// The page setup dialog has some settings in common with the print dialog.
+// So we copy the common subset from the print dialog's setting before showing
+// the page setup, then copy it back afterwards.
+//
+// On Windows copying the common subset crashes the program, however there is
+// a workaround, calling IsOk() first makes the problem go away.
+//
+void MyFrame::OnPrintSetup(wxCommandEvent&)
+{
+    // copy the common subset from the print dialog
+    if (m_printDialogData.GetPrintData().IsOk())
+        m_pageSetupDialogData = m_printDialogData.GetPrintData();
+
+    // construct the dialog
+    wxPageSetupDialog dlg(this, &m_pageSetupDialogData);
+
+    // show it
+    if (dlg.ShowModal() == wxID_OK) {
+        // save any changes
+        m_pageSetupDialogData = dlg.GetPageSetupDialogData();
+
+        // copy back the common subset
+        if (m_pageSetupDialogData.GetPrintData().IsOk())
+            m_printDialogData = m_pageSetupDialogData.GetPrintData();
+    }
+}
+
+// Print Preview
+//
+void MyFrame::OnPreview(wxCommandEvent&)
+{
+    GraphPrintout *printout1 = new GraphPrintout(
+        m_graph, m_pageSetupDialogData, m_printscale, m_pages);
+    GraphPrintout *printout2 = new GraphPrintout(
+        m_graph, m_pageSetupDialogData, m_printscale, m_pages);
+
+    // pass two printout objects: 1 for preview, and 2 for possible printing
+    wxPrintPreview *preview = new wxPrintPreview(
+        printout1, printout2, &m_printDialogData);
+    if (!preview->Ok()) {
+        delete preview;
+        wxMessageBox(_("A printer needs to be installed for print preview."));
+        return;
+    }
+
+    wxSize size = GetSize();
+    size.x = size.x * 9 / 10;
+    size.y = size.x * 3 / 4;
+
+    wxPreviewFrame *frame = new wxPreviewFrame(
+            preview,
+            this,
+            _("Print Preview"),
+            wxDefaultPosition,
+            size,
+            wxDEFAULT_FRAME_STYLE | wxMAXIMIZE);
+
+    frame->Centre(wxBOTH);
+    frame->Initialize();
+    frame->Show(true);
+}
+
+void MyFrame::OnPrintScaling(wxCommandEvent&)
+{
+    wxString str;
+    str << m_printscale << _T("%");
+    if (m_pages.total)
+        str << _T(", ") << m_pages.total;
+    else if (m_pages.rows || m_pages.cols)
+        str << _T(", ") << m_pages.rows << _T("x") << m_pages.cols;
+
+    int MinScale = 5;
+    int MaxScale = 1000;
+
+    wxString prompt;
+    prompt << _T("Enter:\n")
+           << _T("    a max scaling percentage e.g. '100.0%' [") << MinScale << _T("-") << MaxScale << _T(")\n")
+           << _T("and optionally one of:\n")
+           << _T("    a max number of pages in rows and columns, e.g. '3x3', (0 = no limit)\n")
+           << _T("or:\n")
+           << _T("    a max total pages, e.g. '6' (not implemented)");
+
+    str = wxGetTextFromUser(prompt, _T("Print Scaling"), str, this);
+
+    str.MakeLower();
+    str.Replace(_T(","), _T(" "));
+    str.Replace(_T("%"), _T(" "));
+    str.Replace(_T("x"), _T(" "));
+
+    int r, c;
+
+    switch (wxSscanf(str.c_str(), _T(" %lg %d %d"), &m_printscale, &r, &c)) {
+        case 1:
+            m_pages = MaxPages::Unlimited;
+            break;
+        case 2:
+            m_pages = r;
+            break;
+        case 3:
+            m_pages = MaxPages(r, c);
+            break;
+    }
+
+    m_printscale = wxMin(MaxScale, wxMax(MinScale, m_printscale));
 }
 
 void MyFrame::OnCut(wxCommandEvent&)
@@ -1124,13 +1346,18 @@ void MyFrame::OnZoomOut(wxCommandEvent&)
 
 void MyFrame::OnSetZoom(wxCommandEvent&)
 {
+    wxString prompt;
+    prompt << _T("Enter a new zoom percentage [");
+    prompt << ZoomMin << _T(".0-") << ZoomMax << _T(".0]:");
+
     wxString str;
     str << m_graphctrl->GetZoom();
-    str = wxGetTextFromUser(_T("Enter a new zoom percentage:"),
-                            _T("Set Zoom"), str, this);
+
+    str = wxGetTextFromUser(prompt, _T("Set Zoom"), str, this);
+
     double zoom;
-    if (str.ToDouble(&zoom) && zoom >= ZoomMin && zoom <= ZoomMax)
-        m_graphctrl->SetZoom(zoom);
+    if (str.ToDouble(&zoom))
+        m_graphctrl->SetZoom(wxMin(ZoomMax, wxMax(ZoomMin, zoom)));
 }
 
 void MyFrame::OnShowGrid(wxCommandEvent&)

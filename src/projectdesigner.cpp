@@ -379,10 +379,17 @@ void ProjectNode::OnLayout(wxDC &dc)
 void ProjectNode::OnDraw(wxDC& dc)
 {
     if (GetStyle() == Style_Custom) {
+        wxRect bounds = GetBounds();
+        wxRect clip = GetGraph()->GetDrawRect();
+
+        if (clip.IsEmpty())
+            clip = bounds;
+        else if (!clip.Intersects(bounds))
+            return;
+
         int border = GetBorderThickness();
         int corner = GetCornerRadius();
 
-        wxRect bounds = GetBounds();
         wxRect rc = bounds;
         // deflate by half the border thickness so that the whole stays
         // within the bounds
@@ -408,17 +415,30 @@ void ProjectNode::OnDraw(wxDC& dc)
         // upper text
         rc = m_rcText;
         rc.Offset(bounds.GetTopLeft());
-        dc.DrawLabel(GetText(), rc);
+        if (clip.Intersects(rc))
+            dc.DrawLabel(GetText(), rc);
 
         // lower text
         rc = m_rcResult;
         rc.Offset(bounds.GetTopLeft());
-        dc.DrawLabel(GetResult(), rc);
+        if (clip.Intersects(rc))
+            dc.DrawLabel(GetResult(), rc);
 
         // icon
-        if (GetIcon().Ok())
-            dc.DrawIcon(GetIcon(), bounds.GetTopLeft() +
-                                   m_rcIcon.GetTopLeft());
+        if (GetIcon().Ok()) {
+            rc = m_rcIcon;
+            rc.Offset(bounds.GetTopLeft());
+            if (clip.Intersects(rc)) {
+                wxBitmap bmp(rc.width, rc.height);
+                wxMemoryDC mdc(bmp);
+
+                mdc.SetBrush(GetBackgroundColour());
+                mdc.Clear();
+
+                mdc.DrawIcon(GetIcon(), 0, 0);
+                dc.Blit(rc.GetTopLeft(), rc.GetSize(), &mdc, wxPoint());
+            }
+        }
     }
     else {
         GraphNode::OnDraw(dc);

@@ -43,14 +43,15 @@ namespace tt_solutions {
  * up.  Conversion to higher resolution coordinates and back is a bijection
  * assuming <code>From</code> is used one way and <code>To</code> the other.
  */
-template <int UnitsPerInch> class Coords
+template <int U> class Coords
 {
 public:
     /**
      * @brief For Points 72, for Twips 1440, or the special value 0 for
      * Pixels.
      */
-    enum { Inch = UnitsPerInch };
+    enum { Units = U };
+    static const double Inch;
 
     /**
      * @brief Convert a scalar value.
@@ -67,7 +68,7 @@ public:
      * When i is integer <code>From</code> rounds <em>down</em>.
      */
     template <class C, class T> static T From(T i, int dpi) {
-        return Trans<Inch, C::Inch, T>::From(i, dpi);
+        return Trans<Units, C::Units, T>::From(i, dpi);
     }
     /**
      * @brief Convert a scalar value.
@@ -84,7 +85,7 @@ public:
      * When i is integer <code>To</code> rounds <em>up</em>.
      */
     template <class C, class T> static T To(T i, int dpi) {
-        return Trans<Inch, C::Inch, T>::To(i, dpi);
+        return Trans<Units, C::Units, T>::To(i, dpi);
     }
 
     /**
@@ -186,16 +187,16 @@ private:
     {
         enum { isint = std::numeric_limits<T>::is_integer };
 
-        static T From(T i, int I1) { return Trans0<T, isint>::From(i, I1, I2); }
-        static T To(T i, int I1)   { return Trans0<T, isint>::To(i, I1, I2); }
+        static T From(T i, int I1) { return Trans0<T, isint>::From(i, I1 * 10, I2); }
+        static T To(T i, int I1)   { return Trans0<T, isint>::To(i, I1 * 10, I2); }
     };
 
     template <int I1, class T> struct Trans<I1, 0, T>
     {
         enum { isint = std::numeric_limits<T>::is_integer };
 
-        static T From(T i, int I2) { return Trans0<T, isint>::From(i, I1, I2); }
-        static T To(T i, int I2)   { return Trans0<T, isint>::To(i, I1, I2); }
+        static T From(T i, int I2) { return Trans0<T, isint>::From(i, I1, I2 * 10); }
+        static T To(T i, int I2)   { return Trans0<T, isint>::To(i, I1, I2 * 10); }
     };
 
     template <class T> struct Trans<0, 0, T>
@@ -205,9 +206,13 @@ private:
     };
 };
 
+template <int U> const double Coords<U>::Inch = U / 10.0;
+
 typedef Coords<0> Pixels;
-typedef Coords<72> Points;
-typedef Coords<1440> Twips;
+typedef Coords<10> Inches;
+typedef Coords<254> MM;
+typedef Coords<720> Points;
+typedef Coords<14400> Twips;
 
 } // namespace tt_solutions
 

@@ -1536,7 +1536,7 @@ wxRect Graph::GetBounds() const
         const_node_iterator it, end;
 
         for (tie(it, end) = GetNodes(); it != end; ++it)
-            m_rcBounds += it->GetBounds();
+            m_rcBounds.Union(it->GetBounds());
     }
 
     return m_rcBounds;
@@ -1876,7 +1876,7 @@ bool Graph::Layout(const node_iterator_pair& range)
     dot << _T("digraph Project {\n");
     dot << _T("\tnode [label=\"\", shape=box, fixedsize=true];\n");
 
-    wxSize dpi = wxSize(Points::Inch, Points::Inch);
+    wxSize dpi = wxSize(int(Points::Inch), int(Points::Inch));
     const GraphNode *fixed = NULL;
     bool externalConnection = false;
     node_iterator i, endi;
@@ -2351,6 +2351,16 @@ wxPoint Graph::FindSpace(const wxPoint& position,
                                      spacing.y * (i / columns));
 
     return position;
+}
+
+void Graph::Draw(wxDC *dc, const wxRect& clip) const
+{
+    wxASSERT(m_diagram);
+    if (!clip.IsEmpty())
+        dc->SetClippingRegion(clip);
+    m_rcDraw = clip;
+    m_diagram->Redraw(*dc);
+    m_rcDraw = wxRect();
 }
 
 // ----------------------------------------------------------------------------

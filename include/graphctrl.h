@@ -352,6 +352,7 @@ public:
      * coordinates.
      */
     virtual wxRect GetBounds() const;
+    template <class T> wxRect GetBounds() const;
 
     /**
      * @brief Invalidates the bounds of the element so that it redraws the
@@ -381,7 +382,7 @@ private:
     DECLARE_ABSTRACT_CLASS(GraphElement)
 };
 
-// Inline defintions
+// Inline definitions
 
 template <class T> wxSize GraphElement::GetSize() const
 {
@@ -391,6 +392,11 @@ template <class T> wxSize GraphElement::GetSize() const
 template <class T> wxPoint GraphElement::GetPosition() const
 {
     return Pixels::To<T>(GetPosition(), GetDPI());
+}
+
+template <class T> wxRect GraphElement::GetBounds() const
+{
+    return Pixels::To<T>(GetBounds(), GetDPI());
 }
 
 /**
@@ -1047,6 +1053,7 @@ public:
      * in the graph.
      */
     wxRect GetBounds() const;
+    template <class T> wxRect GetBounds() const;
     /**
      * @brief Marks the graph bounds invalid, so that they are recalculated
      * the next time GetBounds() is called.
@@ -1070,6 +1077,13 @@ public:
     void SetFont(const wxFont& font);
     wxFont GetFont() const;
 
+    /**
+     * @brief Render the graph onto a DC for printing or export to bitmap.
+     */
+    virtual void Draw(wxDC *dc, const wxRect& clip = wxRect()) const;
+
+    wxRect GetDrawRect() const { return m_rcDraw; }
+
 protected:
     virtual GraphNode *DoAdd(GraphNode *node,
                              wxPoint pt,
@@ -1088,6 +1102,7 @@ private:
     impl::Initialisor m_initalise;
     impl::GraphDiagram *m_diagram;
     mutable wxRect m_rcBounds;
+    mutable wxRect m_rcDraw;
     wxEvtHandler *m_handler;
     wxSize m_dpi;
     double m_gridSpacing;
@@ -1119,6 +1134,11 @@ template <class T> int Graph::GetGridSpacing() const
         return int(m_gridSpacing * T::Inch + 0.5);
     else
         return Pixels::To<T>(GetGridSpacing().y, m_dpi.y);
+}
+
+template <class T> wxRect Graph::GetBounds() const
+{
+    return Pixels::To<T>(GetBounds(), GetDPI());
 }
 
 /**

@@ -96,6 +96,7 @@ GNUmakefile: grapheditor.bkl
         <sources>
             src/graphctrl.cpp
             src/graphtree.cpp
+            src/graphprint.cpp
             src/projectdesigner.cpp
             src/factory.cpp
             src/archive.cpp

@@ -546,12 +546,10 @@ MyFrame::MyFrame(const wxString& title)
     SetMenuBar(menuBar);
 
     // Example of creating the graph control and graph.
-    // Call Graph::SetEventHandler to receive events from the graph.
     wxSplitterWindow *splitter = new wxSplitterWindow(this);
     m_tree = new GraphTreeCtrl(splitter);
     m_graphctrl = new ProjectDesigner(splitter);
-    m_graph = new Graph;
-    m_graph->SetEventHandler(this);
+    m_graph = new Graph(this);
     m_graphctrl->SetGraph(m_graph);
     splitter->SplitVertically(m_tree, m_graphctrl, 240);
 
@@ -1061,11 +1059,9 @@ void MyFrame::OnSetCornerRadius(wxCommandEvent&)
 
 void MyFrame::OnNew(wxCommandEvent&)
 {
-    m_graphctrl->SetGraph(NULL);
     delete m_graph;
-    m_graph = new Graph;
+    m_graph = new Graph(this);
     m_graphctrl->SetGraph(m_graph);
-    m_graph->SetEventHandler(this);
     m_filename.clear();
 }
 
@@ -1092,9 +1088,14 @@ void MyFrame::OnOpen(wxCommandEvent&)
     if (!PickFile(wxFD_OPEN))
         return;
 
+    //delete m_graph;
+    //m_graph = new Graph(this);
+
     wxFFileInputStream stream(m_filename);
     if (stream.IsOk())
         m_graph->Deserialise(stream);
+
+    //m_graphctrl->SetGraph(m_graph);
 }
 
 void MyFrame::OnSave(wxCommandEvent& event)

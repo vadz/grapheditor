@@ -830,7 +830,7 @@ public:
     typedef std::pair<const_node_iterator, const_node_iterator> const_node_iterator_pair;
 
     /** @brief Constructor. */
-    Graph();
+    Graph(wxEvtHandler *handler = NULL);
     /** @brief Destructor. */
     ~Graph();
 
@@ -1097,6 +1097,7 @@ private:
 
     void SetCanvas(impl::GraphCanvas *canvas);
     impl::GraphCanvas *GetCanvas() const;
+    GraphCtrl *GetCtrl() const;
     void DoDelete(GraphElement *element);
 
     impl::Initialisor m_initalise;
@@ -1105,7 +1106,6 @@ private:
     mutable wxRect m_rcDraw;
     wxEvtHandler *m_handler;
     wxSize m_dpi;
-    double m_gridSpacing;
 
     DECLARE_DYNAMIC_CLASS(Graph)
     DECLARE_NO_COPY_CLASS(Graph)
@@ -1122,18 +1122,12 @@ GraphNode *Graph::Add(GraphNode *node, wxPoint pt, wxSize size)
 
 template <class T> void Graph::SetGridSpacing(int spacing)
 {
-    if (m_dpi == wxSize() && T::Inch)
-        m_gridSpacing = double(spacing) / T::Inch;
-    else
-        SetGridSpacing(Pixels::From<T>(spacing, m_dpi.y));
+    SetGridSpacing(Pixels::From<T>(spacing, m_dpi.y));
 }
 
 template <class T> int Graph::GetGridSpacing() const
 {
-    if (m_dpi == wxSize() && T::Inch)
-        return int(m_gridSpacing * T::Inch + 0.5);
-    else
-        return Pixels::To<T>(GetGridSpacing().y, m_dpi.y);
+    return Pixels::To<T>(GetGridSpacing().y, m_dpi.y);
 }
 
 template <class T> wxRect Graph::GetBounds() const

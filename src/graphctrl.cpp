@@ -253,6 +253,7 @@ public:
                  const wxSize& size = wxDefaultSize,
                  long style = wxBORDER | wxRETAINED,
                  const wxString& name = DefaultName);
+    ~GraphCanvas();
 
     static const wxChar DefaultName[];
 
@@ -286,6 +287,8 @@ public:
     wxRect GraphToScreen(const wxRect& rcGraph);
 
 private:
+    static wxWindow *EnsureParent(wxWindow *parent);
+
     Graph *m_graph;
     bool m_isPanning;
     bool m_checkBounds;
@@ -316,13 +319,30 @@ GraphCanvas::GraphCanvas(
         const wxSize& size,
         long style,
         const wxString& name)
-  : wxShapeCanvas(parent, id, pos, size, style, name),
+  : wxShapeCanvas(EnsureParent(parent), id, pos, size, style, name),
     m_graph(NULL),
     m_isPanning(false),
     m_checkBounds(false)
 {
     SetScrollRate(1, 1);
     SetFont(DefaultFont());
+}
+
+GraphCanvas::~GraphCanvas()
+{
+    wxFrame *dummy = wxDynamicCast(GetParent(), wxFrame);
+    if (dummy)
+        dummy->Destroy();
+}
+
+wxWindow *GraphCanvas::EnsureParent(wxWindow *parent)
+{
+    if (!parent) {
+        parent = new wxFrame(NULL, wxID_ANY, DefaultName,
+                             wxDefaultPosition, wxDefaultSize, 0);
+        wxTopLevelWindows.remove(parent);
+    }
+    return parent;
 }
 
 void GraphCanvas::OnLeftClick(double, double, int)
@@ -1494,21 +1514,29 @@ private:
 
 } // namespace
 
-Graph::Graph()
+Graph::Graph(wxEvtHandler *handler)
   : m_diagram(new GraphDiagram),
-    m_handler(NULL),
-    m_gridSpacing(1.0 / 18)
+    m_handler(handler),
+    m_dpi(wxScreenDC().GetPPI())
 {
+    SetGridSpacing(m_dpi.y / 18);
 }
 
 Graph::~Graph()
 {
-    wxASSERT_MSG(!m_diagram->GetCanvas(),
-        _T("Can't delete a Graph while it is assigned to a GraphCtrl, ")
-        _T("delete the GraphCtrl first or call GraphCtrl::SetGraph(NULL)"));
-
     Delete(GetElements());
     m_diagram->DeleteAllShapes();
+
+    GraphCtrl *ctrl = GetCtrl();
+
+    if (ctrl) {
+        m_diagram->SetCanvas(NULL);
+        ctrl->SetGraph(NULL);
+    }
+    else {
+        delete m_diagram->GetCanvas();
+    }
+
     delete m_diagram;
 }
 
@@ -1552,40 +1580,60 @@ void Graph::RefreshBounds()
 
 void Graph::SetCanvas(GraphCanvas *canvas)
 {
-    m_diagram->SetCanvas(canvas);
+    GraphCtrl *oldctrl = GetCtrl();
+    wxShapeCanvas *oldcanvas = m_diagram->GetCanvas();
 
-    if (canvas && m_dpi == wxSize()) {
-        m_dpi = wxClientDC(canvas).GetPPI();
-        if (m_gridSpacing)
-            SetGridSpacing(int(m_gridSpacing * m_dpi.y));
-    }
+    if (canvas == oldcanvas || (!canvas && !oldctrl))
+        return;
+
+    m_diagram->SetCanvas(canvas);
+    canvas = GetCanvas();
+
+    canvas->SetGraph(this);
+
+    if (oldcanvas)
+        canvas->SetFont(oldcanvas->GetFont());
 
     wxList::iterator it, end;
     wxList *list = m_diagram->GetShapeList();
 
     for (it = list->begin(); it != list->end(); ++it)
         wxStaticCast(*it, wxShape)->SetCanvas(canvas);
+
+    if (!oldctrl)
+        delete oldcanvas;
 }
 
 GraphCanvas *Graph::GetCanvas() const
 {
     wxShapeCanvas *canvas = m_diagram->GetCanvas();
-    return canvas ? wxStaticCast(canvas, GraphCanvas) : NULL;
+
+    if (!canvas) {
+        GraphCanvas *gcanvas = new GraphCanvas;
+        gcanvas->SetGraph(const_cast<Graph*>(this));
+        m_diagram->SetCanvas(gcanvas);
+        gcanvas->SetDiagram(m_diagram);
+        return gcanvas;
+    }
+    else {
+        return wxStaticCast(canvas, GraphCanvas);
+    }
+}
+
+GraphCtrl *Graph::GetCtrl() const
+{
+    wxShapeCanvas *canvas = m_diagram->GetCanvas();
+    return canvas ? wxDynamicCast(canvas->GetParent(), GraphCtrl) : NULL;
 }
 
 void Graph::SetFont(const wxFont& font)
 {
-    GraphCanvas *canvas = GetCanvas();
-    if (canvas)
-        canvas->SetFont(font);
+    GetCanvas()->SetFont(font);
 }
 
 wxFont Graph::GetFont() const
 {
-    GraphCanvas *canvas = GetCanvas();
-    if (canvas)
-        return canvas->GetFont();
-    return wxFont();
+    return GetCanvas()->GetFont();
 }
 
 GraphNode *Graph::Add(GraphNode *node,
@@ -2082,7 +2130,6 @@ bool Graph::GetSnapToGrid() const
 
 void Graph::SetGridSpacing(int spacing)
 {
-    m_gridSpacing = 0;
     if (spacing < 1)
         spacing = 1;
 
@@ -2103,12 +2150,6 @@ void Graph::SetGridSpacing(int spacing)
 wxSize Graph::GetGridSpacing() const
 {
     wxSize spacing;
-
-    // If the spacing is only known in inches, then SetCanvas must be called
-    // before the spacing can be returned in pixels as m_dpi is unknown until
-    // then.
-    wxCHECK(m_gridSpacing == 0, spacing);
-
     double x, y;
 
 #ifdef oglHAVE_XY_GRID
@@ -2201,11 +2242,9 @@ bool Graph::Deserialise(Archive& archive)
     Archive::Item *item = archive.Get(TAGGRAPH);
 
     if (item) {
-        GraphCanvas *canvas = GetCanvas();
         wxFont font;
-
-        if (canvas && item->Get(TAGFONT, font))
-            canvas->SetFont(font);
+        if (item->Get(TAGFONT, font))
+            SetFont(font);
 
         int spacing;
         if (item->Get(TAGGRID, spacing))
@@ -2231,12 +2270,12 @@ bool Graph::DeserialiseInto(wxInputStream& stream, const wxPoint& pt)
 bool Graph::DeserialiseInto(Archive& archive, const wxPoint& pt)
 {
     Archive::Item *item = archive.Get(TAGGRAPH);
+    GraphCanvas *canvas = GetCanvas();
 
     if (item && item->GetInstance() == NULL) {
-        GraphCanvas *canvas = GetCanvas();
         wxFont font;
 
-        if (canvas && item->Get(TAGFONT, font)) {
+        if (item->Get(TAGFONT, font)) {
             wxString curdesc = canvas->GetFont().GetNativeFontInfoDesc();
             wxString newdesc = font.GetNativeFontInfoDesc();
 
@@ -2355,7 +2394,6 @@ wxPoint Graph::FindSpace(const wxPoint& position,
 
 void Graph::Draw(wxDC *dc, const wxRect& clip) const
 {
-    wxASSERT(m_diagram);
     if (!clip.IsEmpty())
         dc->SetClippingRegion(clip);
     m_rcDraw = clip;
@@ -2384,11 +2422,9 @@ GraphCtrl::GraphCtrl(
         const wxValidator& validator,
         const wxString& name)
   : wxControl(parent, winid, pos, size, style, validator, name),
+    m_canvas(new GraphCanvas(this, winid, wxPoint(0, 0), size, 0)),
     m_graph(NULL)
 {
-    GraphCanvas *canvas =
-        new GraphCanvas(this, winid, wxPoint(0, 0), size, 0);
-    m_canvas = canvas;
 }
 
 GraphCtrl::~GraphCtrl()

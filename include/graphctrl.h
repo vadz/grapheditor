@@ -29,8 +29,6 @@
 
 class wxShape;
 class wxLineShape;
-class wxXmlNode;
-class wxXmlProperty;
 
 namespace tt_solutions {
 
@@ -49,6 +47,8 @@ namespace impl
     class GraphIteratorImpl;
     class GraphDiagram;
     class GraphCanvas;
+
+    enum IteratorFilter { All, Selected, InEdges, OutEdges };
 
     class GraphIteratorBase
     {
@@ -177,6 +177,7 @@ public:
     typedef ptrdiff_t difference_type;
     typedef T* pointer;
     typedef T& reference;
+    typedef typename std::pair<GraphIterator, GraphIterator> pair;
 
     GraphIterator() : Base() { }
 
@@ -237,6 +238,25 @@ private:
     typedef impl::GraphIteratorBase Base;
 
     void CheckAssignable(T*) { }
+};
+
+/**
+ * @brief A shorter name for a pair of iterators.
+ *
+ * @see GraphIterator
+ */
+template <class T>
+struct IterPair : std::pair< GraphIterator<T>, GraphIterator<T> >
+{
+    typedef std::pair< GraphIterator<T>, GraphIterator<T> > Base;
+
+    IterPair()
+    { }
+
+    template <class U>
+    IterPair(const std::pair< GraphIterator<U>, GraphIterator<U> >& other)
+      : Base(other)
+    { }
 };
 
 /**
@@ -418,9 +438,9 @@ public:
     /** @brief An iterator type for returning the edge's two nodes. */
     typedef GraphIterator<const GraphNode> const_iterator;
     /** @brief A begin/end pair of iterators. */
-    typedef std::pair<iterator, iterator> iterator_pair;
+    typedef iterator::pair iterator_pair;
     /** @brief A begin/end pair of iterators. */
-    typedef std::pair<const_iterator, const_iterator> const_iterator_pair;
+    typedef const_iterator::pair const_iterator_pair;
 
     /** @brief An enumeration of predefined appearances for edges. */
     enum Style {
@@ -448,11 +468,13 @@ public:
     /**
      * @brief An interator range returning the two nodes this edge connects.
      */
-    iterator_pair GetNodes();
+    iterator_pair GetNodes() { return Iter<GraphNode>(); }
+    template <class T> IterPair<T> GetNodes() { return Iter<T>(); }
     /**
      * @brief An interator range returning the two nodes this edge connects.
      */
-    const_iterator_pair GetNodes() const;
+    const_iterator_pair GetNodes() const { return Iter<const GraphNode>(); }
+    template <class T> IterPair<const T> GetNodes() const;
     /**
      * @brief Returns the number of nodes this edge connects, i.e. two if the
      * edge has been added to a graph.
@@ -463,10 +485,12 @@ public:
      * @brief Returns the first of the two nodes this edge connects.
      */
     virtual GraphNode *GetFrom() const;
+    template <class T> T *GetFrom() const;
     /**
      * @brief Returns the second of the two nodes this edge connects.
      */
     virtual GraphNode *GetTo() const;
+    template <class T> T *GetTo() const;
 
     bool Serialise(Archive::Item& arc);
 
@@ -493,8 +517,37 @@ protected:
     bool MoveFront();
 
 private:
+    impl::GraphIteratorImpl *IterImpl(
+        GraphLineShape *line, wxClassInfo *classinfo, bool end) const;
+
+    template <class T> IterPair<T> Iter() const;
+
     DECLARE_DYNAMIC_CLASS(GraphEdge)
 };
+
+template <class T> IterPair<T> GraphEdge::Iter() const
+{
+    GraphLineShape *line = GetShape();
+
+    return std::make_pair(
+        GraphIterator<T>(IterImpl(line, CLASSINFO(T), false)),
+        GraphIterator<T>(IterImpl(line, CLASSINFO(T), true)));
+}
+
+template <class T> IterPair<const T> GraphEdge::GetNodes() const
+{
+    return Iter<const T>();
+}
+
+template <class T> T *GraphEdge::GetFrom() const
+{
+    return dynamic_cast<T*>(GetFrom());
+}
+
+template <class T> T *GraphEdge::GetTo() const
+{
+    return dynamic_cast<T*>(GetTo());
+}
 
 /**
  * @brief Represents a node in a Graph.
@@ -515,9 +568,9 @@ public:
     /** @brief An iterator type for returning the node's list of edges. */
     typedef GraphIterator<const GraphEdge> const_iterator;
     /** @brief A begin/end pair of iterators. */
-    typedef std::pair<iterator, iterator> iterator_pair;
+    typedef iterator::pair iterator_pair;
     /** @brief A begin/end pair of iterators. */
-    typedef std::pair<const_iterator, const_iterator> const_iterator_pair;
+    typedef const_iterator::pair const_iterator_pair;
 
     /** @brief An enumeration of predefined appearances for nodes. */
     enum Style {
@@ -568,11 +621,13 @@ public:
     /**
      * @brief An interator range returning the edges connecting to this node.
      */
-    iterator_pair GetEdges();
+    iterator_pair GetEdges() { return Iter<GraphEdge>(); }
+    template <class T> IterPair<T> GetEdges() { return Iter<T>(); }
     /**
      * @brief An interator range returning the edges connecting to this node.
      */
-    const_iterator_pair GetEdges() const;
+    const_iterator_pair GetEdges() const { return Iter<const GraphEdge>(); }
+    template <class T> IterPair<const T> GetEdges() const;
     /**
      * @brief Returns the number of edges connecting to this node.
      */
@@ -581,11 +636,13 @@ public:
     /**
      * @brief An iterator range returning the edges into this node.
      */
-    iterator_pair GetInEdges();
+    iterator_pair GetInEdges() { return Iter<GraphEdge>(impl::InEdges); }
+    template <class T> IterPair<T> GetInEdges();
     /**
      * @brief An iterator range returning the edges into this node.
      */
-    const_iterator_pair GetInEdges() const;
+    inline const_iterator_pair GetInEdges() const;
+    template <class T> IterPair<const T> GetInEdges() const;
     /**
      * @brief Returns the number of edges in to this node. Takes linear time.
      */
@@ -594,11 +651,13 @@ public:
     /**
      * @brief An iterator range returning the edges out of this node.
      */
-    iterator_pair GetOutEdges();
+    iterator_pair GetOutEdges() { return Iter<GraphEdge>(impl::OutEdges); }
+    template <class T> IterPair<T> GetOutEdges();
     /**
      * @brief An iterator range returning the edges out of this node.
      */
-    const_iterator_pair GetOutEdges() const;
+    inline const_iterator_pair GetOutEdges() const;
+    template <class T> IterPair<const T> GetOutEdges() const;
     /**
      * @brief Returns the number of edges out from this node. Takes linear
      * time.
@@ -671,6 +730,16 @@ protected:
     virtual void Layout();
 
 private:
+    wxList *GetLines() const;
+
+    impl::GraphIteratorImpl *IterImpl(
+        const wxList::iterator& begin,
+        const wxList::iterator& end,
+        wxClassInfo *classinfo,
+        int which) const;
+
+    template <class T> IterPair<T> Iter(int which = impl::All) const;
+
     wxColour m_textcolour;
     wxString m_text;
     wxFont m_font;
@@ -687,6 +756,56 @@ template <class T> void GraphNode::SetPosition(const wxPoint& pt)
 template <class T> void GraphNode::SetSize(const wxSize& size)
 {
     SetSize(Pixels::From<T>(size, GetDPI()));
+}
+
+template <class T> IterPair<const T> GraphNode::GetEdges() const
+{
+    return Iter<const T>();
+}
+
+template <class T> IterPair<T> GraphNode::GetInEdges()
+{
+    return Iter<T>(impl::InEdges);
+}
+
+GraphNode::const_iterator_pair GraphNode::GetInEdges() const
+{
+    return Iter<const GraphEdge>(impl::InEdges);
+}
+
+template <class T> IterPair<const T> GraphNode::GetInEdges() const
+{
+    return Iter<const T>(impl::InEdges);
+}
+
+template <class T> IterPair<T> GraphNode::GetOutEdges()
+{
+    return Iter<T>(impl::OutEdges);
+}
+
+GraphNode::const_iterator_pair GraphNode::GetOutEdges() const
+{
+    return Iter<const GraphEdge>(impl::OutEdges);
+}
+
+template <class T> IterPair<const T> GraphNode::GetOutEdges() const
+{
+    return Iter<const T>(impl::OutEdges);
+}
+
+template <class T> IterPair<T> GraphNode::Iter(int which) const
+{
+    wxList *list = GetLines();
+    wxList::iterator begin, end;
+
+    if (list) {
+        begin = list->begin();
+        end = list->end();
+    }
+
+    return std::make_pair(
+        GraphIterator<T>(IterImpl(begin, end, CLASSINFO(T), which)),
+        GraphIterator<T>(IterImpl(end, end, CLASSINFO(T), which)));
 }
 
 /**
@@ -821,13 +940,13 @@ public:
     typedef GraphIterator<const GraphNode> const_node_iterator;
 
     /** @brief A begin/end pair of iterators returning nodes and edges. */
-    typedef std::pair<iterator, iterator> iterator_pair;
+    typedef iterator::pair iterator_pair;
     /** @brief A begin/end pair of iterators returning nodes and edges. */
-    typedef std::pair<const_iterator, const_iterator> const_iterator_pair;
+    typedef const_iterator::pair const_iterator_pair;
     /** @brief A begin/end pair of iterators returning nodes. */
-    typedef std::pair<node_iterator, node_iterator> node_iterator_pair;
+    typedef node_iterator::pair node_iterator_pair;
     /** @brief A begin/end pair of iterators returning nodes. */
-    typedef std::pair<const_node_iterator, const_node_iterator> const_node_iterator_pair;
+    typedef const_node_iterator::pair const_node_iterator_pair;
 
     /** @brief Constructor. */
     Graph(wxEvtHandler *handler = NULL);
@@ -908,38 +1027,46 @@ public:
     virtual void UnselectAll() { Unselect(GetSelection()); }
 
     /** @brief An interator range returning all the nodes in the graph. */
-    node_iterator_pair GetNodes();
+    node_iterator_pair GetNodes() { return Iter<GraphNode>(); }
+    template <class T> IterPair<T> GetNodes() { return Iter<T, GraphNode>(); }
     /**
      * @brief An interator range returning all the nodes and edges in the
      * graph.
      */
-    iterator_pair GetElements();
+    iterator_pair GetElements() { return Iter<GraphElement>(); }
+    template <class T> IterPair<T> GetElements() { return Iter<T>(); }
     /**
      * @brief An interator range returning all the nodes and edges currently
      * selected.
      */
-    iterator_pair GetSelection();
+    iterator_pair GetSelection() { return GetSelection<GraphElement>(); }
+    template <class T> IterPair<T> GetSelection();
     /**
      * @brief An interator range returning all the nodes currently selected.
      */
-    node_iterator_pair GetSelectionNodes();
+    inline node_iterator_pair GetSelectionNodes();
+    template <class T> IterPair<T> GetSelectionNodes();
 
     /** @brief An interator range returning all the nodes in the graph. */
-    const_node_iterator_pair GetNodes() const;
+    inline const_node_iterator_pair GetNodes() const;
+    template <class T> IterPair<const T> GetNodes() const;
     /**
      * @brief An interator range returning all the nodes and edges in the
      * graph.
      */
-    const_iterator_pair GetElements() const;
+    inline const_iterator_pair GetElements() const;
+    template <class T> IterPair<const T> GetElements() const;
     /**
      * @brief An interator range returning all the nodes and edges currently
      * selected.
      */
-    const_iterator_pair GetSelection() const;
+    inline const_iterator_pair GetSelection() const;
+    template <class T> IterPair<const T> GetSelection() const;
     /**
      * @brief An interator range returning all the nodes currently selected.
      */
-    const_node_iterator_pair GetSelectionNodes() const;
+    inline const_node_iterator_pair GetSelectionNodes() const;
+    template <class T> IterPair<const T> GetSelectionNodes() const;
 
     /**
      * @brief Returns the number of nodes in the graph. Takes linear time.
@@ -1098,7 +1225,20 @@ private:
     void SetCanvas(impl::GraphCanvas *canvas);
     impl::GraphCanvas *GetCanvas() const;
     GraphCtrl *GetCtrl() const;
+    wxList *GetShapeList() const;
     void DoDelete(GraphElement *element);
+
+    static impl::GraphIteratorImpl *IterImpl(
+        const wxList::iterator& begin,
+        const wxList::iterator& end,
+        wxClassInfo *classinfo,
+        int which);
+
+    template <class T> IterPair<T>
+    Iter(int which = impl::All, wxClassInfo *classinfo = NULL) const;
+
+    template <class T, class U> IterPair<T>
+    Iter(int which = impl::All) const;
 
     impl::Initialisor m_initalise;
     impl::GraphDiagram *m_diagram;
@@ -1133,6 +1273,92 @@ template <class T> int Graph::GetGridSpacing() const
 template <class T> wxRect Graph::GetBounds() const
 {
     return Pixels::To<T>(GetBounds(), GetDPI());
+}
+
+Graph::const_iterator_pair Graph::GetElements() const
+{
+    return GetElements<const GraphElement>();
+}
+
+Graph::const_node_iterator_pair Graph::GetNodes() const
+{
+    return GetElements<const GraphNode>();
+}
+
+Graph::const_iterator_pair Graph::GetSelection() const
+{
+    return GetSelection<const GraphElement>();
+}
+
+Graph::node_iterator_pair Graph::GetSelectionNodes()
+{
+    return GetSelection<GraphNode>();
+}
+
+Graph::const_node_iterator_pair Graph::GetSelectionNodes() const
+{
+    return GetSelection<const GraphNode>();
+}
+
+template <class T> IterPair<T> Graph::GetSelection()
+{
+    return Iter<T>(impl::Selected);
+}
+
+template <class T> IterPair<T> Graph::GetSelectionNodes()
+{
+    return Iter<T, GraphNode>(impl::Selected);
+}
+
+template <class T> IterPair<const T> Graph::GetElements() const
+{
+    return Iter<const T>();
+}
+
+template <class T> IterPair<const T> Graph::GetNodes() const
+{
+    return Iter<const T, GraphNode>();
+}
+
+template <class T> IterPair<const T> Graph::GetSelection() const
+{
+    return Iter<const T>(impl::Selected);
+}
+
+template <class T> IterPair<const T> Graph::GetSelectionNodes() const
+{
+    return Iter<const T, GraphNode>(impl::Selected);
+}
+
+template <class T>
+IterPair<T> Graph::Iter(int which, wxClassInfo *classinfo) const
+{
+    wxList *list = GetShapeList();
+    wxList::iterator begin, end;
+
+    if (list) {
+        begin = list->begin();
+        end = list->end();
+    }
+
+    if (!classinfo)
+        classinfo = CLASSINFO(T);
+
+    return std::make_pair(
+        GraphIterator<T>(IterImpl(begin, end, classinfo, which)),
+        GraphIterator<T>(IterImpl(end, end, classinfo, which)));
+}
+
+template <class T, class U> IterPair<T> Graph::Iter(int which) const
+{
+    wxClassInfo *t = CLASSINFO(T), *u = CLASSINFO(U);
+
+    if (t->IsKindOf(u))
+        return Iter<T>(which, t);
+    else if (u->IsKindOf(t))
+        return Iter<T>(which, u);
+    else
+        return IterPair<T>();
 }
 
 /**

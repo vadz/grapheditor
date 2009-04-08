@@ -1244,13 +1244,6 @@ namespace impl {
 class GraphIteratorImpl
 {
 public:
-    GraphIteratorImpl(int flags, bool selectionOnly)
-        : m_flags(flags), m_selectionOnly(selectionOnly)
-    { }
-    GraphIteratorImpl(const GraphIteratorImpl& other)
-        : m_flags(other.m_flags), m_selectionOnly(other.m_selectionOnly)
-    { }
-
     virtual ~GraphIteratorImpl() { }
 
     virtual void inc() = 0;
@@ -1258,17 +1251,6 @@ public:
     virtual bool eq(const GraphIteratorImpl& other) const = 0;
     virtual GraphElement *get() const = 0;
     virtual GraphIteratorImpl *clone() const = 0;
-
-    enum Flags {
-        AllElements, NodesOnly, EdgesOnly, InEdgesOnly, OutEdgesOnly, Pair
-    };
-
-    int GetFlags() const { return m_flags; }
-    bool IsSelectionOnly() const { return m_selectionOnly; }
-
-private:
-    int m_flags;
-    bool m_selectionOnly;
 };
 
 GraphIteratorBase::GraphIteratorBase(const GraphIteratorBase& it)
@@ -1321,32 +1303,18 @@ class ListIterImpl : public GraphIteratorImpl
 {
 public:
     ListIterImpl(const wxList::iterator& begin,
-                 const wxList::iterator& end = wxList::iterator(),
-                 int flags = AllElements,
-                 bool selectionOnly = false,
+                 const wxList::iterator& end,
+                 wxClassInfo *classinfo,
+                 int which = All,
                  const GraphNode *node = NULL)
-      : GraphIteratorImpl(flags, selectionOnly),
-        m_it(begin),
+      : m_it(begin),
         m_end(end),
+        m_classinfo(classinfo == CLASSINFO(GraphElement) ? NULL : classinfo),
+        m_which(which),
         m_node(node)
     {
-        wxASSERT(flags == AllElements ||
-                 flags == NodesOnly ||
-                 flags == EdgesOnly ||
-                 flags == InEdgesOnly ||
-                 flags == OutEdgesOnly);
-
-        wxASSERT((flags != InEdgesOnly && flags != OutEdgesOnly) || node);
-
         while (m_it != m_end && !filter())
             ++m_it;
-    }
-
-    ListIterImpl(const ListIterImpl& other)
-      : GraphIteratorImpl(other),
-        m_it(other.m_it),
-        m_end(other.m_end)
-    {
     }
 
     bool filter()
@@ -1355,25 +1323,22 @@ public:
 
         if (!element)
             return false;
-        if (IsSelectionOnly() && !element->IsSelected())
+
+        if (m_which == Selected && !element->IsSelected())
             return false;
 
-        int flags = GetFlags();
+        if (m_classinfo && !element->IsKindOf(m_classinfo))
+            return false;
 
-        if (flags == NodesOnly)
-            return element->IsKindOf(CLASSINFO(GraphNode));
-
-        if (flags == EdgesOnly || flags == InEdgesOnly
-                || flags == OutEdgesOnly)
+        if (m_node && (m_which == InEdges || m_which == OutEdges))
         {
             GraphEdge *edge = wxDynamicCast(element, GraphEdge);
             if (!edge)
                 return false;
-            if (flags == InEdgesOnly)
+            if (m_which == InEdges)
                 return edge->GetTo() == m_node;
-            if (flags == OutEdgesOnly)
+            else
                 return edge->GetFrom() == m_node;
-            return true;
         }
 
         return true;
@@ -1397,7 +1362,7 @@ public:
 
     bool eq(const GraphIteratorImpl& other) const
     {
-        return other.GetFlags() == GetFlags() &&
+        return typeid(other) == typeid(ListIterImpl) &&
                m_it == static_cast<const ListIterImpl&>(other).m_it;
     }
 
@@ -1414,14 +1379,17 @@ public:
 private:
     wxList::iterator m_it;
     wxList::iterator m_end;
+    wxClassInfo *m_classinfo;
+    int m_which;
     const GraphNode *m_node;
 };
 
 class PairIterImpl : public GraphIteratorImpl
 {
 public:
-    PairIterImpl(wxLineShape *line, bool end)
-      : GraphIteratorImpl(Pair, false), m_line(line)
+    PairIterImpl(wxLineShape *line, wxClassInfo *classinfo, bool end)
+      : m_line(line),
+        m_classinfo(classinfo == CLASSINFO(GraphElement) ? NULL : classinfo)
     {
         if (end) {
             m_pos = 3;
@@ -1431,34 +1399,32 @@ public:
         }
     }
 
-    PairIterImpl(const PairIterImpl& other)
-      : GraphIteratorImpl(other), m_line(other.m_line), m_pos(other.m_pos)
+    bool filter()
     {
+        GraphElement *element = get();
+        return element && (!m_classinfo || element->IsKindOf(m_classinfo));
     }
 
     void inc()
     {
-        m_pos++;
-        if (m_pos == 1 && m_line->GetFrom() == NULL)
+        do {
             m_pos++;
-        if (m_pos == 2 && m_line->GetTo() == NULL)
-            m_pos++;
+        }
+        while (m_pos < 3 && !filter());
     }
 
     void dec()
     {
-        m_pos--;
-        if (m_pos == 2 && m_line->GetTo() == NULL)
+        do {
             m_pos--;
-        if (m_pos == 1 && m_line->GetFrom() == NULL)
-            m_pos--;
+        }
+        while (m_pos > 0 && !filter());
     }
 
     bool eq(const GraphIteratorImpl& other) const
     {
-        if (other.GetFlags() != GetFlags())
+        if (typeid(other) != typeid(PairIterImpl))
             return false;
-
         const PairIterImpl& oth = static_cast<const PairIterImpl&>(other);
         return oth.m_line == m_line && oth.m_pos == m_pos;
     }
@@ -1475,6 +1441,7 @@ public:
 
 private:
     wxLineShape *m_line;
+    wxClassInfo *m_classinfo;
     int m_pos;
 };
 
@@ -1624,6 +1591,11 @@ GraphCtrl *Graph::GetCtrl() const
 {
     wxShapeCanvas *canvas = m_diagram->GetCanvas();
     return canvas ? wxDynamicCast(canvas->GetParent(), GraphCtrl) : NULL;
+}
+
+wxList *Graph::GetShapeList() const
+{
+    return m_diagram->GetShapeList();
 }
 
 void Graph::SetFont(const wxFont& font)
@@ -1789,84 +1761,13 @@ void Graph::Delete(const iterator_pair& range)
     }
 }
 
-Graph::iterator_pair Graph::GetElements()
+GraphIteratorImpl *Graph::IterImpl(
+    const wxList::iterator& begin,
+    const wxList::iterator& end,
+    wxClassInfo *classinfo,
+    int which)
 {
-    wxList *list = m_diagram->GetShapeList();
-    wxList::iterator begin = list->begin(), end = list->end();
-
-    return make_pair(iterator(new ListIterImpl(begin)),
-                     iterator(new ListIterImpl(end)));
-}
-
-Graph::node_iterator_pair Graph::GetNodes()
-{
-    wxList *list = m_diagram->GetShapeList();
-    wxList::iterator begin = list->begin(), end = list->end();
-    const int flags = ListIterImpl::NodesOnly;
-
-    return make_pair(
-        node_iterator(new ListIterImpl(begin, end, flags)),
-        node_iterator(new ListIterImpl(end, end, flags)));
-}
-
-Graph::iterator_pair Graph::GetSelection()
-{
-    wxList *list = m_diagram->GetShapeList();
-    wxList::iterator begin = list->begin(), end = list->end();
-    const int flags = ListIterImpl::AllElements;
-
-    return make_pair(iterator(new ListIterImpl(begin, end, flags, true)),
-                     iterator(new ListIterImpl(end, end, flags, true)));
-}
-
-Graph::node_iterator_pair Graph::GetSelectionNodes()
-{
-    wxList *list = m_diagram->GetShapeList();
-    wxList::iterator begin = list->begin(), end = list->end();
-    const int flags = ListIterImpl::NodesOnly;
-
-    return make_pair(node_iterator(new ListIterImpl(begin, end, flags, true)),
-                     node_iterator(new ListIterImpl(end, end, flags, true)));
-}
-
-Graph::const_iterator_pair Graph::GetElements() const
-{
-    wxList *list = m_diagram->GetShapeList();
-    wxList::iterator begin = list->begin(), end = list->end();
-
-    return make_pair(const_iterator(new ListIterImpl(begin)),
-                     const_iterator(new ListIterImpl(end)));
-}
-
-Graph::const_node_iterator_pair Graph::GetNodes() const
-{
-    wxList *list = m_diagram->GetShapeList();
-    wxList::iterator begin = list->begin(), end = list->end();
-    const int flags = ListIterImpl::NodesOnly;
-
-    return make_pair(const_node_iterator(new ListIterImpl(begin, end, flags)),
-                     const_node_iterator(new ListIterImpl(end, end, flags)));
-}
-
-Graph::const_iterator_pair Graph::GetSelection() const
-{
-    wxList *list = m_diagram->GetShapeList();
-    wxList::iterator begin = list->begin(), end = list->end();
-    const int flags = ListIterImpl::AllElements;
-
-    return make_pair(const_iterator(new ListIterImpl(begin, end, flags, true)),
-                     const_iterator(new ListIterImpl(end, end, flags, true)));
-}
-
-Graph::const_node_iterator_pair Graph::GetSelectionNodes() const
-{
-    wxList *list = m_diagram->GetShapeList();
-    wxList::iterator begin = list->begin(), end = list->end();
-    const int flags = ListIterImpl::NodesOnly;
-
-    return make_pair(
-            const_node_iterator(new ListIterImpl(begin, end, flags, true)),
-            const_node_iterator(new ListIterImpl(end, end, flags, true)));
+    return new ListIterImpl(begin, end, classinfo, which);
 }
 
 size_t Graph::GetNodeCount() const
@@ -2856,20 +2757,12 @@ bool GraphEdge::Serialise(Archive::Item& arc)
     return true;
 }
 
-GraphEdge::iterator_pair GraphEdge::GetNodes()
+impl::GraphIteratorImpl *GraphEdge::IterImpl(
+    GraphLineShape *line,
+    wxClassInfo *classinfo,
+    bool end) const
 {
-    wxLineShape *line = GetShape();
-
-    return make_pair(iterator(new PairIterImpl(line, false)),
-                     iterator(new PairIterImpl(line, true)));
-}
-
-GraphEdge::const_iterator_pair GraphEdge::GetNodes() const
-{
-    wxLineShape *line = GetShape();
-
-    return make_pair(const_iterator(new PairIterImpl(line, false)),
-                     const_iterator(new PairIterImpl(line, true)));
+    return new PairIterImpl(line, classinfo, end);
 }
 
 size_t GraphEdge::GetNodeCount() const
@@ -3145,66 +3038,18 @@ void GraphNode::UpdateShapeTextColour()
     }
 }
 
-GraphNode::iterator_pair GraphNode::GetEdges()
+wxList *GraphNode::GetLines() const
 {
-    wxList& list = GetShape()->GetLines();
-    wxList::iterator begin = list.begin(), end = list.end();
-
-    return make_pair(iterator(new ListIterImpl(begin)),
-                     iterator(new ListIterImpl(end)));
+    return &GetShape()->GetLines();
 }
 
-GraphNode::const_iterator_pair GraphNode::GetEdges() const
+impl::GraphIteratorImpl *GraphNode::IterImpl(
+    const wxList::iterator& begin,
+    const wxList::iterator& end,
+    wxClassInfo *classinfo,
+    int which) const
 {
-    wxList& list = GetShape()->GetLines();
-    wxList::iterator begin = list.begin(), end = list.end();
-
-    return make_pair(const_iterator(new ListIterImpl(begin)),
-                     const_iterator(new ListIterImpl(end)));
-}
-
-GraphNode::iterator_pair GraphNode::GetInEdges()
-{
-    wxList& list = GetShape()->GetLines();
-    wxList::iterator begin = list.begin(), end = list.end();
-    const int flags = ListIterImpl::InEdgesOnly;
-
-    return make_pair(
-            iterator(new ListIterImpl(begin, end, flags, false, this)),
-            iterator(new ListIterImpl(end, end, flags, false, this)));
-}
-
-GraphNode::const_iterator_pair GraphNode::GetInEdges() const
-{
-    wxList& list = GetShape()->GetLines();
-    wxList::iterator begin = list.begin(), end = list.end();
-    const int flags = ListIterImpl::InEdgesOnly;
-
-    return make_pair(
-            const_iterator(new ListIterImpl(begin, end, flags, false, this)),
-            const_iterator(new ListIterImpl(end, end, flags, false, this)));
-}
-
-GraphNode::iterator_pair GraphNode::GetOutEdges()
-{
-    wxList& list = GetShape()->GetLines();
-    wxList::iterator begin = list.begin(), end = list.end();
-    const int flags = ListIterImpl::OutEdgesOnly;
-
-    return make_pair(
-            iterator(new ListIterImpl(begin, end, flags, false, this)),
-            iterator(new ListIterImpl(end, end, flags, false, this)));
-}
-
-GraphNode::const_iterator_pair GraphNode::GetOutEdges() const
-{
-    wxList& list = GetShape()->GetLines();
-    wxList::iterator begin = list.begin(), end = list.end();
-    const int flags = ListIterImpl::OutEdgesOnly;
-
-    return make_pair(
-            const_iterator(new ListIterImpl(begin, end, flags, false, this)),
-            const_iterator(new ListIterImpl(end, end, flags, false, this)));
+    return new ListIterImpl(begin, end, classinfo, which, this);
 }
 
 size_t GraphNode::GetEdgeCount() const

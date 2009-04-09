@@ -40,17 +40,17 @@ struct MaxPages
 {
     enum { Unlimited = 0 };
 
-    MaxPages(int total = Unlimited)
-     : rows(Unlimited), cols(Unlimited), total(total)
+    MaxPages(int pages = Unlimited)
+     : rows(Unlimited), cols(Unlimited), pages(pages)
     { }
 
-    MaxPages(int rows, int cols, int total = Unlimited)
-     : rows(rows), cols(cols), total(total)
+    MaxPages(int rows, int cols, int pages = Unlimited)
+     : rows(rows), cols(cols), pages(pages)
     { }
 
     int rows;
     int cols;
-    int total;
+    int pages;
 };
 
 class GraphPrintout : public wxPrintout
@@ -70,7 +70,7 @@ public:
 private:
     Graph *m_graph;
     double m_scale;
-    MaxPages m_maxpages;
+    MaxPages m_max;
     Margins m_margins;
     wxSize m_pages;
     wxPoint m_firstPage;

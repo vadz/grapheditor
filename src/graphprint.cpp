@@ -10,6 +10,9 @@
 
 #include "graphprint.h"
 
+#undef min
+using std::min;
+
 namespace tt_solutions {
 
 GraphPrintout::GraphPrintout(Graph *graph,
@@ -20,7 +23,7 @@ GraphPrintout::GraphPrintout(Graph *graph,
   : wxPrintout(title),
     m_graph(graph),
     m_scale(scale / 100),
-    m_maxpages(shrinktofit),
+    m_max(shrinktofit),
     m_margins(margins)
 {
     graph->UnselectAll();
@@ -59,26 +62,29 @@ void GraphPrintout::OnPreparePrinting()
     double wPrint = double(m_print.width) / xdpi;
     double hPrint = double(m_print.height) / ydpi;
 
-    // work out how many pages it would take at the preferred scaling
-    m_pages.x = wxMax(int(ceil(wGraph * m_scale / wPrint)), 1);
-    m_pages.y = wxMax(int(ceil(hGraph * m_scale / hPrint)), 1);
+    if (m_max.pages)
+        m_scale = min(m_scale, m_max.pages * wPrint * hPrint / (wGraph * hGraph));
+    if (m_max.cols)
+        m_scale = min(m_scale, m_max.cols * wPrint / wGraph);
+    if (m_max.rows)
+        m_scale = min(m_scale, m_max.rows * hPrint / hGraph);
 
-    // if it doesn't fit the max m_pages then shrink: horiziontal
-    if (m_maxpages.cols > 0 && m_pages.x > m_maxpages.cols) {
-        m_scale = m_maxpages.cols * wPrint / wGraph;
-        m_pages.x = m_maxpages.cols;
-        m_pages.y = int(ceil(hGraph * m_scale / hPrint));
-    }
+    for (;;) {
+        // work out how many pages it would take at this scaling
+        m_pages.x = wxMax(int(ceil(wGraph * m_scale / wPrint)), 1);
+        m_pages.y = wxMax(int(ceil(hGraph * m_scale / hPrint)), 1);
 
-    // vertical
-    if (m_maxpages.rows > 0 && m_pages.y > m_maxpages.rows) {
-        m_scale = m_maxpages.rows * hPrint / hGraph;
-        m_pages.x = int(ceil(wGraph * m_scale / wPrint));
-        m_pages.y = m_maxpages.rows;
-    }
+        // satisfies the max pages?
+        if (m_max.pages <= 0 || m_pages.x * m_pages.y <= m_max.pages)
+            break;
 
-    // total pages
-    if (m_maxpages.total > 0 && m_pages.x * m_pages.y > m_maxpages.total) {
+        double sx = (m_pages.x - 1) * wPrint / wGraph;
+        double sy = (m_pages.y - 1) * hPrint / hGraph;
+
+        if (sy == 0 || (sx != 0 && sx < sy))
+            m_scale = sx;
+        else
+            m_scale = sy;
     }
 
     double w = wPrint / m_scale * dpiGraph.x;

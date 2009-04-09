@@ -1045,7 +1045,6 @@ public:
      * @brief An interator range returning all the nodes currently selected.
      */
     inline node_iterator_pair GetSelectionNodes();
-    template <class T> IterPair<T> GetSelectionNodes();
 
     /** @brief An interator range returning all the nodes in the graph. */
     inline const_node_iterator_pair GetNodes() const;
@@ -1066,7 +1065,6 @@ public:
      * @brief An interator range returning all the nodes currently selected.
      */
     inline const_node_iterator_pair GetSelectionNodes() const;
-    template <class T> IterPair<const T> GetSelectionNodes() const;
 
     /**
      * @brief Returns the number of nodes in the graph. Takes linear time.
@@ -1305,11 +1303,6 @@ template <class T> IterPair<T> Graph::GetSelection()
     return Iter<T>(impl::Selected);
 }
 
-template <class T> IterPair<T> Graph::GetSelectionNodes()
-{
-    return Iter<T, GraphNode>(impl::Selected);
-}
-
 template <class T> IterPair<const T> Graph::GetElements() const
 {
     return Iter<const T>();
@@ -1323,11 +1316,6 @@ template <class T> IterPair<const T> Graph::GetNodes() const
 template <class T> IterPair<const T> Graph::GetSelection() const
 {
     return Iter<const T>(impl::Selected);
-}
-
-template <class T> IterPair<const T> Graph::GetSelectionNodes() const
-{
-    return Iter<const T, GraphNode>(impl::Selected);
 }
 
 template <class T>
@@ -1405,15 +1393,18 @@ public:
      * @brief The node being added, deleted, clicked, etc..
      */
     GraphNode *GetNode() const          { return m_node; }
+    template <class T> T *GetNode() const;
     /**
      * @brief Set by EVT_GRAPH_CONNECT and EVT_GRAPH_CONNECT_FEEDBACK to
      * indicate the target node.
      */
     GraphNode *GetTarget() const        { return m_target; }
+    template <class T> T *GetTarget() const;
     /**
      * @brief The edge being added, deleted, clicked, etc..
      */
     GraphEdge *GetEdge() const          { return m_edge; }
+    template <class T> T *GetEdge() const;
     /**
      * @brief The cursor position for mouse related events.
      */
@@ -1433,6 +1424,23 @@ private:
 
     DECLARE_DYNAMIC_CLASS(GraphEvent)
 };
+
+// Inline definitions
+
+template <class T> T *GraphEvent::GetNode() const
+{
+    return dynamic_cast<T*>(m_node);
+}
+
+template <class T> T *GraphEvent::GetTarget() const
+{
+    return dynamic_cast<T*>(m_target);
+}
+
+template <class T> T *GraphEvent::GetEdge() const
+{
+    return dynamic_cast<T*>(m_edge);
+}
 
 typedef void (wxEvtHandler::*GraphEventFunction)(GraphEvent&);
 

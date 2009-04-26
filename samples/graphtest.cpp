@@ -297,6 +297,7 @@ public:
     wxString TextPrompt(const wxString& prompt, const wxString& value);
     ProjectNode *NewNode(const wxTreeItemId& id, const wxPoint& pt);
     bool PickFile(int flags);
+    GraphPrintout *NewPrintout();
 
     template <class T> void AppendTreeItem(const wxTreeItemId& id);
 
@@ -315,7 +316,7 @@ private:
     ProjectDesigner *m_graphctrl;
     GraphElement *m_element;
     GraphEdge *m_edge;
-    GraphNode *m_node;
+    ProjectNode *m_node;
     Graph *m_graph;
     wxString m_filename;
 
@@ -611,7 +612,6 @@ MyFrame::MyFrame(const wxString& title)
     m_printDialogData.GetPrintData().SetOrientation(wxLANDSCAPE);
 
     m_printscale = 100;
-    m_pages = MaxPages(1, 1);
 }
 
 MyFrame::~MyFrame()
@@ -667,7 +667,7 @@ void MyFrame::OnGraphTreeDrop(GraphTreeEvent& event)
 void MyFrame::OnTreeItemActivated(wxTreeEvent& event)
 {
     wxTreeItemId id = event.GetItem();
-    wxPoint pt = m_graph->FindSpace(wxSize(200, 150));
+    wxPoint pt = m_graph->FindSpace<Points>(wxSize(150, 100));
     ProjectNode *node = NewNode(id, pt);
 
     if (node) {
@@ -699,7 +699,7 @@ void MyFrame::OnActivateNode(GraphEvent& event)
 {
     wxLogDebug(_T("OnActivateNode"));
 
-    ProjectNode *node = wxStaticCast(event.GetNode(), ProjectNode);
+    ProjectNode *node = event.GetNode<ProjectNode>();
     int hit = node->HitTest(event.GetPosition());
 
     if (hit == ProjectNode::Hit_Operation) {
@@ -752,7 +752,7 @@ void MyFrame::OnMenuNode(GraphEvent& event)
     wxPoint pt = event.GetPosition();
     wxPoint ptClient = ScreenToClient(m_graphctrl->GraphToScreen(pt));
 
-    m_element = m_node = event.GetNode();
+    m_element = m_node = event.GetNode<ProjectNode>();
     PopupMenu(&menu, ptClient.x, ptClient.y);
     m_element = m_node = NULL;
 }
@@ -1006,55 +1006,45 @@ void MyFrame::OnSetStyle(wxCommandEvent& event)
 
 void MyFrame::OnSetLineStyle(wxCommandEvent& event)
 {
-    Graph::iterator it, end;
-    tie(it, end) = m_graph->GetSelection();
+    GraphIterator<GraphEdge> it, end;
+    tie(it, end) = m_graph->GetSelection<GraphEdge>();
 
-    while (it != end) {
-        GraphEdge *edge = wxDynamicCast(&*it, GraphEdge);
-        ++it;
-        if (edge)
-            edge->SetStyle(event.GetId() - ID_LINE + GraphEdge::Style_Line);
-    }
+    while (it != end)
+        it++->SetStyle(event.GetId() - ID_LINE + GraphEdge::Style_Line);
 }
 
 void MyFrame::OnSetBorderThickness(wxCommandEvent&)
 {
-    ProjectNode *node = wxDynamicCast(m_node, ProjectNode);
-    long thickness = node ? node->GetBorderThickness<Points>() : 0;
+    long thickness = m_node ? m_node->GetBorderThickness<Points>() : 0;
 
     thickness = wxGetNumberFromUser(
         _T("Enter a new thickness for the selected nodes' borders:"), _T(""),
         _T("Set Border Thickness"), thickness, 1, 100, this);
 
-    if (thickness >= 1) {
-        Graph::node_iterator it, end;
+    if (thickness < 1)
+        return;
 
-        for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it) {
-            node = wxDynamicCast(&*it, ProjectNode);
-            if (node)
-                node->SetBorderThickness<Points>(thickness);
-        }
-    }
+    GraphIterator<ProjectNode> it, end;
+
+    for (tie(it, end) = m_graph->GetSelection<ProjectNode>(); it != end; ++it)
+        it->SetBorderThickness<Points>(thickness);
 }
 
 void MyFrame::OnSetCornerRadius(wxCommandEvent&)
 {
-    ProjectNode *node = wxDynamicCast(m_node, ProjectNode);
-    long radius = node ? node->GetCornerRadius<Points>() : 0;
+    long radius = m_node ? m_node->GetCornerRadius<Points>() : 0;
 
     radius = wxGetNumberFromUser(
         _T("Enter a new radius for the selected nodes' corners:"), _T(""),
         _T("Set Corner Radius"), radius, 1, 100, this);
 
-    if (radius >= 1) {
-        Graph::node_iterator it, end;
+    if (radius < 1)
+        return;
 
-        for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it) {
-            node = wxDynamicCast(&*it, ProjectNode);
-            if (node)
-                node->SetCornerRadius<Points>(radius);
-        }
-    }
+    GraphIterator<ProjectNode> it, end;
+
+    for (tie(it, end) = m_graph->GetSelection<ProjectNode>(); it != end; ++it)
+        it->SetCornerRadius<Points>(radius);
 }
 
 void MyFrame::OnNew(wxCommandEvent&)
@@ -1088,14 +1078,9 @@ void MyFrame::OnOpen(wxCommandEvent&)
     if (!PickFile(wxFD_OPEN))
         return;
 
-    //delete m_graph;
-    //m_graph = new Graph(this);
-
     wxFFileInputStream stream(m_filename);
     if (stream.IsOk())
         m_graph->Deserialise(stream);
-
-    //m_graphctrl->SetGraph(m_graph);
 }
 
 void MyFrame::OnSave(wxCommandEvent& event)
@@ -1180,10 +1165,10 @@ void MyFrame::OnSaveImage(wxCommandEvent&)
 //
 void MyFrame::OnPrint(wxCommandEvent&)
 {
-    GraphPrintout printout(
-        m_graph, m_pageSetupDialogData, m_printscale, m_pages);
+    GraphPrintout *printout = NewPrintout();
     wxPrinter printer(&m_printDialogData);
-    printer.Print(this, &printout);
+    printer.Print(this, printout);
+    delete printout;
 }
 
 // Show the page setup dialog
@@ -1219,17 +1204,15 @@ void MyFrame::OnPrintSetup(wxCommandEvent&)
 //
 void MyFrame::OnPreview(wxCommandEvent&)
 {
-    GraphPrintout *printout1 = new GraphPrintout(
-        m_graph, m_pageSetupDialogData, m_printscale, m_pages);
-    GraphPrintout *printout2 = new GraphPrintout(
-        m_graph, m_pageSetupDialogData, m_printscale, m_pages);
+    GraphPrintout *printout1 = NewPrintout();
+    GraphPrintout *printout2 = NewPrintout();
 
     // pass two printout objects: 1 for preview, and 2 for possible printing
     wxPrintPreview *preview = new wxPrintPreview(
         printout1, printout2, &m_printDialogData);
     if (!preview->Ok()) {
         delete preview;
-        wxMessageBox(_("A printer needs to be installed for print preview."));
+        wxMessageBox(_T("A printer needs to be installed for print preview."));
         return;
     }
 
@@ -1240,7 +1223,7 @@ void MyFrame::OnPreview(wxCommandEvent&)
     wxPreviewFrame *frame = new wxPreviewFrame(
             preview,
             this,
-            _("Print Preview"),
+            _T("Print Preview"),
             wxDefaultPosition,
             size,
             wxDEFAULT_FRAME_STYLE | wxMAXIMIZE);
@@ -1250,12 +1233,20 @@ void MyFrame::OnPreview(wxCommandEvent&)
     frame->Show(true);
 }
 
+GraphPrintout *MyFrame::NewPrintout()
+{
+    return new GraphPrintout(
+        m_graph, m_pageSetupDialogData, m_printscale, m_pages,
+        Footer(m_filename, wxALIGN_LEFT) +
+        Footer(_T("%PAGE% / %PAGES%"), wxALIGN_RIGHT));
+}
+
 void MyFrame::OnPrintScaling(wxCommandEvent&)
 {
     wxString str;
     str << m_printscale << _T("%");
-    if (m_pages.total)
-        str << _T(", ") << m_pages.total;
+    if (m_pages.pages)
+        str << _T(", ") << m_pages.pages;
     else if (m_pages.rows || m_pages.cols)
         str << _T(", ") << m_pages.rows << _T("x") << m_pages.cols;
 
@@ -1268,7 +1259,7 @@ void MyFrame::OnPrintScaling(wxCommandEvent&)
            << _T("and optionally one of:\n")
            << _T("    a max number of pages in rows and columns, e.g. '3x3', (0 = no limit)\n")
            << _T("or:\n")
-           << _T("    a max total pages, e.g. '6' (not implemented)");
+           << _T("    a max total pages, e.g. '6'");
 
     str = wxGetTextFromUser(prompt, _T("Print Scaling"), str, this);
 

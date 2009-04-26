@@ -998,6 +998,8 @@ public:
      * @param columns The columns for the grid pattern or 0 for the default.
      */
     wxPoint FindSpace(const wxSize& spacing, int columns = 0);
+    template <class T>
+    wxPoint FindSpace(const wxSize& spacing, int columns = 0);
     /**
      * @brief Finds an empty space for a new node.
      *
@@ -1008,6 +1010,10 @@ public:
      * @param spacing The grid spacing for the search pattern.
      * @param columns The columns for the grid pattern or 0 for the default.
      */
+    wxPoint FindSpace(const wxPoint& position,
+                      const wxSize& spacing,
+                      int columns = 0);
+    template <class T>
     wxPoint FindSpace(const wxPoint& position,
                       const wxSize& spacing,
                       int columns = 0);
@@ -1256,6 +1262,22 @@ GraphNode *Graph::Add(GraphNode *node, wxPoint pt, wxSize size)
 {
     return Add(node, Pixels::From<T>(pt, m_dpi),
                      Pixels::From<T>(size, m_dpi));
+}
+
+template <class T>
+wxPoint Graph::FindSpace(const wxSize& spacing, int columns)
+{
+    return FindSpace(Pixels::From<T>(spacing, m_dpi), columns);
+}
+
+template <class T>
+wxPoint Graph::FindSpace(const wxPoint& position,
+                         const wxSize& spacing,
+                         int columns)
+{
+    return FindSpace(Pixels::From<T>(position, m_dpi),
+                     Pixels::From<T>(spacing, m_dpi),
+                     columns);
 }
 
 template <class T> void Graph::SetGridSpacing(int spacing)

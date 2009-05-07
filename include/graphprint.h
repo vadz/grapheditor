@@ -81,7 +81,7 @@ inline PrintLabels operator+(const PrintLabels& l1, const PrintLabels& l2)
 inline PrintLabels Footer(
     const wxString& text = _T("Page %PAGE% of %PAGES%"),
     int align = wxALIGN_CENTRE,
-    int height = 12,
+    int height = 10,
     const wxFont& font = wxFont(12, wxSWISS, wxNORMAL, wxNORMAL))
 {
     return PrintLabel(text, align | wxALIGN_BOTTOM | wxBOTTOM, height, font);
@@ -90,7 +90,7 @@ inline PrintLabels Footer(
 inline PrintLabels Header(
     const wxString& text = _T("Page %PAGE% of %PAGES%"),
     int align = wxALIGN_CENTRE,
-    int height = 12,
+    int height = 10,
     const wxFont& font = wxFont(12, wxSWISS, wxNORMAL, wxNORMAL))
 {
     return PrintLabel(text, align | wxALIGN_TOP | wxTOP, height, font);

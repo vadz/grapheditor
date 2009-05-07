@@ -103,6 +103,8 @@ void GraphPages::PreparePrinting()
     int xdpi, ydpi;
     m_printout->GetPPIPrinter(&xdpi, &ydpi);
 
+    wxSize dpiGraph = m_graph->GetDPI();
+
     // convert the margins into printer pixels
     int left   = MM::To<Pixels>(m_setup.GetMarginTopLeft().x, xdpi);
     int right  = MM::To<Pixels>(m_setup.GetMarginBottomRight().x, xdpi);
@@ -123,7 +125,7 @@ void GraphPages::PreparePrinting()
 
     // calculate the height of the page headers and footers
     int header = 0, footer = 0;
-    PrintLabels::const_iterator it;
+    PrintLabels::iterator it;
 
     for (it = m_labels.begin(); it != m_labels.end(); ++it) {
         int height = MM::To<Pixels>(it->GetHeight(), ydpi);
@@ -133,6 +135,10 @@ void GraphPages::PreparePrinting()
             header = max(header, height);
         else if (position == wxBOTTOM)
             footer = max(footer, height);
+
+        wxFont font = it->GetFont();
+        font.SetPointSize(font.GetPointSize() * ydpi / dpiGraph.y);
+        it->SetFont(font);
     }
 
     m_header = m_print;
@@ -145,7 +151,6 @@ void GraphPages::PreparePrinting()
 
     // size of graph in inches
     wxRect rcGraph = m_graph->GetBounds();
-    wxSize dpiGraph = m_graph->GetDPI();
     double wGraph = double(rcGraph.width) / dpiGraph.x;
     double hGraph = double(rcGraph.height) / dpiGraph.y;
 
@@ -188,13 +193,16 @@ void GraphPages::PreparePrinting()
 void GraphPages::DrawLabel(wxDC *dc, const PrintLabel& label,
                            const wxRect& rc, int page, int row, int col)
 {
+    int min, max, from, to;
+    GetPrintout()->GetPageInfo(&min, &max, &from, &to);
+
     wxString text = label.GetText();
     text.Replace(_T("%ROW%"),   wxString() << row);
     text.Replace(_T("%ROWS%"),  wxString() << GetRows());
     text.Replace(_T("%COL%"),   wxString() << col);
     text.Replace(_T("%COLS%"),  wxString() << GetCols());
     text.Replace(_T("%PAGE%"),  wxString() << page);
-    text.Replace(_T("%PAGES%"), wxString() << GetPages());
+    text.Replace(_T("%PAGES%"), wxString() << max);
 
     dc->SetFont(label.GetFont());
     dc->DrawLabel(text, rc, label.GetAlignment());

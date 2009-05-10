@@ -92,11 +92,27 @@ public:
     void SetCornerRadius(int radius);
     template <class T> void SetCornerRadius(int radius);
 
+    //@{
+    /**
+     * @brief The maximum size that will be automatically set.
+     *
+     * The minimum size of the node if the content text would otherwise
+     * force a larger size.
+     * */
+    wxSize GetMaxAutoSize() const { return m_maxAutoSize; }
+    template <class T> wxSize GetMaxAutoSize() const;
+    void SetMaxAutoSize(const wxSize& size) { m_maxAutoSize = size; }
+    template <class T> void SetMaxAutoSize(const wxSize& size);
+    //@}
+
     void OnDraw(wxDC& dc);
     void OnLayout(wxDC &dc);
 
     wxPoint GetPerimeterPoint(const wxPoint& inside,
                               const wxPoint& outside) const;
+
+protected:
+    int GetSpacing() const;
 
 private:
     typedef tt_solutions::Pixels Pixels;
@@ -115,7 +131,7 @@ private:
     wxRect m_rcIcon;
     wxRect m_rcText;
     wxRect m_rcResult;
-    wxSize m_minSize;
+    wxSize m_maxAutoSize;
     int m_divide;
 
     DECLARE_DYNAMIC_CLASS(ProjectNode)
@@ -211,6 +227,16 @@ template <class T> void ProjectNode::SetCornerRadius(int radius)
     m_cornerRadius = Twips::From<T>(radius, GetDPI().y);
     Layout();
     Refresh();
+}
+
+template <class T> wxSize ProjectNode::GetMaxAutoSize() const
+{
+    return Pixels::To<T>(GetMaxAutoSize(), GetDPI());
+}
+
+template <class T> void ProjectNode::SetMaxAutoSize(const wxSize& size)
+{
+    SetMaxAutoSize(Pixels::From<T>(size, GetDPI()));
 }
 
 } // namespace datactics

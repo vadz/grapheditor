@@ -16,6 +16,9 @@ namespace datactics {
 
 using namespace tt_solutions;
 
+#undef min
+#undef max
+
 using std::min;
 using std::max;
 using std::abs;
@@ -227,7 +230,8 @@ ProjectNode::ProjectNode(const wxString& operation,
   : GraphNode(operation, colour, bgcolour, textcolour),
     m_id(id),
     m_result(result),
-    m_icon(icon)
+    m_icon(icon),
+    m_maxAutoSize(Pixels::From<Points>(wxSize(144, 72), GetDPI()))
 {
     m_borderThickness = 90;
     m_cornerRadius = 150;
@@ -242,6 +246,7 @@ ProjectNode::~ProjectNode()
 void ProjectNode::SetText(const wxString& text)
 {
     m_rcText = wxRect();
+    SetToolTip(wxEmptyString);
     GraphNode::SetText(text);
 }
 
@@ -261,6 +266,7 @@ void ProjectNode::SetResult(const wxString& text)
 {
     m_result = text;
     m_rcResult = wxRect();
+    SetToolTip(wxEmptyString);
     Layout();
     Refresh();
 }
@@ -295,11 +301,7 @@ int ProjectNode::HitTest(const wxPoint& pt) const
     return Hit_Yes;
 }
 
-// Recalculates the positions of the things within the node. Only recalcs
-// the sizes of the text lables, m_rcText and m_rcResult, when the rects
-// are null, so usual it runs quickly.
-//
-void ProjectNode::OnLayout(wxDC &dc)
+int ProjectNode::GetSpacing() const
 {
     int spacing = 0;
     int border = GetBorderThickness();
@@ -312,6 +314,19 @@ void ProjectNode::OnLayout(wxDC &dc)
     // if the border is thicker than the corner curve then just allow 3
     if (spacing < border + 3)
         spacing = border + 3;
+
+    return spacing;
+}
+
+// Recalculates the positions of the things within the node. Only recalcs
+// the sizes of the text lables, m_rcText and m_rcResult, when the rects
+// are null, so usual it runs quickly.
+//
+void ProjectNode::OnLayout(wxDC &dc)
+{
+    int spacing = GetSpacing();
+    int border = GetBorderThickness();
+    int corner = GetCornerRadius();
 
     if (m_rcText.IsEmpty() || m_rcResult.IsEmpty())
         dc.SetFont(GetFont());
@@ -351,29 +366,45 @@ void ProjectNode::OnLayout(wxDC &dc)
     m_divide = m_rcText.GetBottom() + 1 + spacing - border;
     m_divide = max(m_divide, corner + border / 2);
 
-    // calculate the min size the node must have to fit everything
-    m_minSize.x = max(m_rcText.GetRight(), m_rcResult.GetRight()) +
-                  spacing + 1;
-    m_minSize.x = max(m_minSize.x, 2 * corner + border);
-    m_minSize.y = max(m_rcIcon.GetHeight(), m_rcResult.GetHeight()) +
-                  m_rcText.GetBottom() + 2 + 2 * spacing;
-    m_minSize.y = max(m_minSize.y, m_divide + corner + border / 2);
+    // calculate the size the node must have to fit everything
+    wxSize fullSize;
+    fullSize.x = max(m_rcText.GetRight(), m_rcResult.GetRight()) + spacing + 1;
+    fullSize.x = max(fullSize.x, 2 * corner + border);
+    fullSize.y = max(m_rcIcon.GetHeight(), m_rcResult.GetHeight()) +
+                 m_rcText.GetBottom() + 2 + 2 * spacing;
+    fullSize.y = max(fullSize.y, m_divide + corner + border / 2);
 
-    wxRect bounds = GetBounds();
+    // the minimum size
+    wxSize minSize;
+    minSize.x = min(fullSize.x, m_maxAutoSize.x);
+    minSize.y = min(fullSize.y, m_maxAutoSize.y);
+
+    wxSize size, orig = GetSize();
 
     // resize the node if it's too small
-    if (bounds.width < m_minSize.x || bounds.height < m_minSize.y) {
-        if (bounds.width < m_minSize.x)
-            bounds.width = m_minSize.x;
-        if (bounds.height < m_minSize.y)
-            bounds.height = m_minSize.y;
-        SetSize(bounds.GetSize());
-    }
+    size.x = max(orig.x, minSize.x);
+    size.y = max(orig.y, minSize.y);
+    if (size != orig)
+        SetSize(size);
 
     // vertically centre the icon and result text in the lower section
-    int mid = (m_divide + bounds.height) / 2;
-    m_rcIcon.y = mid - m_rcIcon.height / 2;
-    m_rcResult.y = mid - m_rcResult.height / 2;
+    int mid = (m_divide + size.y) / 2;
+    m_rcIcon.y = max(m_divide + border, mid - m_rcIcon.height / 2);
+    m_rcResult.y = max(m_divide + border, mid - m_rcResult.height / 2);
+
+    // set the toolip if the text doesn't fit
+    wxRect rcText(m_rcText), rcResult(m_rcResult), inner(size);
+    inner.Deflate(spacing - 1);
+    rcText.Intersect(inner);
+    rcResult.Intersect(inner);
+
+    bool needTip = rcText != m_rcText || rcResult != m_rcResult;
+    bool haveTip = !GetToolTip().empty();
+
+    if (needTip && !haveTip)
+        SetToolTip(GetText() + _T("\n") + GetResult());
+    else if (!needTip && haveTip)
+        SetToolTip(wxEmptyString);
 }
 
 void ProjectNode::OnDraw(wxDC& dc)
@@ -411,6 +442,10 @@ void ProjectNode::OnDraw(wxDC& dc)
         dc.DrawArc(x2, rc.y + r, x2 - r, rc.y, x2 - r, rc.y + r);
         dc.DrawRectangle(x1 + r, rc.y, x2 - x1 - 2 * r, r);
         dc.DrawRectangle(x1, rc.y + r, x2 - x1, m_divide - r);
+
+        wxRect inner(bounds);
+        inner.Deflate(GetSpacing());
+        wxDCClipper clipper(dc, inner.Intersect(clip));
 
         // upper text
         rc = m_rcText;
@@ -514,15 +549,18 @@ wxPoint ProjectNode::GetPerimeterPoint(const wxPoint& inside,
 
 bool ProjectNode::Serialise(Archive::Item& arc)
 {
-    if (!GraphNode::Serialise(arc))
-        return false;
-
     const ProjectNode& def = Factory<ProjectNode>(this).GetDefault();
     arc.Exch(_T("result"), m_result, def.m_result);
     arc.Exch(_T("id"), m_id, def.m_id);
     arc.Exch(_T("borderthickness"), m_borderThickness, def.m_borderThickness);
     arc.Exch(_T("cornerradius"), m_cornerRadius, def.m_cornerRadius);
     arc.Exch(_T("icon"), m_icon, def.m_icon);
+    arc.Exch(_T("maxautosize"), m_maxAutoSize, def.m_maxAutoSize);
+
+    if (!GraphNode::Serialise(arc))
+        return false;
+
+    arc.Remove(_T("tooltip"));
 
     return true;
 }

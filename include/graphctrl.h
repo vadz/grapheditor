@@ -29,6 +29,7 @@
 
 class wxShape;
 class wxLineShape;
+class wxTipWindow;
 
 namespace tt_solutions {
 
@@ -465,6 +466,12 @@ public:
      */
     virtual void SetStyle(int style);
 
+    //@{
+    /** @brief Size of the arrow head, if present. */
+    virtual void SetArrowSize(int size);
+    virtual int GetArrowSize() const;
+    //@}
+
     /**
      * @brief An interator range returning the two nodes this edge connects.
      */
@@ -521,6 +528,8 @@ private:
         GraphLineShape *line, wxClassInfo *classinfo, bool end) const;
 
     template <class T> IterPair<T> Iter() const;
+
+    int m_arrowsize;
 
     DECLARE_DYNAMIC_CLASS(GraphEdge)
 };
@@ -592,15 +601,19 @@ public:
     ~GraphNode();
 
     /** @brief The node's main text label. */
-    virtual wxString GetText() const        { return m_text; }
+    virtual wxString GetText() const { return m_text; }
+    /** @brief Text for the node's tooltip. */
+    virtual wxString GetToolTip(const wxPoint& pt = wxPoint()) const;
     /** @brief The node's font. */
     virtual wxFont GetFont() const;
 
     /** @brief The colour of the node's text. */
-    virtual wxColour GetTextColour() const  { return m_textcolour; }
+    virtual wxColour GetTextColour() const { return m_textcolour; }
 
     /** @brief The node's main text label. */
     virtual void SetText(const wxString& text);
+    /** @brief Text for the node's tooltip. */
+    virtual void SetToolTip(const wxString& text) { m_tooltip = text; }
     /**
      * @brief The node's font.
      *
@@ -742,6 +755,7 @@ private:
 
     wxColour m_textcolour;
     wxString m_text;
+    wxString m_tooltip;
     wxFont m_font;
 
     DECLARE_DYNAMIC_CLASS(GraphNode)
@@ -753,6 +767,7 @@ template <class T> void GraphNode::SetPosition(const wxPoint& pt)
 {
     SetPosition(Pixels::From<T>(pt, GetDPI()));
 }
+
 template <class T> void GraphNode::SetSize(const wxSize& size)
 {
     SetSize(Pixels::From<T>(size, GetDPI()));
@@ -865,6 +880,10 @@ public:
      */
     virtual void SetZoom(double percent);
     /**
+     * @brief Scales the image by the given percantage.
+     */
+    virtual void SetZoom(double percent, const wxPoint& pt);
+    /**
      * @brief Returns the current scaling as a percentage.
      */
     virtual double GetZoom();
@@ -886,6 +905,22 @@ public:
     virtual void EnsureVisible(const GraphElement& element);
     /** @brief Scroll the Graph, centering on the element. */
     virtual void ScrollTo(const GraphElement& element);
+    /** @brief Scroll to the top/bottom/left/right side of the graph. */
+    virtual void ScrollTo(int side);
+    /** @brief Centre the given graph coordinate in the view. */
+    virtual void ScrollTo(const wxPoint& ptGraph);
+    /** @brief Returns the centre of the view in graph coordinates. */
+    virtual wxPoint GetScrollPosition() const;
+    /** @brief Home the graph in the view, make the topmost node visible. */
+    virtual void Home();
+    /** @brief Fit the Graph to the view. */
+    virtual void Fit();
+
+    //@
+    /** @brief The delay in milliseconds before node's tooltips are shown. */
+    void SetToolTipDelay(int millisecs) { m_tipdelay = millisecs; }
+    int GetToolTipDelay() const { return m_tipdelay; }
+    //@}
 
     /**
      * @brief Converts a point from screen coordinates to the coordinate
@@ -905,6 +940,11 @@ public:
     virtual wxWindow *GetCanvas() const;
 
     void OnSize(wxSizeEvent& event);
+    void OnChar(wxKeyEvent& event);
+    void OnMouseWheel(wxMouseEvent& event);
+    void OnMouseMove(wxMouseEvent& event);
+    void OnMouseLeave(wxMouseEvent& event);
+    void OnTipTimer(wxTimerEvent& event);
 
     /**
      * @brief A default value for the constructor's name parameter.
@@ -912,9 +952,14 @@ public:
     static const wxChar DefaultName[];
 
 private:
+    void ScrollHomeEnd(bool home);
+
     impl::Initialisor m_initalise;
     impl::GraphCanvas *m_canvas;
     Graph *m_graph;
+    wxTimer m_tiptimer;
+    int m_tipdelay;
+    wxTipWindow *m_tipwin;
 
     DECLARE_EVENT_TABLE()
     DECLARE_DYNAMIC_CLASS(GraphCtrl)
@@ -952,6 +997,9 @@ public:
     Graph(wxEvtHandler *handler = NULL);
     /** @brief Destructor. */
     ~Graph();
+
+    /** @brief Clear all the graph's data. */
+    virtual void New();
 
     /** @brief Adds a node to the graph. The Graph object takes ownership. */
     virtual GraphNode *Add(GraphNode *node,
@@ -1208,6 +1256,14 @@ public:
     void SetFont(const wxFont& font);
     wxFont GetFont() const;
 
+    //@{
+    /** @brief Returns topmost element at the given coordinates. */
+    inline GraphNode *HitTest(const wxPoint& pt);
+    inline const GraphNode *HitTest(const wxPoint& pt) const;
+    template <class T> T *HitTest(const wxPoint& pt);
+    template <class T> const T *HitTest(const wxPoint& pt) const;
+    //@}
+
     /**
      * @brief Render the graph onto a DC for printing or export to bitmap.
      */
@@ -1293,6 +1349,40 @@ template <class T> int Graph::GetGridSpacing() const
 template <class T> wxRect Graph::GetBounds() const
 {
     return Pixels::To<T>(GetBounds(), GetDPI());
+}
+
+template <class T> T *Graph::HitTest(const wxPoint& pt)
+{
+    GraphIterator<T> begin, it;
+    tie(begin, it) = GetElements<T>();
+
+    while (it != begin)
+        if ((--it)->GetBounds().Contains(pt))
+            return &*it;
+
+    return NULL;
+}
+
+template <class T> const T *Graph::HitTest(const wxPoint& pt) const
+{
+    GraphIterator<const T> begin, it;
+    tie(begin, it) = GetElements<const T>();
+
+    while (it != begin)
+        if ((--it)->GetBounds().Contains(pt))
+            return &*it;
+
+    return NULL;
+}
+
+GraphNode *Graph::HitTest(const wxPoint& pt)
+{
+    return HitTest<GraphNode>(pt);
+}
+
+const GraphNode *Graph::HitTest(const wxPoint& pt) const
+{
+    return HitTest<const GraphNode>(pt);
 }
 
 Graph::const_iterator_pair Graph::GetElements() const

@@ -272,6 +272,8 @@ public:
     void OnZoomIn(wxCommandEvent& event);
     void OnZoomOut(wxCommandEvent& event);
     void OnSetZoom(wxCommandEvent&);
+    void OnZoomNorm(wxCommandEvent&);
+    void OnFit(wxCommandEvent&);
     void OnShowGrid(wxCommandEvent& event);
     void OnUIShowGrid(wxUpdateUIEvent& event);
     void OnSnapToGrid(wxCommandEvent&);
@@ -291,6 +293,7 @@ public:
     void OnSetTextColour(wxCommandEvent& event);
     void OnSetStyle(wxCommandEvent&);
     void OnSetLineStyle(wxCommandEvent&);
+    void OnSetArrowSize(wxCommandEvent& event);
     void OnSetBorderThickness(wxCommandEvent& event);
     void OnSetCornerRadius(wxCommandEvent& event);
 
@@ -305,11 +308,7 @@ public:
                                 const ProjectNode& node,
                                 TreeItemData *tid = NULL);
 
-    enum {
-        ZoomMin = 25,
-        ZoomMax = 300,
-        ZoomStep = 25
-    };
+    enum { ZoomStep = 25 };
 
 private:
     GraphTreeCtrl *m_tree;
@@ -346,6 +345,8 @@ enum {
     ID_SNAPTOGRID,
     ID_SETGRID,
     ID_ZOOM,
+    ID_ZOOM_NORM,
+    ID_FIT,
     ID_LAYOUT,
     ID_SETSIZE,
     ID_SETFONT,
@@ -360,6 +361,7 @@ enum {
     ID_DIAMOND,
     ID_LINE,
     ID_ARROW,
+    ID_ARROWSIZE,
     ID_SETBORDERTHCKNESS,
     ID_SETCORNERRADIUS
 };
@@ -393,6 +395,8 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(wxID_ZOOM_IN, MyFrame::OnZoomIn)
     EVT_MENU(wxID_ZOOM_OUT, MyFrame::OnZoomOut)
     EVT_MENU(ID_ZOOM, MyFrame::OnSetZoom)
+    EVT_MENU(ID_ZOOM_NORM, MyFrame::OnZoomNorm)
+    EVT_MENU(ID_FIT, MyFrame::OnFit)
     EVT_MENU(ID_SHOWGRID, MyFrame::OnShowGrid)
     EVT_UPDATE_UI(ID_SHOWGRID, MyFrame::OnUIShowGrid)
     EVT_MENU(ID_SNAPTOGRID, MyFrame::OnSnapToGrid)
@@ -412,6 +416,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(ID_DIAMOND, MyFrame::OnSetStyle)
     EVT_MENU(ID_LINE, MyFrame::OnSetLineStyle)
     EVT_MENU(ID_ARROW, MyFrame::OnSetLineStyle)
+    EVT_MENU(ID_ARROWSIZE, MyFrame::OnSetArrowSize)
     EVT_MENU(ID_SETBORDERTHCKNESS, MyFrame::OnSetBorderThickness)
     EVT_MENU(ID_SETCORNERRADIUS, MyFrame::OnSetCornerRadius)
 
@@ -528,7 +533,9 @@ MyFrame::MyFrame(const wxString& title)
     testMenu->AppendSeparator();
     testMenu->Append(wxID_ZOOM_IN, _T("Zoom&In\t+"));
     testMenu->Append(wxID_ZOOM_OUT, _T("Zoom&Out\t-"));
+    testMenu->Append(ID_ZOOM_NORM, _T("Zoom 100%\tAlt+0"));
     testMenu->Append(ID_ZOOM, _T("Zoom\tAlt+Z"));
+    testMenu->Append(ID_FIT, _T("Fit to Window\tCtrl+F"));
 
     // help menu
     wxMenu *helpMenu = new wxMenu;
@@ -553,6 +560,7 @@ MyFrame::MyFrame(const wxString& title)
     m_graph = new Graph(this);
     m_graphctrl->SetGraph(m_graph);
     splitter->SplitVertically(m_tree, m_graphctrl, 240);
+    //m_graphctrl->SetFocus();
 
     // grey grid on a white background
     m_graphctrl->SetForegroundColour(*wxLIGHT_GREY);
@@ -870,6 +878,7 @@ void MyFrame::OnMenuEdge(GraphEvent& event)
     submenu->Append(ID_LINE, _T("&Line"));
     submenu->Append(ID_ARROW, _T("&Arrow"));
     menu.Append(ID_STYLE, _T("Set &Style"), submenu);
+    menu.Append(ID_ARROWSIZE, _T("Arrow Si&ze"));
 
     wxPoint pt = event.GetPosition();
     wxPoint ptClient = ScreenToClient(m_graphctrl->GraphToScreen(pt));
@@ -1013,6 +1022,24 @@ void MyFrame::OnSetLineStyle(wxCommandEvent& event)
         it++->SetStyle(event.GetId() - ID_LINE + GraphEdge::Style_Line);
 }
 
+void MyFrame::OnSetArrowSize(wxCommandEvent& event)
+{
+    long size = m_edge ? m_edge->GetArrowSize() : 0;
+
+    size = wxGetNumberFromUser(
+        _T("Enter a new arrow size for the selected lines:"), _T(""),
+        _T("Set Arrow Size"), size, 0, 30, this);
+
+    if (size < 0)
+        return;
+
+    GraphIterator<GraphEdge> it, end;
+    tie(it, end) = m_graph->GetSelection<GraphEdge>();
+
+    while (it != end)
+        it++->SetArrowSize(size);
+}
+
 void MyFrame::OnSetBorderThickness(wxCommandEvent&)
 {
     long thickness = m_node ? m_node->GetBorderThickness<Points>() : 0;
@@ -1049,9 +1076,7 @@ void MyFrame::OnSetCornerRadius(wxCommandEvent&)
 
 void MyFrame::OnNew(wxCommandEvent&)
 {
-    delete m_graph;
-    m_graph = new Graph(this);
-    m_graphctrl->SetGraph(m_graph);
+    m_graph->New();
     m_filename.clear();
 }
 
@@ -1324,23 +1349,25 @@ void MyFrame::OnZoomIn(wxCommandEvent&)
 {
     double zoom = m_graphctrl->GetZoom();
     zoom += ZoomStep;
-    if (zoom <= ZoomMax)
-        m_graphctrl->SetZoom(zoom);
+    m_graphctrl->SetZoom(zoom);
 }
 
 void MyFrame::OnZoomOut(wxCommandEvent&)
 {
     double zoom = m_graphctrl->GetZoom();
     zoom -= ZoomStep;
-    if (zoom >= ZoomMin)
-        m_graphctrl->SetZoom(zoom);
+    m_graphctrl->SetZoom(zoom);
+}
+
+void MyFrame::OnZoomNorm(wxCommandEvent&)
+{
+    m_graphctrl->SetZoom(100);
 }
 
 void MyFrame::OnSetZoom(wxCommandEvent&)
 {
     wxString prompt;
-    prompt << _T("Enter a new zoom percentage [");
-    prompt << ZoomMin << _T(".0-") << ZoomMax << _T(".0]:");
+    prompt << _T("Enter a new zoom percentage:");
 
     wxString str;
     str << m_graphctrl->GetZoom();
@@ -1349,7 +1376,12 @@ void MyFrame::OnSetZoom(wxCommandEvent&)
 
     double zoom;
     if (str.ToDouble(&zoom))
-        m_graphctrl->SetZoom(wxMin(ZoomMax, wxMax(ZoomMin, zoom)));
+        m_graphctrl->SetZoom(zoom);
+}
+
+void MyFrame::OnFit(wxCommandEvent&)
+{
+    m_graphctrl->Fit();
 }
 
 void MyFrame::OnShowGrid(wxCommandEvent&)

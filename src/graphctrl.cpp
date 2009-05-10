@@ -38,6 +38,7 @@
 // the client data field for anything else.
 
 #include "graphctrl.h"
+#include <wx/tipwin.h>
 #include <wx/ogl/ogl.h>
 #include <bitset>
 #include <set>
@@ -266,10 +267,14 @@ public:
     void SetGraph(Graph *graph) { m_graph = graph; }
     Graph *GetGraph() const { return m_graph; }
 
+    bool ProcessEvent(wxEvent& event);
+
     void OnScroll(wxScrollWinEvent& event);
     void OnIdle(wxIdleEvent& event);
     void OnPaint(wxPaintEvent& event);
     void OnSize(wxSizeEvent& event);
+    void OnSetFocus(wxFocusEvent& event);
+    void OnLeftDown(wxMouseEvent& event);
 
     void PrepareDC(wxDC& dc);
 
@@ -278,16 +283,21 @@ public:
     void SetCheckBounds() { m_checkBounds = true; }
     void CheckBounds();
 
-    void ScrollTo(const wxPoint& ptGraph, bool draw = true);
-    wxPoint ScrollByOffset(int x, int y, bool draw = true);
+    void DoScroll(int orient, int type, int pos = 0, int lines = 1);
 
-    void EnsureVisible(const wxRect& rc);
+    void ScrollTo(const wxPoint& ptGraph, bool draw = true);
+    void ScrollTo(int side, bool draw = true);
+    wxPoint ScrollByOffset(int x, int y, bool draw = true);
+    void EnsureVisible(wxRect rc, bool draw = true);
+
+    wxPoint GetScroll() const;
 
     wxRect ScreenToGraph(const wxRect& rcScreen);
     wxRect GraphToScreen(const wxRect& rcGraph);
 
 private:
     static wxWindow *EnsureParent(wxWindow *parent);
+    enum { MARGIN = 16 };
 
     Graph *m_graph;
     bool m_isPanning;
@@ -310,6 +320,8 @@ BEGIN_EVENT_TABLE(GraphCanvas, wxShapeCanvas)
     EVT_IDLE(GraphCanvas::OnIdle)
     EVT_PAINT(GraphCanvas::OnPaint)
     EVT_SIZE(GraphCanvas::OnSize)
+    EVT_LEFT_DOWN(GraphCanvas::OnLeftDown)
+    EVT_SET_FOCUS(GraphCanvas::OnSetFocus)
 END_EVENT_TABLE()
 
 GraphCanvas::GraphCanvas(
@@ -333,6 +345,27 @@ GraphCanvas::~GraphCanvas()
     wxFrame *dummy = wxDynamicCast(GetParent(), wxFrame);
     if (dummy)
         dummy->Destroy();
+}
+
+bool GraphCanvas::ProcessEvent(wxEvent& event)
+{
+    if (event.IsKindOf(CLASSINFO(wxMouseEvent)))
+        if (GetParent()->GetEventHandler()->ProcessEvent(event))
+            return true;
+
+    return wxShapeCanvas::ProcessEvent(event);
+}
+
+void GraphCanvas::OnSetFocus(wxFocusEvent& event)
+{
+    GetParent()->SetFocus();
+}
+
+void GraphCanvas::OnLeftDown(wxMouseEvent& event)
+{
+    if (FindFocus() != GetParent())
+        SetFocus();
+    event.Skip();
 }
 
 wxWindow *GraphCanvas::EnsureParent(wxWindow *parent)
@@ -450,11 +483,9 @@ void GraphCanvas::OnEndDragLeft(double x, double y, int key)
     }
 }
 
-void GraphCanvas::OnScroll(wxScrollWinEvent& event)
+void GraphCanvas::DoScroll(int orient, int type, int pos, int lines)
 {
-    bool horz = event.GetOrientation() == wxHORIZONTAL;
-    int type = event.GetEventType();
-    int pos = event.GetPosition();
+    bool horz = orient == wxHORIZONTAL;
     int scroll = horz ? m_xScrollPosition : m_yScrollPosition;
     int size = horz ? m_virtualSize.x : m_virtualSize.y;
     int cs = horz ? GetClientSize().x : GetClientSize().y;
@@ -464,9 +495,9 @@ void GraphCanvas::OnScroll(wxScrollWinEvent& event)
     else if (type == wxEVT_SCROLLWIN_BOTTOM)
         pos = size;
     else if (type == wxEVT_SCROLLWIN_LINEUP)
-        pos = scroll - 10;
+        pos = scroll - 16 * lines;
     else if (type == wxEVT_SCROLLWIN_LINEDOWN)
-        pos = scroll + 10;
+        pos = scroll + 16 * lines;
     else if (type == wxEVT_SCROLLWIN_PAGEUP)
         pos = scroll - cs;
     else if (type == wxEVT_SCROLLWIN_PAGEDOWN)
@@ -481,6 +512,18 @@ void GraphCanvas::OnScroll(wxScrollWinEvent& event)
         ScrollByOffset(pos - m_xScrollPosition, 0);
     else
         ScrollByOffset(0, pos - m_yScrollPosition);
+}
+
+void GraphCanvas::OnScroll(wxScrollWinEvent& event)
+{
+    if (FindFocus() != GetParent())
+        SetFocus();
+
+    int orient = event.GetOrientation();
+    int type = event.GetEventType();
+    int pos = event.GetPosition();
+
+    DoScroll(orient, type, pos);
 }
 
 // The scrollbars are sized to allow scrolling over the bounding rectangle of
@@ -518,12 +561,14 @@ void GraphCanvas::CheckBounds()
     b.y = dc.LogicalToDeviceY(b.y);
     b.width = dc.LogicalToDeviceXRel(b.width);
     b.height = dc.LogicalToDeviceYRel(b.height);
+    if (!b.IsEmpty())
+        b.Inflate(cs);
 
-    int x = min(min(0, b.x) + m_xScrollPosition, m_ptOrigin.x);
+    int x = min(0, b.x) + m_xScrollPosition;
     m_ptOrigin.x -= x;
     m_xScrollPosition -= x;
 
-    int y = min(min(0, b.y) + m_yScrollPosition, m_ptOrigin.y);
+    int y = min(0, b.y) + m_yScrollPosition;
     m_ptOrigin.y -= y;
     m_yScrollPosition -= y;
 
@@ -533,12 +578,7 @@ void GraphCanvas::CheckBounds()
     while (!done) {
         done = true;
 
-        if (m_xScrollPosition == 0 && m_ptOrigin.x == 0)
-            m_virtualSize.x = b.GetRight();
-        else
-            m_virtualSize.x =
-                max(max(cs.x, b.GetRight()) + m_xScrollPosition,
-                    m_ptOrigin.x + cs.x);
+        m_virtualSize.x = max(cs.x, b.GetRight()) + m_xScrollPosition;
 
         if (m_virtualSize.x > cs.x) {
             SetScrollbar(wxHORIZONTAL, m_xScrollPosition, cs.x,
@@ -547,12 +587,7 @@ void GraphCanvas::CheckBounds()
             needHBar = true;
         }
 
-        if (m_yScrollPosition == 0 && m_ptOrigin.y == 0)
-            m_virtualSize.y = b.GetBottom();
-        else
-            m_virtualSize.y =
-                max(max(cs.y, b.GetBottom()) + m_yScrollPosition,
-                    m_ptOrigin.y + cs.y);
+        m_virtualSize.y = max(cs.y, b.GetBottom()) + m_yScrollPosition;
 
         if (m_virtualSize.y > cs.y) {
             SetScrollbar(wxVERTICAL, m_yScrollPosition, cs.y, m_virtualSize.y);
@@ -596,6 +631,11 @@ void GraphCanvas::PrepareDC(wxDC& dc)
     dc.SetUserScale(m_scaleX, m_scaleY);
 }
 
+wxPoint GraphCanvas::GetScroll() const
+{
+    return wxPoint(m_xScrollPosition, m_yScrollPosition);
+}
+
 void GraphCanvas::ScrollTo(const wxPoint& ptGraph, bool draw)
 {
     wxClientDC dc(this);
@@ -621,10 +661,12 @@ wxPoint GraphCanvas::ScrollByOffset(int x, int y, bool draw)
     return wxPoint(x, y);
 }
 
-void GraphCanvas::EnsureVisible(const wxRect& rcGraph)
+void GraphCanvas::EnsureVisible(wxRect rcGraph, bool draw)
 {
     wxClientDC dc(this);
     PrepareDC(dc);
+
+    rcGraph.Inflate(dc.GetPPI() * MARGIN / 72);
 
     wxRect rc(dc.LogicalToDeviceX(rcGraph.x),
               dc.LogicalToDeviceY(rcGraph.y),
@@ -646,7 +688,50 @@ void GraphCanvas::EnsureVisible(const wxRect& rcGraph)
         y = rc.GetBottom() - rcClient.GetBottom();
 
     if (x || y)
-        ScrollByOffset(x, y);
+        ScrollByOffset(x, y, draw);
+}
+
+void GraphCanvas::ScrollTo(int side, bool draw)
+{
+    wxASSERT(m_graph);
+
+    wxClientDC dc(this);
+    PrepareDC(dc);
+
+    wxRect rcGraph = m_graph->GetBounds();
+    rcGraph.Inflate(dc.GetPPI() * MARGIN / 72);
+
+    wxRect rc(dc.LogicalToDeviceX(rcGraph.x),
+              dc.LogicalToDeviceY(rcGraph.y),
+              dc.LogicalToDeviceXRel(rcGraph.width),
+              dc.LogicalToDeviceYRel(rcGraph.height));
+
+    wxRect rcClient = GetClientSize();
+
+    rc += rcClient.CentreIn(rc);
+
+    int x = 0, y = 0;
+
+    if ((side & wxLEFT) != 0)
+        x = rc.x - rcClient.x;
+    else if ((side & wxRIGHT) != 0)
+        x = rc.GetRight() - rcClient.GetRight();
+    else if (rc.x > rcClient.x)
+        x = rc.x - rcClient.x;
+    else if (rc.GetRight() < rcClient.GetRight())
+        x = rc.GetRight() - rcClient.GetRight();
+
+    if ((side & wxTOP) != 0)
+        y = rc.y - rcClient.y;
+    else if ((side & wxBOTTOM) != 0)
+        y = rc.GetBottom() - rcClient.GetBottom();
+    else if (rc.y > rcClient.y)
+        y = rc.y - rcClient.y;
+    else if (rc.GetBottom() < rcClient.GetBottom())
+        y = rc.GetBottom() - rcClient.GetBottom();
+
+    if (x || y)
+        ScrollByOffset(x, y, draw);
 }
 
 wxRect GraphCanvas::ScreenToGraph(const wxRect& rcScreen)
@@ -1486,14 +1571,12 @@ Graph::Graph(wxEvtHandler *handler)
     m_handler(handler),
     m_dpi(wxScreenDC().GetPPI())
 {
-    SetGridSpacing(m_dpi.y / 18);
+    New();
 }
 
 Graph::~Graph()
 {
-    Delete(GetElements());
-    m_diagram->DeleteAllShapes();
-
+    New();
     GraphCtrl *ctrl = GetCtrl();
 
     if (ctrl) {
@@ -1505,6 +1588,25 @@ Graph::~Graph()
     }
 
     delete m_diagram;
+}
+
+void Graph::New()
+{
+    iterator it, end;
+    for (tie(it, end) = GetElements(); it != end; )
+        delete &*it++;
+
+    m_diagram->DeleteAllShapes();
+
+    wxShapeCanvas *canvas = m_diagram->GetCanvas();
+    if (canvas) {
+        canvas->SetFont(DefaultFont());
+        wxStaticCast(canvas, GraphCanvas)->ScrollTo(wxPoint(0, 0), false);
+    }
+
+    SetGridSpacing(m_dpi.y / 18);
+
+    RefreshBounds();
 }
 
 void Graph::SetEventHandler(wxEvtHandler *handler)
@@ -2137,9 +2239,7 @@ bool Graph::Deserialise(wxInputStream& stream)
 
 bool Graph::Deserialise(Archive& archive)
 {
-    Delete(GetElements());
-    m_diagram->DeleteAllShapes();
-
+    New();
     Archive::Item *item = archive.Get(TAGGRAPH);
 
     if (item) {
@@ -2159,7 +2259,16 @@ bool Graph::Deserialise(Archive& archive)
             item->SetInstance(new GraphInfo, true);
     }
 
-    return DeserialiseInto(archive, wxPoint());
+    bool ok = DeserialiseInto(archive, wxPoint());
+
+    GraphCtrl *ctrl = GetCtrl();
+    if (ctrl) {
+        ctrl->SetZoom(100.0);
+        GetCanvas()->CheckBounds();
+        ctrl->Home();
+    }
+
+    return ok;
 }
 
 bool Graph::DeserialiseInto(wxInputStream& stream, const wxPoint& pt)
@@ -2310,6 +2419,11 @@ IMPLEMENT_DYNAMIC_CLASS(GraphCtrl, wxControl)
 
 BEGIN_EVENT_TABLE(GraphCtrl, wxControl)
     EVT_SIZE(GraphCtrl::OnSize)
+    EVT_CHAR(GraphCtrl::OnChar)
+    EVT_TIMER(wxID_ANY, GraphCtrl::OnTipTimer)
+    EVT_MOTION(GraphCtrl::OnMouseMove)
+    EVT_ENTER_WINDOW(GraphCtrl::OnMouseLeave)
+    EVT_MOUSEWHEEL(GraphCtrl::OnMouseWheel)
 END_EVENT_TABLE()
 
 const wxChar GraphCtrl::DefaultName[] = _T("graphctrl");
@@ -2324,7 +2438,10 @@ GraphCtrl::GraphCtrl(
         const wxString& name)
   : wxControl(parent, winid, pos, size, style, validator, name),
     m_canvas(new GraphCanvas(this, winid, wxPoint(0, 0), size, 0)),
-    m_graph(NULL)
+    m_graph(NULL),
+    m_tiptimer(this),
+    m_tipdelay(500),
+    m_tipwin(NULL)
 {
 }
 
@@ -2355,21 +2472,26 @@ void GraphCtrl::SetGraph(Graph *graph)
 
 void GraphCtrl::SetZoom(double percent)
 {
-    wxPoint pt;
-    {
-        wxClientDC dc(m_canvas);
-        m_canvas->PrepareDC(dc);
-        m_canvas->GetClientSize(&pt.x, &pt.y);
-        pt.x = dc.DeviceToLogicalX(pt.x / 2);
-        pt.y = dc.DeviceToLogicalY(pt.y / 2);
-    }
+    SetZoom(percent, wxPoint() + m_canvas->GetClientSize() / 2);
+}
 
-    double scale = percent / 100.0;
+void GraphCtrl::SetZoom(double percent, const wxPoint& pt)
+{
+    wxClientDC dc(m_canvas);
+    m_canvas->PrepareDC(dc);
+    wxPoint ptGraph(dc.DeviceToLogicalX(pt.x), dc.DeviceToLogicalY(pt.y));
+
+    double scale = max(1.0, min(500.0, percent)) / 100.0;
     m_canvas->SetScale(scale, scale);
 
     m_canvas->Refresh();
     m_canvas->SetCheckBounds();
-    m_canvas->ScrollTo(pt, false);
+
+    m_canvas->PrepareDC(dc);
+    int x = dc.LogicalToDeviceX(ptGraph.x) - pt.x;
+    int y = dc.LogicalToDeviceY(ptGraph.y) - pt.y;
+
+    m_canvas->ScrollByOffset(x, y, false);
 }
 
 double GraphCtrl::GetZoom()
@@ -2377,14 +2499,75 @@ double GraphCtrl::GetZoom()
     return m_canvas->GetScaleX() * 100.0;
 }
 
+wxPoint GraphCtrl::GetScrollPosition() const
+{
+    return m_canvas->GetScroll();
+}
+
+void GraphCtrl::ScrollTo(const wxPoint& pt)
+{
+    m_canvas->ScrollTo(pt);
+}
+
 void GraphCtrl::ScrollTo(const GraphElement& element)
 {
     m_canvas->ScrollTo(element.GetPosition());
 }
 
+void GraphCtrl::ScrollTo(int side)
+{
+    if (m_graph)
+        m_canvas->ScrollTo(side);
+}
+
 void GraphCtrl::EnsureVisible(const GraphElement& element)
 {
     m_canvas->EnsureVisible(element.GetBounds());
+}
+
+void GraphCtrl::Home()
+{
+    if (!m_graph)
+        return;
+
+    GraphNode *root = NULL;
+    Graph::node_iterator it, end;
+    for (tie(it, end) = m_graph->GetNodes(); it != end; ++it)
+        if (!root || it->GetPosition() < root->GetPosition())
+            root = &*it;
+
+    wxRect rc = m_graph->GetBounds();
+    wxPoint ptCentre(rc.x + rc.width / 2, rc.y + rc.height / 2);
+    wxPoint ptScroll = m_canvas->GetScroll();
+    m_canvas->ScrollTo(ptCentre, false);
+
+    if (root)
+        m_canvas->EnsureVisible(root->GetBounds(), false);
+
+    ptScroll -= m_canvas->GetScroll();
+    m_canvas->ScrollWindow(ptScroll.x, ptScroll.y);
+}
+
+void GraphCtrl::Fit()
+{
+    if (!m_graph)
+        return;
+
+    wxSize cs = m_canvas->GetClientSize() - wxSize(32, 32);
+    wxRect rc = m_graph->GetBounds();
+    wxPoint ptCentre(rc.x + rc.width / 2, rc.y + rc.height / 2);
+
+    double scalex =  100.0 * cs.x / rc.width;
+    double scaley =  100.0 * cs.y / rc.height;
+    double scale = max(min(min(scalex, scaley), 100.0), 1.0);
+
+    if (GetZoom() == scale) {
+        m_canvas->ScrollTo(ptCentre);
+    }
+    else {
+        SetZoom(scale);
+        m_canvas->ScrollTo(ptCentre, false);
+    }
 }
 
 wxPoint GraphCtrl::ScreenToGraph(const wxPoint& ptScreen) const
@@ -2405,6 +2588,91 @@ wxWindow *GraphCtrl::GetCanvas() const
 void GraphCtrl::OnSize(wxSizeEvent&)
 {
     m_canvas->SetSize(GetClientSize());
+}
+
+void GraphCtrl::OnChar(wxKeyEvent& event)
+{
+    if (m_graph) {
+        int key = event.GetKeyCode();
+
+        switch (key) {
+            case WXK_UP:
+                m_canvas->DoScroll(wxVERTICAL, wxEVT_SCROLLWIN_LINEUP);
+                break;
+            case WXK_DOWN:
+                m_canvas->DoScroll(wxVERTICAL, wxEVT_SCROLLWIN_LINEDOWN);
+                break;
+            case WXK_LEFT:
+                m_canvas->DoScroll(wxHORIZONTAL, wxEVT_SCROLLWIN_LINEUP);
+                break;
+            case WXK_RIGHT:
+                m_canvas->DoScroll(wxHORIZONTAL, wxEVT_SCROLLWIN_LINEDOWN);
+                break;
+            case WXK_PAGEUP:
+                m_canvas->DoScroll(wxVERTICAL, wxEVT_SCROLLWIN_PAGEUP);
+                break;
+            case WXK_PAGEDOWN:
+                m_canvas->DoScroll(wxVERTICAL, wxEVT_SCROLLWIN_PAGEDOWN);
+                break;
+            case WXK_HOME:
+                m_canvas->ScrollTo(wxTOP);
+                break;
+            case WXK_END:
+                m_canvas->ScrollTo(wxBOTTOM);
+                break;
+        }
+    }
+
+    event.Skip();
+}
+
+void GraphCtrl::OnMouseWheel(wxMouseEvent& event)
+{
+    bool zoom = event.ControlDown();
+    int lines = event.GetWheelRotation() / event.GetWheelDelta();
+
+    if (zoom) {
+        double factor = pow(2.0, lines / 10.0);
+        SetZoom(GetZoom() * factor, event.GetPosition());
+    }
+    else {
+        m_canvas->DoScroll(wxVERTICAL, wxEVT_SCROLLWIN_LINEUP, 0, lines);
+    }
+
+    event.Skip();
+}
+
+void GraphCtrl::OnMouseLeave(wxMouseEvent& event)
+{
+    m_tiptimer.Stop();
+
+    event.Skip();
+}
+
+void GraphCtrl::OnMouseMove(wxMouseEvent& event)
+{
+    if (m_graph)
+        m_tiptimer.Start(m_tipdelay, true);
+
+    event.Skip();
+}
+
+void GraphCtrl::OnTipTimer(wxTimerEvent&)
+{
+    if (m_graph && !m_tipwin && FindFocus() == this) {
+        wxMouseState mouse = wxGetMouseState();
+        wxPoint pt = ScreenToGraph(wxPoint(mouse.GetX(), mouse.GetY()));
+        GraphNode *node = m_graph->HitTest(pt);
+
+        if (node) {
+            wxString tip = node->GetToolTip(pt);
+
+            if (!tip.empty()) {
+                wxRect rc = node->GetBounds();
+                m_tipwin = new wxTipWindow(this, tip, INT_MAX, &m_tipwin, &rc);
+            }
+        }
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -2529,8 +2797,8 @@ Graph *GraphElement::GetGraph() const
 
 wxSize GraphElement::GetDPI() const
 {
-    Graph *graph = GetGraph();
-    return graph ? graph->GetDPI() : wxSize();
+    static wxSize dpi(wxScreenDC().GetPPI());
+    return dpi;
 }
 
 void GraphElement::Refresh()
@@ -2662,7 +2930,8 @@ Factory<GraphEdge>::Impl graphedgefactory(_T("edge"));
 GraphEdge::GraphEdge(const wxColour& colour,
                      const wxColour& bgcolour,
                      int style)
-  : GraphElement(colour, bgcolour, style)
+  : GraphElement(colour, bgcolour, style),
+    m_arrowsize(10)
 {
 }
 
@@ -2700,10 +2969,32 @@ void GraphEdge::SetStyle(int style)
     line->Show(true);
 
     if (style == Style_Arrow)
-        line->AddArrow(ARROW_ARROW);
+        line->AddArrow(ARROW_ARROW, ARROW_POSITION_END, m_arrowsize);
 
     SetShape(line);
     GraphElement::SetStyle(style);
+}
+
+void GraphEdge::SetArrowSize(int size)
+{
+    m_arrowsize = size;
+
+    wxLineShape *shape = GetShape();
+
+    if (shape) {
+        wxList& arrows = shape->GetArrows();
+        wxList::iterator it;
+
+        for (it = arrows.begin(); it != arrows.end(); ++it)
+            static_cast<wxArrowHead*>(*it)->SetSize(size);
+
+        Refresh();
+    }
+}
+
+int GraphEdge::GetArrowSize() const
+{
+    return m_arrowsize;
 }
 
 bool GraphEdge::MoveFront()
@@ -2743,8 +3034,10 @@ bool GraphEdge::Serialise(Archive::Item& arc)
         idTo = Archive::MakeId(GetTo());
     }
 
+    const GraphEdge& def = Factory<GraphEdge>(this).GetDefault();
     arc.Exch(_T("from"), idFrom);
     arc.Exch(_T("to"), idTo);
+    arc.Exch(_T("arrowsize"), m_arrowsize, def.m_arrowsize);
 
     if (archive.IsExtracting()) {
         GraphNode *from = archive.GetInstance<GraphNode>(idFrom);
@@ -2993,6 +3286,11 @@ void GraphNode::SetText(const wxString& text)
     }
 }
 
+wxString GraphNode::GetToolTip(const wxPoint&) const
+{
+    return m_tooltip;
+}
+
 void GraphNode::SetFont(const wxFont& font)
 {
     m_font = font;
@@ -3124,6 +3422,7 @@ bool GraphNode::Serialise(Archive::Item& arc)
     arc.Exch(_T("textcolour"), m_textcolour, def.m_textcolour);
     arc.Exch(_T("font"), m_font, def.m_font);
     arc.Exch(_T("text"), m_text, def.m_text);
+    arc.Exch(_T("tooltip"), m_tooltip, def.m_tooltip);
     arc.Exch(_T("position"), position);
     arc.Exch(_T("size"), size);
 

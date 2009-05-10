@@ -417,6 +417,8 @@ void ProjectNode::OnDraw(wxDC& dc)
             clip = bounds;
         else if (!clip.Intersects(bounds))
             return;
+        else
+            dc.SetClippingRegion(clip);
 
         int border = GetBorderThickness();
         int corner = GetCornerRadius();

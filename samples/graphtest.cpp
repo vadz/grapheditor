@@ -1022,7 +1022,7 @@ void MyFrame::OnSetLineStyle(wxCommandEvent& event)
         it++->SetStyle(event.GetId() - ID_LINE + GraphEdge::Style_Line);
 }
 
-void MyFrame::OnSetArrowSize(wxCommandEvent& event)
+void MyFrame::OnSetArrowSize(wxCommandEvent&)
 {
     long size = m_edge ? m_edge->GetArrowSize() : 0;
 

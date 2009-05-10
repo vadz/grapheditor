@@ -356,7 +356,7 @@ bool GraphCanvas::ProcessEvent(wxEvent& event)
     return wxShapeCanvas::ProcessEvent(event);
 }
 
-void GraphCanvas::OnSetFocus(wxFocusEvent& event)
+void GraphCanvas::OnSetFocus(wxFocusEvent&)
 {
     GetParent()->SetFocus();
 }
@@ -2668,7 +2668,7 @@ void GraphCtrl::OnTipTimer(wxTimerEvent&)
             wxString tip = node->GetToolTip(pt);
 
             if (!tip.empty()) {
-                wxRect rc = node->GetBounds();
+                wxRect rc = m_canvas->GraphToScreen(node->GetBounds());
                 m_tipwin = new wxTipWindow(this, tip, INT_MAX, &m_tipwin, &rc);
             }
         }

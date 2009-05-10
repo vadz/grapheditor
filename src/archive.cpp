@@ -689,6 +689,11 @@ bool Archive::Item::Has(const wxString& name) const
     return m_attribs.find(name) != m_attribs.end();
 }
 
+bool Archive::Item::Remove(const wxString& name)
+{
+    return m_attribs.erase(name) > 0;
+}
+
 void Archive::Item::SetInstance(wxObject *instance, bool owns)
 {
     if (m_owns)

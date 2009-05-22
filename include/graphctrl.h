@@ -383,6 +383,9 @@ public:
 
     virtual void Layout() = 0;
 
+    virtual wxPen GetPen() const        { return wxPen(m_colour); }
+    virtual wxBrush GetBrush() const    { return wxBrush(m_bgcolour); }
+
 protected:
     virtual void DoSelect(bool select);
     virtual void UpdateShape() = 0;
@@ -469,7 +472,13 @@ public:
     //@{
     /** @brief Size of the arrow head, if present. */
     virtual void SetArrowSize(int size);
-    virtual int GetArrowSize() const;
+    virtual int GetArrowSize() const { return m_arrowsize; }
+    //@}
+
+    //@{
+    /** @brief Width of the line. */
+    virtual void SetLineWidth(int width) { m_linewidth = width; Refresh(); }
+    virtual int GetLineWidth() const { return m_linewidth; }
     //@}
 
     /**
@@ -519,6 +528,8 @@ public:
 
     virtual void Layout() { }
 
+    wxPen GetPen() const { return wxPen(GetColour(), m_linewidth); }
+
 protected:
     void UpdateShape() { }
     bool MoveFront();
@@ -530,6 +541,7 @@ private:
     template <class T> IterPair<T> Iter() const;
 
     int m_arrowsize;
+    int m_linewidth;
 
     DECLARE_DYNAMIC_CLASS(GraphEdge)
 };
@@ -601,26 +613,31 @@ public:
     ~GraphNode();
 
     /** @brief The node's main text label. */
+    virtual void SetText(const wxString& text);
     virtual wxString GetText() const { return m_text; }
     /** @brief Text for the node's tooltip. */
+    virtual void SetToolTip(const wxString& text) { m_tooltip = text; }
     virtual wxString GetToolTip(const wxPoint& pt = wxPoint()) const;
-    /** @brief The node's font. */
-    virtual wxFont GetFont() const;
+    /**
+     * @brief A text value indicating the node's rank (row in layout).
+     *
+     * Nodes given the same rank text will be placed at the same height when
+     * automatically laid out.
+     */
+    virtual void SetRank(const wxString& name) { m_rank = name; }
+    virtual wxString GetRank() const { return m_rank; }
 
     /** @brief The colour of the node's text. */
+    virtual void SetTextColour(const wxColour& colour);
     virtual wxColour GetTextColour() const { return m_textcolour; }
 
-    /** @brief The node's main text label. */
-    virtual void SetText(const wxString& text);
-    /** @brief Text for the node's tooltip. */
-    virtual void SetToolTip(const wxString& text) { m_tooltip = text; }
     /**
      * @brief The node's font.
      *
-     * If no font is set for the node it inherits the font of the graph
-     * control.
+     * If no font is set for the node it inherits the font of the graph.
      */
     virtual void SetFont(const wxFont& font);
+    virtual wxFont GetFont() const;
     /**
      * @brief A number from the Style enumeration indicating the node's
      * appearance.
@@ -628,8 +645,6 @@ public:
      * Invalidates any iterators pointing to this element.
      */
     virtual void SetStyle(int style);
-    /** @brief The colour of the node's text. */
-    virtual void SetTextColour(const wxColour& colour);
 
     /**
      * @brief An interator range returning the edges connecting to this node.
@@ -727,6 +742,7 @@ protected:
     virtual void DoSelect(bool select);
     virtual void UpdateShape();
     virtual void UpdateShapeTextColour();
+    virtual void DoSetSize(wxDC& dc, const wxSize& size);
     /**
      * @brief Overridable called from Layout().
      */
@@ -756,6 +772,7 @@ private:
     wxColour m_textcolour;
     wxString m_text;
     wxString m_tooltip;
+    wxString m_rank;
     wxFont m_font;
 
     DECLARE_DYNAMIC_CLASS(GraphNode)
@@ -880,7 +897,8 @@ public:
      */
     virtual void SetZoom(double percent);
     /**
-     * @brief Scales the image by the given percantage.
+     * @brief Scales the image by the given percantage, fixing the given
+     * point in the viewport.
      */
     virtual void SetZoom(double percent, const wxPoint& pt);
     /**
@@ -916,7 +934,30 @@ public:
     /** @brief Fit the Graph to the view. */
     virtual void Fit();
 
-    //@
+    /** @brief The kind of border the scrollbars leave around the graph. */
+    enum BorderType {
+        Percentage_Border, /** Percentage of the control's client area. */
+        Graph_Border,      /** Graph pixels, scales with zooming. */
+        Ctrl_Border        /** Control pixels, does not scale with zooming. */
+    };
+
+    /** @brief The kind of border the scrollbars leave around the graph. */
+    void SetBorderType(BorderType type);
+    BorderType GetBorderType() const;
+
+    /** @brief Extra border left around the graph by the scrollbars. */
+    void SetBorder(const wxSize& size);
+    wxSize GetBorder() const;
+    template <class T> void SetBorder(const wxSize& size);
+    template <class T> wxSize GetBorder() const;
+
+    /** @brief Margin left around the graph by Home/End keys. */
+    void SetMargin(const wxSize& size);
+    wxSize GetMargin() const;
+    template <class T> void SetMargin(const wxSize& size);
+    template <class T> wxSize GetMargin() const;
+
+    //@{
     /** @brief The delay in milliseconds before node's tooltips are shown. */
     void SetToolTipDelay(int millisecs) { m_tipdelay = millisecs; }
     int GetToolTipDelay() const { return m_tipdelay; }
@@ -951,6 +992,9 @@ public:
      */
     static const wxChar DefaultName[];
 
+protected:
+    virtual wxSize GetDPI() const;
+
 private:
     void ScrollHomeEnd(bool home);
 
@@ -965,6 +1009,28 @@ private:
     DECLARE_DYNAMIC_CLASS(GraphCtrl)
     DECLARE_NO_COPY_CLASS(GraphCtrl)
 };
+
+// Inline definitions
+
+template <class T> wxSize GraphCtrl::GetBorder() const
+{
+    return Pixels::To<T>(GetBorder(), GetDPI());
+}
+
+template <class T> void GraphCtrl::SetBorder(const wxSize& size)
+{
+    SetBorder(Pixels::From<T>(size, GetDPI()));
+}
+
+template <class T> wxSize GraphCtrl::GetMargin() const
+{
+    return Pixels::To<T>(GetMargin(), GetDPI());
+}
+
+template <class T> void GraphCtrl::SetMargin(const wxSize& size)
+{
+    SetMargin(Pixels::From<T>(size, GetDPI()));
+}
 
 /**
  * @brief Holds a graph for editing using a GraphCtrl.
@@ -1028,12 +1094,17 @@ public:
     virtual void Delete(const iterator_pair& range);
 
     /** @brief Invokes a layout engine to layout the graph. */
-    virtual bool LayoutAll() { return Layout(GetNodes()); }
+    virtual bool LayoutAll(const GraphNode *fixed = NULL,
+                           double ranksep = 0.5,
+                           double nodesep = 0.3);
     /**
      * @brief Invokes a layout engine to layout the subset of the graph
      * specified by the given iterator range.
      */
-    virtual bool Layout(const node_iterator_pair& range);
+    virtual bool Layout(const node_iterator_pair& range,
+                        const GraphNode *fixed = NULL,
+                        double ranksep = 0.5,
+                        double nodesep = 0.3);
 
     /**
      * @brief Finds an empty space for a new node.
@@ -1496,10 +1567,18 @@ public:
      */
     void SetPosition(const wxPoint& pt) { m_pos = pt; }
     /**
+     * @brief The new size for EVT_GRAPH_NODE_SIZE.
+     */
+    void SetSize(const wxSize& size)    { m_size = size; }
+    /**
      * @brief A list provided by EVT_GRAPH_CONNECT and
      * EVT_GRAPH_CONNECT_FEEDBACK of all the source nodes.
      */
     void SetSources(NodeList& sources)  { m_sources = &sources; }
+    /**
+     * @brief The new zoom percentage.
+     */
+    void SetZoom(double percent)        { m_zoom = percent; }
 
     /**
      * @brief The node being added, deleted, clicked, etc..
@@ -1522,17 +1601,27 @@ public:
      */
     wxPoint GetPosition() const         { return m_pos; }
     /**
+     * @brief The new size for EVT_GRAPH_NODE_SIZE.
+     */
+    wxSize GetSize() const              { return m_size; }
+    /**
      * @brief A list provided by EVT_GRAPH_CONNECT and
      * EVT_GRAPH_CONNECT_FEEDBACK of all the source nodes.
      */
     NodeList& GetSources() const        { return *m_sources; }
+    /**
+     * @brief The new zoom percentage.
+     */
+    double GetZoom() const              { return m_zoom; }
 
 private:
     wxPoint m_pos;
+    wxSize m_size;
     GraphNode *m_node;
     GraphNode *m_target;
     GraphEdge *m_edge;
     NodeList *m_sources;
+    double m_zoom;
 
     DECLARE_DYNAMIC_CLASS(GraphEvent)
 };
@@ -1562,22 +1651,26 @@ BEGIN_DECLARE_EVENT_TYPES()
 
     DECLARE_EVENT_TYPE(Evt_Graph_Node_Add, wxEVT_USER_FIRST + 1101)
     DECLARE_EVENT_TYPE(Evt_Graph_Node_Delete, wxEVT_USER_FIRST + 1102)
+    DECLARE_EVENT_TYPE(Evt_Graph_Node_Move, wxEVT_USER_FIRST + 1103)
+    DECLARE_EVENT_TYPE(Evt_Graph_Node_Size, wxEVT_USER_FIRST + 1104)
 
-    DECLARE_EVENT_TYPE(Evt_Graph_Edge_Add, wxEVT_USER_FIRST + 1103)
-    DECLARE_EVENT_TYPE(Evt_Graph_Edge_Delete, wxEVT_USER_FIRST + 1104)
+    DECLARE_EVENT_TYPE(Evt_Graph_Edge_Add, wxEVT_USER_FIRST + 1105)
+    DECLARE_EVENT_TYPE(Evt_Graph_Edge_Delete, wxEVT_USER_FIRST + 1106)
 
-    DECLARE_EVENT_TYPE(Evt_Graph_Connect_Feedback, wxEVT_USER_FIRST + 1105)
-    DECLARE_EVENT_TYPE(Evt_Graph_Connect, wxEVT_USER_FIRST + 1106)
+    DECLARE_EVENT_TYPE(Evt_Graph_Connect_Feedback, wxEVT_USER_FIRST + 1107)
+    DECLARE_EVENT_TYPE(Evt_Graph_Connect, wxEVT_USER_FIRST + 1108)
 
     // GraphCtrl Events
 
-    DECLARE_EVENT_TYPE(Evt_Graph_Node_Click, wxEVT_USER_FIRST + 1107)
-    DECLARE_EVENT_TYPE(Evt_Graph_Node_Activate, wxEVT_USER_FIRST + 1108)
-    DECLARE_EVENT_TYPE(Evt_Graph_Node_Menu, wxEVT_USER_FIRST + 1109)
+    DECLARE_EVENT_TYPE(Evt_Graph_Node_Click, wxEVT_USER_FIRST + 1109)
+    DECLARE_EVENT_TYPE(Evt_Graph_Node_Activate, wxEVT_USER_FIRST + 1110)
+    DECLARE_EVENT_TYPE(Evt_Graph_Node_Menu, wxEVT_USER_FIRST + 1111)
 
-    DECLARE_EVENT_TYPE(Evt_Graph_Edge_Click, wxEVT_USER_FIRST + 1110)
-    DECLARE_EVENT_TYPE(Evt_Graph_Edge_Activate, wxEVT_USER_FIRST + 1111)
-    DECLARE_EVENT_TYPE(Evt_Graph_Edge_Menu, wxEVT_USER_FIRST + 1112)
+    DECLARE_EVENT_TYPE(Evt_Graph_Edge_Click, wxEVT_USER_FIRST + 1112)
+    DECLARE_EVENT_TYPE(Evt_Graph_Edge_Activate, wxEVT_USER_FIRST + 1113)
+    DECLARE_EVENT_TYPE(Evt_Graph_Edge_Menu, wxEVT_USER_FIRST + 1114)
+
+    DECLARE_EVENT_TYPE(Evt_Graph_Ctrl_Zoom, wxEVT_USER_FIRST + 1115)
 
 END_DECLARE_EVENT_TYPES()
 
@@ -1608,6 +1701,20 @@ END_DECLARE_EVENT_TYPES()
  * deleted. Vetoing the event cancels the deletion of the node.
  */
 #define EVT_GRAPH_NODE_DELETE(fn) DECLARE_GRAPH_EVT0(Node_Delete, fn)
+/**
+ * @brief Fired when a node is about to be moved.
+ *
+ * <code>GraphEvent::GetNode()</code> returns the node that will be moved.
+ * Vetoing the event cancels the move.
+ */
+#define EVT_GRAPH_NODE_MOVE(fn) DECLARE_GRAPH_EVT0(Node_Move, fn)
+/**
+ * @brief Fired when a node's size is about to change.
+ *
+ * <code>GraphEvent::GetNode()</code> returns the node whose size will
+ * change. Vetoing the event cancels the change.
+ */
+#define EVT_GRAPH_NODE_SIZE(fn) DECLARE_GRAPH_EVT0(Node_Size, fn)
 
 /**
  * @brief Fired when a edge is about to be added to the graph.
@@ -1713,6 +1820,11 @@ END_DECLARE_EVENT_TYPES()
  * mouse click.
  */
 #define EVT_GRAPH_EDGE_MENU(id, fn) DECLARE_GRAPH_EVT1(Edge_Menu, id, fn)
+
+/**
+ * @brief Fires when the control zoom factor changes.
+ */
+#define EVT_GRAPH_CTRL_ZOOM(id, fn) DECLARE_GRAPH_EVT1(Ctrl_Zoom, id, fn)
 
 /**
  * @brief Handles both EVT_GRAPH_NODE_CLICK and EVT_GRAPH_EDGE_CLICK with

@@ -236,6 +236,8 @@ public:
     // graph events
     void OnAddNode(GraphEvent& event);
     void OnDeleteNode(GraphEvent& event);
+    void OnMoveNode(GraphEvent& event);
+    void OnSizeNode(GraphEvent& event);
     void OnAddEdge(GraphEvent& event);
     void OnDeleteEdge(GraphEvent& event);
     void OnConnectFeedback(GraphEvent& event);
@@ -248,6 +250,7 @@ public:
     void OnClickEdge(GraphEvent& event);
     void OnActivateEdge(GraphEvent& event);
     void OnMenuEdge(GraphEvent& event);
+    void OnZoomCtrl(GraphEvent& event);
 
     // file menu
     void OnNew(wxCommandEvent &event);
@@ -274,6 +277,8 @@ public:
     void OnSetZoom(wxCommandEvent&);
     void OnZoomNorm(wxCommandEvent&);
     void OnFit(wxCommandEvent&);
+    void OnBorder(wxCommandEvent&);
+    void OnMargin(wxCommandEvent&);
     void OnShowGrid(wxCommandEvent& event);
     void OnUIShowGrid(wxUpdateUIEvent& event);
     void OnSnapToGrid(wxCommandEvent&);
@@ -294,6 +299,7 @@ public:
     void OnSetStyle(wxCommandEvent&);
     void OnSetLineStyle(wxCommandEvent&);
     void OnSetArrowSize(wxCommandEvent& event);
+    void OnSetLineWidth(wxCommandEvent& event);
     void OnSetBorderThickness(wxCommandEvent& event);
     void OnSetCornerRadius(wxCommandEvent& event);
 
@@ -347,6 +353,8 @@ enum {
     ID_ZOOM,
     ID_ZOOM_NORM,
     ID_FIT,
+    ID_BORDER,
+    ID_MARGIN,
     ID_LAYOUT,
     ID_SETSIZE,
     ID_SETFONT,
@@ -362,6 +370,7 @@ enum {
     ID_LINE,
     ID_ARROW,
     ID_ARROWSIZE,
+    ID_LINEWIDTH,
     ID_SETBORDERTHCKNESS,
     ID_SETCORNERRADIUS
 };
@@ -397,6 +406,8 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(ID_ZOOM, MyFrame::OnSetZoom)
     EVT_MENU(ID_ZOOM_NORM, MyFrame::OnZoomNorm)
     EVT_MENU(ID_FIT, MyFrame::OnFit)
+    EVT_MENU(ID_BORDER, MyFrame::OnBorder)
+    EVT_MENU(ID_MARGIN, MyFrame::OnMargin)
     EVT_MENU(ID_SHOWGRID, MyFrame::OnShowGrid)
     EVT_UPDATE_UI(ID_SHOWGRID, MyFrame::OnUIShowGrid)
     EVT_MENU(ID_SNAPTOGRID, MyFrame::OnSnapToGrid)
@@ -417,6 +428,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(ID_LINE, MyFrame::OnSetLineStyle)
     EVT_MENU(ID_ARROW, MyFrame::OnSetLineStyle)
     EVT_MENU(ID_ARROWSIZE, MyFrame::OnSetArrowSize)
+    EVT_MENU(ID_LINEWIDTH, MyFrame::OnSetLineWidth)
     EVT_MENU(ID_SETBORDERTHCKNESS, MyFrame::OnSetBorderThickness)
     EVT_MENU(ID_SETCORNERRADIUS, MyFrame::OnSetCornerRadius)
 
@@ -428,6 +440,8 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
 
     EVT_GRAPH_NODE_ADD(MyFrame::OnAddNode)
     EVT_GRAPH_NODE_DELETE(MyFrame::OnDeleteNode)
+    EVT_GRAPH_NODE_MOVE(MyFrame::OnMoveNode)
+    EVT_GRAPH_NODE_SIZE(MyFrame::OnSizeNode)
 
     EVT_GRAPH_EDGE_ADD(MyFrame::OnAddEdge)
     EVT_GRAPH_EDGE_DELETE(MyFrame::OnDeleteEdge)
@@ -441,6 +455,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_GRAPH_EDGE_CLICK(wxID_ANY, MyFrame::OnClickEdge)
     EVT_GRAPH_EDGE_ACTIVATE(wxID_ANY, MyFrame::OnActivateEdge)
     EVT_GRAPH_EDGE_MENU(wxID_ANY, MyFrame::OnMenuEdge)
+    EVT_GRAPH_CTRL_ZOOM(wxID_ANY, MyFrame::OnZoomCtrl)
 END_EVENT_TABLE()
 
 // Create a new application object: this macro will allow wxWidgets to create
@@ -536,6 +551,9 @@ MyFrame::MyFrame(const wxString& title)
     testMenu->Append(ID_ZOOM_NORM, _T("Zoom 100%\tAlt+0"));
     testMenu->Append(ID_ZOOM, _T("Zoom\tAlt+Z"));
     testMenu->Append(ID_FIT, _T("Fit to Window\tCtrl+F"));
+    testMenu->AppendSeparator();
+    testMenu->Append(ID_BORDER, _T("Scroll &Border\tCtrl+B"));
+    testMenu->Append(ID_MARGIN, _T("Scroll &Margin\tCtrl+M"));
 
     // help menu
     wxMenu *helpMenu = new wxMenu;
@@ -695,6 +713,18 @@ void MyFrame::OnDeleteNode(GraphEvent&)
     wxLogDebug(_T("OnDeleteNode"));
 }
 
+void MyFrame::OnMoveNode(GraphEvent& event)
+{
+    wxPoint pt = event.GetPosition();
+    wxLogDebug(_T("OnMoveNode (%d, %d)"), pt.x, pt.y);
+}
+
+void MyFrame::OnSizeNode(GraphEvent& event)
+{
+    wxSize size = event.GetSize();
+    wxLogDebug(_T("OnSizeNode (%d, %d)"), size.x, size.y);
+}
+
 void MyFrame::OnClickNode(GraphEvent&)
 {
     wxLogDebug(_T("OnClickNode"));
@@ -765,9 +795,26 @@ void MyFrame::OnMenuNode(GraphEvent& event)
     m_element = m_node = NULL;
 }
 
-void MyFrame::OnAddEdge(GraphEvent&)
+// This event fires when an edge is about to be added.
+//
+// Vetoing the event prevents the edge from being added, or reversing
+// the Source and Target will reverse the direction of the added edge.
+//
+// In this example, lines into a Import nodes, or out of an Export node are
+// reversed.
+//
+void MyFrame::OnAddEdge(GraphEvent& event)
 {
     wxLogDebug(_T("OnAddEdge"));
+
+    if (event.GetNode<ExportNode>() != NULL ||
+        event.GetTarget<ImportNode>() != NULL)
+    {
+        GraphNode *node = event.GetNode();
+        GraphNode *target = event.GetTarget();
+        event.SetNode(target);
+        event.SetTarget(node);
+    }
 }
 
 void MyFrame::OnDeleteEdge(GraphEvent&)
@@ -784,33 +831,39 @@ void MyFrame::OnDeleteEdge(GraphEvent&)
 // connection while permitting other sources to connect. Vetoing the event
 // disallows all connections (it's equivalent to clearing the list).
 //
-// In this example no outgoing connections are allowed from Export nodes, and
-// no incoming connections are allowed to Import nodes.
+// In this example Import nodes are not allowed to connect to Import nodes,
+// and Export nodes are not allowed to connect to Export nodes.
+//
 //
 void MyFrame::OnConnectFeedback(GraphEvent& event)
 {
     wxLogDebug(_T("OnConnectFeedback"));
 
-    // Veto to disallow all connections
-    wxString dest = event.GetTarget()->GetText();
-    if (dest.find(_T("Import")) != wxString::npos)
-        return event.Veto();
+    ImportNode *imp = event.GetTarget<ImportNode>();
+    ExportNode *exp = imp ? NULL : event.GetTarget<ExportNode>();
 
-    GraphEvent::NodeList& sources = event.GetSources();
-    GraphEvent::NodeList::iterator i = sources.begin(), j;
+    if (imp || exp) {
+        GraphEvent::NodeList& sources = event.GetSources();
+        GraphEvent::NodeList::iterator i = sources.begin(), j;
 
-    // Remove from sources list to disallow only some connections
-    while (i != sources.end()) {
-        j = i++;
-        if ((*j)->GetText().find(_T("Export")) != wxString::npos)
-            sources.erase(j);
+        // Remove from sources list to disallow only some connections
+        while (i != sources.end()) {
+            j = i++;
+            if (imp && dynamic_cast<ImportNode*>(*j))
+                sources.erase(j);
+            if (exp && dynamic_cast<ExportNode*>(*j))
+                sources.erase(j);
+        }
     }
 }
 
 // This event fires when nodes have been dropped on a target node. It is
-// similar to OnConnectFeedback above. Vetoing the event disallows all
-// connections or removing nodes from the list disallows just selected
-// connections.
+// similar to OnConnectFeedback above, the difference being that
+// OnConnectFeedback fires during dragging, while this one fires after the
+// drop.
+//
+// Vetoing the event disallows all connections or removing nodes from the list
+// disallows just selected connections.
 //
 // In this example 'Sort' nodes are restricted to 1 input and 1 output
 //
@@ -818,17 +871,14 @@ void MyFrame::OnConnect(GraphEvent& event)
 {
     wxLogDebug(_T("OnConnect"));
 
-    GraphNode *target = event.GetTarget();
-    wxString dest = target->GetText();
+    SortNode *target = event.GetTarget<SortNode>();
     GraphEvent::NodeList& sources = event.GetSources();
     bool ok = true;
 
     // Veto to disallow all connections
-    if (dest.find(_T("Sort")) != wxString::npos) {
-        if (sources.size() + target->GetInEdgeCount() > 1) {
-            event.Veto();
-            ok = false;
-        }
+    if (target != NULL && sources.size() + target->GetInEdgeCount() > 1) {
+        event.Veto();
+        ok = false;
     }
 
     GraphEvent::NodeList::iterator i = sources.begin(), j;
@@ -838,16 +888,11 @@ void MyFrame::OnConnect(GraphEvent& event)
     {
         j = i++;
 
-        wxString operation = (*j)->GetText();
+        SortNode *node = dynamic_cast<SortNode*>(*j);
 
-        // output the operation text so that the order of the list is visible
-        wxLogDebug(_T("    ") + operation);
-
-        if (operation.find(_T("Sort")) != wxString::npos) {
-            if ((*j)->GetOutEdgeCount() > 0) {
-                sources.erase(j);
-                ok = false;
-            }
+        if (node != NULL && node->GetOutEdgeCount() > 0) {
+            sources.erase(j);
+            ok = false;
         }
     }
 
@@ -878,7 +923,9 @@ void MyFrame::OnMenuEdge(GraphEvent& event)
     submenu->Append(ID_LINE, _T("&Line"));
     submenu->Append(ID_ARROW, _T("&Arrow"));
     menu.Append(ID_STYLE, _T("Set &Style"), submenu);
+
     menu.Append(ID_ARROWSIZE, _T("Arrow Si&ze"));
+    menu.Append(ID_LINEWIDTH, _T("Line &Width"));
 
     wxPoint pt = event.GetPosition();
     wxPoint ptClient = ScreenToClient(m_graphctrl->GraphToScreen(pt));
@@ -886,6 +933,15 @@ void MyFrame::OnMenuEdge(GraphEvent& event)
     m_element = m_edge = event.GetEdge();
     PopupMenu(&menu, ptClient.x, ptClient.y);
     m_element = m_edge = NULL;
+}
+
+// This event notifies that the zoom factor is being changed.
+//
+void MyFrame::OnZoomCtrl(GraphEvent& event)
+{
+    double percent = event.GetZoom();
+    wxPoint pt = event.GetPosition();
+    wxLogDebug(_T("OnZoomCtrl %g%% (%d, %d)"), percent, pt.x, pt.y);
 }
 
 void MyFrame::OnQuit(wxCommandEvent&)
@@ -1006,11 +1062,8 @@ void MyFrame::OnSetStyle(wxCommandEvent& event)
     Graph::node_iterator it, end;
     tie(it, end) = m_graph->GetSelectionNodes();
 
-    while (it != end) {
-        GraphNode& node= *it;
-        ++it;
-        node.SetStyle(event.GetId() - ID_CUSTOM + GraphNode::Style_Custom);
-    }
+    while (it != end)
+        it++->SetStyle(event.GetId() - ID_CUSTOM + GraphNode::Style_Custom);
 }
 
 void MyFrame::OnSetLineStyle(wxCommandEvent& event)
@@ -1038,6 +1091,24 @@ void MyFrame::OnSetArrowSize(wxCommandEvent&)
 
     while (it != end)
         it++->SetArrowSize(size);
+}
+
+void MyFrame::OnSetLineWidth(wxCommandEvent&)
+{
+    long width = m_edge ? m_edge->GetLineWidth() : 0;
+
+    width = wxGetNumberFromUser(
+        _T("Enter a new width for the selected lines:"), _T(""),
+        _T("Set Line Width"), width, 0, 10, this);
+
+    if (width < 0)
+        return;
+
+    GraphIterator<GraphEdge> it, end;
+    tie(it, end) = m_graph->GetSelection<GraphEdge>();
+
+    while (it != end)
+        it++->SetLineWidth(width);
 }
 
 void MyFrame::OnSetBorderThickness(wxCommandEvent&)
@@ -1382,6 +1453,37 @@ void MyFrame::OnSetZoom(wxCommandEvent&)
 void MyFrame::OnFit(wxCommandEvent&)
 {
     m_graphctrl->Fit();
+}
+
+void MyFrame::OnBorder(wxCommandEvent&)
+{
+    static wxString choices[] = {
+        _T("Percentage of the control's client area"),
+        _T("Graph pixels, scales with zooming"),
+        _T("Control pixels, does not scale with zooming")
+    };
+
+    int type = wxGetSingleChoiceIndex(_T("Type of border:"), _T("Border"),
+                                      WXSIZEOF(choices), choices, this);
+
+    m_graphctrl->SetBorderType(GraphCtrl::BorderType(type));
+
+    long size = wxGetNumberFromUser(
+        _T("Enter the border size:"), _T("Border size"),
+        _T("Border"), m_graphctrl->GetBorder().x, 0, 500, this);
+
+    if (size >= 0)
+        m_graphctrl->SetBorder(wxSize(size, size));
+}
+
+void MyFrame::OnMargin(wxCommandEvent&)
+{
+    long size = wxGetNumberFromUser(
+        _T("Enter the margin size:"), _T("Margin size"),
+        _T("Margin"), m_graphctrl->GetMargin<Points>().x, 0, 500, this);
+
+    if (size >= 0)
+        m_graphctrl->SetMargin<Points>(wxSize(size, size));
 }
 
 void MyFrame::OnShowGrid(wxCommandEvent&)

@@ -20,14 +20,16 @@ struct TestNode : datactics::ProjectNode
 {
     TestNode(const wxColour& colour,
              const wxString& operation,
-             const wxString& imgfile);
+             const wxString& imgfile,
+             const wxString& rank = wxEmptyString);
+    void OnLayout(wxDC& dc);
 };
 
 struct ImportNode : TestNode
 {
     ImportNode(const wxString& operation = _T("Import"),
                const wxString& imgfile   = _T("import.png"))
-    : TestNode(0x6bd79c, operation, imgfile)
+    : TestNode(0x6bd79c, operation, imgfile, _T("import"))
     { }
 };
 
@@ -43,7 +45,7 @@ struct ExportNode : TestNode
 {
     ExportNode(const wxString& operation = _T("Export"),
                const wxString& imgfile   = _T("export.png"))
-    : TestNode(0x7b9af7, operation, imgfile)
+    : TestNode(0x7b9af7, operation, imgfile, _T("export"))
     { }
 };
 

@@ -385,7 +385,7 @@ void ProjectNode::OnLayout(wxDC &dc)
     size.x = max(orig.x, minSize.x);
     size.y = max(orig.y, minSize.y);
     if (size != orig)
-        SetSize(size);
+        DoSetSize(dc, size);
 
     // vertically centre the icon and result text in the lower section
     int mid = (m_divide + size.y) / 2;

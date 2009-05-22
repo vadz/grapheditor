@@ -66,11 +66,24 @@ wxString GetResourceDir()
 
 TestNode::TestNode(const wxColour& colour,
                    const wxString& operation,
-                   const wxString& imgfile)
+                   const wxString& imgfile,
+                   const wxString& rank)
   : ProjectNode(operation,
                 wxEmptyString,
                 wxEmptyString,
                 wxIcon(GetResourceDir() + imgfile, wxBITMAP_TYPE_PNG),
                 colour)
 {
+    //SetMaxAutoSize(wxSize());
+    SetRank(rank);
+}
+
+void TestNode::OnLayout(wxDC& dc)
+{
+    /*static wxSize defSize(3 * GetDPI().x / 2, GetDPI().y);
+
+    if (GetSize() != defSize)
+        SetSize(defSize);
+    else*/
+        ProjectNode::OnLayout(dc);
 }

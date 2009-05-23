@@ -1111,6 +1111,14 @@ public:
     void OnDragLeft(bool draw, double x, double y, int keys, int attachment);
     void OnEndDragLeft(double x, double y, int keys, int attachment);
 
+    void OnBeginDragRight(double x, double y, int keys, int attachment);
+    void OnDragRight(bool draw, double x, double y, int keys, int attachment);
+    void OnEndDragRight(double x, double y, int keys, int attachment);
+
+    void OnBeginDrag(int mode, double x, double y);
+    void OnDrag(int mode, bool draw, double x, double y);
+    void OnEndDrag(int mode, double x, double y);
+
     void OnEraseContents(wxDC& dc)  { GraphElementHandler::OnErase(dc); }
     void OnErase(wxDC& dc)          { wxShapeEvtHandler::OnErase(dc); }
 
@@ -1120,6 +1128,11 @@ public:
     void OnSizingEndDragLeft(wxControlPoint* pt, double x, double y, int keys, int attachment);
 
     inline GraphNode *GetNode() const;
+
+    enum {
+        Drag_Move = GraphCtrl::Drag_Move,
+        Drag_Connect = GraphCtrl::Drag_Connect
+    };
 
 private:
     NodeList m_sources;
@@ -1153,8 +1166,37 @@ GraphNode *GraphNodeHandler::GetNode() const
     return tt_solutions::GetNode(GetShape());
 }
 
-void GraphNodeHandler::OnBeginDragLeft(double x, double y,
-                                       int keys, int attachment)
+void GraphNodeHandler::OnBeginDragLeft(double x, double y, int, int)
+{
+    OnBeginDrag(GraphCtrl::GetLeftDragMode(), x, y);
+}
+
+void GraphNodeHandler::OnDragLeft(bool draw, double x, double y, int, int)
+{
+    OnDrag(GraphCtrl::GetLeftDragMode(), draw, x, y);
+}
+
+void GraphNodeHandler::OnEndDragLeft(double x, double y, int, int)
+{
+    OnEndDrag(GraphCtrl::GetLeftDragMode(), x, y);
+}
+
+void GraphNodeHandler::OnBeginDragRight(double x, double y, int, int)
+{
+    OnBeginDrag(GraphCtrl::GetRightDragMode(), x, y);
+}
+
+void GraphNodeHandler::OnDragRight(bool draw, double x, double y, int, int)
+{
+    OnDrag(GraphCtrl::GetRightDragMode(), draw, x, y);
+}
+
+void GraphNodeHandler::OnEndDragRight(double x, double y, int, int)
+{
+    OnEndDrag(GraphCtrl::GetRightDragMode(), x, y);
+}
+
+void GraphNodeHandler::OnBeginDrag(int mode, double x, double y)
 {
     wxShape *shape = GetShape();
     GraphCanvas *canvas = wxStaticCast(shape->GetCanvas(), GraphCanvas);
@@ -1163,25 +1205,24 @@ void GraphNodeHandler::OnBeginDragLeft(double x, double y,
     m_offset = wxPoint(int(shape->GetX() - x), int(shape->GetY() - y));
 
     if (!shape->Selected()) {
-        Select(shape, true, keys);
+        Select(shape, true, 0);
         canvas->Update();
     }
 
-    OnDragLeft(true, x, y, keys, attachment);
+    OnDrag(mode, true, x, y);
     canvas->CaptureMouse();
 }
 
-void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
-                                  int, int attachment)
+void GraphNodeHandler::OnDrag(int mode, bool draw, double x, double y)
 {
     bool hasNoEntry = m_target && m_sources.empty();
-    attachment = 0;
+    int attachment = 0;
 
     wxShape *shape = GetShape();
     GraphCanvas *canvas = wxStaticCast(shape->GetCanvas(), GraphCanvas);
     Graph *graph = canvas->GetGraph();
 
-    if (draw) {
+    if (draw && (mode & Drag_Connect) != 0) {
         int new_attachment;
         wxShape *sh =
             canvas->FindFirstSensitiveShape(x, y, &new_attachment, OP_ALL);
@@ -1192,7 +1233,7 @@ void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
         else
             target = NULL;
 
-        if (target != NULL && target != m_target) {
+        if (target && target != m_target) {
             Graph::node_iterator it, end;
             m_sources.clear();
 
@@ -1252,7 +1293,7 @@ void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
         canvas->CaptureMouse();
     }
 
-    if (m_target) {
+    if ((mode & Drag_Connect) != 0 && m_target) {
         NodeList::iterator it;
 
         for (it = m_sources.begin(); it != m_sources.end(); ++it) {
@@ -1261,7 +1302,7 @@ void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
             dc.DrawLine(wxCoord(xp), wxCoord(yp), wxCoord(x), wxCoord(y));
         }
     }
-    else {
+    else if ((mode & Drag_Move) != 0) {
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
         Graph::node_iterator it, end;
         double shapeX = shape->GetX();
@@ -1278,16 +1319,25 @@ void GraphNodeHandler::OnDragLeft(bool draw, double x, double y,
             sh->OnDrawOutline(dc, xx, yy, w, h);
         }
     }
+    else if ((mode && Drag_Connect) != 0) {
+        Graph::node_iterator it, end;
+
+        for (tie(it, end) = graph->GetSelectionNodes(); it != end; ++it) {
+            double xp, yp;
+            it->GetShape()->GetAttachmentPosition(attachment, &xp, &yp);
+            dc.DrawLine(wxCoord(xp), wxCoord(yp), wxCoord(x), wxCoord(y));
+        }
+    }
 }
 
-void GraphNodeHandler::OnEndDragLeft(double x, double y, int, int)
+void GraphNodeHandler::OnEndDrag(int mode, double x, double y)
 {
     wxShape *shape = GetShape();
     GraphCanvas *canvas = wxStaticCast(shape->GetCanvas(), GraphCanvas);
     Graph *graph = canvas->GetGraph();
     canvas->ReleaseMouse();
 
-    if (m_target) {
+    if ((mode & Drag_Connect) != 0 && m_target) {
         if (m_sources.empty()) {
             canvas->SetCursor(wxCURSOR_DEFAULT);
         }
@@ -1310,7 +1360,7 @@ void GraphNodeHandler::OnEndDragLeft(double x, double y, int, int)
             m_sources.clear();
         }
     }
-    else {
+    else if ((mode & Drag_Move) != 0) {
         wxPoint ptOffset = wxPoint(int(x), int(y)) + m_offset -
                            GetNode()->GetPosition();
         Graph::node_iterator it, end;
@@ -2639,6 +2689,8 @@ BEGIN_EVENT_TABLE(GraphCtrl, wxControl)
 END_EVENT_TABLE()
 
 const wxChar GraphCtrl::DefaultName[] = _T("graphctrl");
+int GraphCtrl::sm_leftDrag = GraphCtrl::Drag_Move;
+int GraphCtrl::sm_rightDrag = GraphCtrl::Drag_Connect;
 
 GraphCtrl::GraphCtrl(
         wxWindow *parent,

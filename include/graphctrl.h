@@ -963,6 +963,19 @@ public:
     int GetToolTipDelay() const { return m_tipdelay; }
     //@}
 
+    /** @brief What happens when nodes are dragged, can be ored together. */
+    enum DragMode {
+        Drag_Disable = 0,       /** Dragging does nothing. */
+        Drag_Move    = 1 << 0,  /** Dragging moves nodes. */
+        Drag_Connect = 1 << 1   /** Dragging connects nodes. */
+    };
+
+    /** @brief Determines what happens when nodes are dragged. */
+    static void SetLeftDragMode(int mode)   { sm_leftDrag = mode; }
+    static int GetLeftDragMode()            { return sm_leftDrag; }
+    static void SetRightDragMode(int mode)  { sm_rightDrag = mode; }
+    static int GetRightDragMode()           { return sm_rightDrag; }
+
     /**
      * @brief Converts a point from screen coordinates to the coordinate
      * system used by the graph.
@@ -1004,6 +1017,8 @@ private:
     wxTimer m_tiptimer;
     int m_tipdelay;
     wxTipWindow *m_tipwin;
+    static int sm_leftDrag;
+    static int sm_rightDrag;
 
     DECLARE_EVENT_TABLE()
     DECLARE_DYNAMIC_CLASS(GraphCtrl)

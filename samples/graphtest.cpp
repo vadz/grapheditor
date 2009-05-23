@@ -476,6 +476,12 @@ IMPLEMENT_APP(MyApp)
 // 'Main program' equivalent: the program execution "starts" here
 bool MyApp::OnInit()
 {
+#if 0
+    // To restore the orginal dragging behavior, enable this.
+    GraphCtrl::SetLeftDragMode(GraphCtrl::Drag_Move | GraphCtrl::Drag_Connect);
+    GraphCtrl::SetRightDragMode(GraphCtrl::Drag_Disable);
+#endif
+
     wxInitAllImageHandlers();
 
     // create the main application window

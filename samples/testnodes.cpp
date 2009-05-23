@@ -74,16 +74,20 @@ TestNode::TestNode(const wxColour& colour,
                 wxIcon(GetResourceDir() + imgfile, wxBITMAP_TYPE_PNG),
                 colour)
 {
-    //SetMaxAutoSize(wxSize());
+#ifdef FIXED_NODE_SIZE
+    SetMaxAutoSize(wxSize());
+#endif
     SetRank(rank);
 }
 
 void TestNode::OnLayout(wxDC& dc)
 {
-    /*static wxSize defSize(3 * GetDPI().x / 2, GetDPI().y);
+#if FIXED_NODE_SIZE
+    static wxSize defSize(3 * GetDPI().x / 2, GetDPI().y);
 
     if (GetSize() != defSize)
         SetSize(defSize);
-    else*/
-        ProjectNode::OnLayout(dc);
+    else
+#endif
+    ProjectNode::OnLayout(dc);
 }

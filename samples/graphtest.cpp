@@ -17,13 +17,14 @@
 /**
  * @mainpage
  *
+ * @section intro Introduction
+ *
  * The following code shows how to create graph control:
  *
  * @code
  *  m_graphctrl = new ProjectDesigner(splitter);
- *  m_graph = new Graph;
+ *  m_graph = new Graph(this);
  *  m_graphctrl->SetGraph(m_graph);
- *  m_graph->SetEventHandler(this);
  * @endcode
  *
  * You create a <code>GraphCtrl</code> (or <code>ProjectDesigner</code> in
@@ -35,13 +36,6 @@
  * could use multiple <code>GraphCtrl</code> to allow editing of it. This
  * isn't supported at the moment, and the two must be used in a one-to-one
  * pair.
- *
- * Both the <code>Graph</code> and the <code>GraphCtrl</code> can fire
- * events. The <code>GraphCtrl</code> ones can be handled by the
- * <code>GraphCtrl</code>'s parent as usual, but for the <code>Graph</code>
- * (which is not a window and does not have a parent) it is necessary to call
- * <code>SetEventHandler()</code> as shown to select the class that will
- * handle its events.
  *
  * Nodes (these are of type <code>GraphNode</code> or derived from it), can
  * be added to the graph using <code>Graph::Add()</code>. In the graphtest
@@ -56,6 +50,19 @@
  * <code>EVT_GRAPH_CONNECT_FEEDBACK</code> event, which is fired during
  * dragging, and vetoing it disallows a connection from being made.
  *
+ * @section events Events
+ *
+ * The event class <code>GraphEvent</code>, has typesafe overloads for
+ * it accessors, for example:
+ *
+ * @code
+ *  void MyFrame::OnActivateNode(GraphEvent& event)
+ *  {
+ *      ProjectNode *node = event.GetNode<ProjectNode>();
+ *      int hit = node->HitTest(event.GetPosition());
+ *      ...
+ * @endcode
+ *
  * The cursor positions returned by the event object's
  * <code>GetPosition()</code> are in the coordinate system of the
  * <code>Graph</code>, and so can be passed to <code>Graph</code>'s methods
@@ -68,8 +75,10 @@
  * method, see <code>OnActivateNode()</code> in graphtest.cpp for an example
  * of this.
  *
+ * @section iterators Iterators
+ *
  * The classes <code>GraphNode</code> and <code>GraphEdge</code> have a
- * common base class <code>GraphElement</code>.  Graph elements are
+ * common base class <code>GraphElement</code>. Graph elements are
  * enumerated using iterators. The iterators are assignable if references to
  * the types they point to would be assignable.  E.g. if a method needs a
  * pair of GraphElement iterators, then you can pass a pair of
@@ -87,6 +96,153 @@
  *  for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it)
  *      it->SetSize(size);
  * @endcode
+ *
+ * Overloads exists that return iterators for derived element types. This
+ * allows methods of derived nodes types to be used directly without casting:
+ *
+ * @code
+ *  GraphIterator<ProjectNode> it, end;
+ *
+ *  for (tie(it, end) = m_graph->GetSelection<ProjectNode>(); it != end; ++it)
+ *      it->SetBorderThickness<Points>(thickness);
+ * @endcode
+ *
+ * @section units Units
+ *
+ * Most accessors for sizes or positions have overloads that allow
+ * the size or position to be specified in device independent units such as
+ * Points or Twips:
+ *
+ * @code
+ *  wxPoint pt = m_graph->FindSpace<Points>(wxSize(150, 100));
+ * @endcode
+ *
+ * It is a good idea to use such device independent units when creating graphs
+ * so that a saved graph will look similar when loaded on a different machine.
+ *
+ * @section saveload Saving and Loading
+ *
+ * A graph can be saved as follows:
+ *
+ * @code
+ *  wxFFileOutputStream stream(m_filename);
+ *  if (stream.IsOk())
+ *      m_graph->Serialise(stream);
+ * @endcode
+ *
+ * And loaded back with:
+ *
+ * @code
+ *  wxFFileInputStream stream(m_filename);
+ *  if (stream.IsOk())
+ *      m_graph->Deserialise(stream);
+ * @endcode
+ *
+ * The <code>Graph::Serialise</code> and <code>Graph::Deserialise</code>
+ * methods in turn call the the <code>GraphElement::Serialise</code> method
+ * for each element in the graph. For elements the same method takes care of
+ * both serialisation and deserialisation.
+ *
+ * When serialising the graph, there will be some attributes which you
+ * do not wish to save. Those attributes are then determined by the program
+ * itself rather than the saved file. For example, if the colours of nodes
+ * are not saved, then a new version of the program can use a new colour
+ * scheme which will apply even to old files saved before the change.
+ *
+ * By default, attributes are not saved if they have the default values for
+ * that element type. Therefore, if you are using a hierarchy of derived
+ * classes, you can determine the ones that are not saved by setting them in
+ * the derived class' constructor. With this approach it is not necessary
+ * to override <code>GraphElement::Serialise</code>, unless you need to save
+ * additional attributes.
+ *
+ * The alternative approach, which you can use if you do not have a hierarchy
+ * of derived element types, is to override <code>Serialise</code>. Call
+ * the base class' method then remove any unwanted attributes. For example:
+ *
+ * @code
+ *  bool ProjectNode::Serialise(Archive::Item& arc)
+ *  {
+ *      ....
+ *
+ *      if (!GraphNode::Serialise(arc))
+ *          return false;
+ *
+ *      arc.Remove(_T("tooltip"));
+ *
+ *      return true;
+ *  }
+ * @endcode
+ *
+ * @section factories Factories
+ *
+ * The serialisation code recreates saved elements using the
+ * <code>Factory</code> class. To make a any derived elements savable, they
+ * must be made <code>Factory</code> creatable, by defining a
+ * <code>Factory<MyClass>::Impl</code> in one of the program's cpp files:
+ *
+ * @code
+ *  // Import
+ *  Factory<ImportFileNode>::Impl importfile(_T("importfile"));
+ *  Factory<ImportODBCNode>::Impl importodbc(_T("importodbc"));
+ * @endcode
+ *
+ * These do not need to be globally visible, they can be in an unnamed
+ * namespace if desired.
+ *
+ * The string argument has to be unique, it is the name stored in the xml
+ * file.
+ *
+ * Factories are required by the serialisation code, but can optionally also
+ * be used to create elements in general.
+ *
+ * Passing the string to the factory constructor creates a factory that will
+ * create objects of that type:
+ *
+ * @code
+ *  Factory<GraphNode> factory(_T("importfile"));
+ * @endcode
+ *
+ * Alternatively, a pointer to an existing instance can be given to allow
+ * creation of more of the same type:
+ *
+ * @code
+ *  Factory<GraphNode> factory(this);
+ * @endcode
+ *
+ * The type of the objects created is decided at run time. The template
+ * parameter, e.g. <code>GraphNode</code>, does not determine the type of the
+ * objects created, but rather specifies some base class that will be used for
+ * the polymorphic pointers returned.
+ *
+ * The factory also it holds a 'default' instance, which is accessible using
+ * the <code>GetDefault</code> method:
+ *
+ * @code
+ *  const GraphNode& def = Factory<GraphNode>(this).GetDefault();
+ * @endcode
+ *
+ * <code>def</code> references a default object of the same type as
+ * <code>this</code> derived from <code>GraphNode</code>. The
+ * <code>Serialise</code> methods use this default object to determine if an
+ * attribute value has the default value for whatever the derived type is, and
+ * saves it only if it has changed.
+ *
+ * New instances can be created as follows:
+ *
+ * @code
+ *  GraphNode *node = factory.New();
+ * @endcode
+ *
+ * The <code>New</code> function creates the new instance using the copy
+ * constructor to copy the default instance. This saves you having to
+ * implement caching of any expensive attributes of the classes.
+ *
+ * For example, normally you would need to hold a cache of icons rather than
+ * loading them every time a node is created. However if you use a factory, a
+ * node can load an icon in its constructor and it will only happen once, when
+ * the default object is created. All other object are copies so share the
+ * same icon data.
  */
 
 // ============================================================================
@@ -149,17 +305,20 @@ _T("    it onto the graph editor.                                           ")
 _T("                                                                        ")
 _T("    <h3>Adding Links</h3>                                               ")
 _T("                                                                        ")
-_T("    <p>Links can be created between two nodes by dragging one node      ")
-_T("    onto the other. During dragging the outline rectangle will become   ")
-_T("    a line if dropping here is allowed and will create a link.          ")
+_T("    <p>Links can be created between two nodes by right dragging one     ")
+_T("    node onto the other.  During dragging the lines that will be        ")
+_T("    created are indicated.  Hovering over a target node will show a     ")
+_T("    no-entry cursor if no lines would be allowed between the given      ")
+_T("    nodes.                                                              ")
 _T("                                                                        ")
-_T("    <p>This example program disallows incoming links to 'Import' nodes  ")
-_T("    and outgoing links from 'Export' nodes.                             ")
+_T("    <p>In this example, incoming links to 'Import' nodes and outgoing   ")
+_T("    links from 'Export' nodes are reversed when added. Links between    ")
+_T("    two 'Import' nodes or two 'Export' nodes are disallowed.            ")
 _T("                                                                        ")
 _T("    <h3>Panning</h3>                                                    ")
 _T("                                                                        ")
 _T("    <p>The graph control can pan over the graph by shift dragging the   ")
-_T("    background.                                                         ")
+_T("    control.                                                            ")
 _T("                                                                        ")
 _T("    <h3>Selection</h3>                                                  ")
 _T("                                                                        ")

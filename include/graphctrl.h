@@ -847,10 +847,9 @@ template <class T> IterPair<T> GraphNode::Iter(int which) const
  * For example, you frame's OnInit() method might contain:
  *
  * @code
- *  m_graph = new Graph;
+ *  m_graph = new Graph(this);
  *  m_graphctrl = new GraphCtrl(this);
  *  m_graphctrl->SetGraph(m_graph);
- *  m_graph->SetEventHandler(this);
  * @endcode
  *
  * Note that it does not take ownership of the Graph.
@@ -936,9 +935,9 @@ public:
 
     /** @brief The kind of border the scrollbars leave around the graph. */
     enum BorderType {
-        Percentage_Border, /** Percentage of the control's client area. */
-        Graph_Border,      /** Graph pixels, scales with zooming. */
-        Ctrl_Border        /** Control pixels, does not scale with zooming. */
+        Percentage_Border, /**< Percentage of the control's client area. */
+        Graph_Border,      /**< Graph pixels, scales with zooming. */
+        Ctrl_Border        /**< Control pixels, does not scale with zooming. */
     };
 
     /** @brief The kind of border the scrollbars leave around the graph. */
@@ -963,11 +962,11 @@ public:
     int GetToolTipDelay() const { return m_tipdelay; }
     //@}
 
-    /** @brief What happens when nodes are dragged, can be ored together. */
+    /** @brief What happens when nodes are dragged (can be ored together). */
     enum DragMode {
-        Drag_Disable = 0,       /** Dragging does nothing. */
-        Drag_Move    = 1 << 0,  /** Dragging moves nodes. */
-        Drag_Connect = 1 << 1   /** Dragging connects nodes. */
+        Drag_Disable = 0,       /**< Dragging does nothing. */
+        Drag_Move    = 1 << 0,  /**< Dragging moves nodes. */
+        Drag_Connect = 1 << 1   /**< Dragging connects nodes. */
     };
 
     /** @brief Determines what happens when nodes are dragged. */

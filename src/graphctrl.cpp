@@ -296,7 +296,8 @@ public:
     void AdjustScrollbars() { }
 
     void SetCheckBounds() { m_checkBounds = true; }
-    void CheckBounds();
+    bool GetCheckBounds() { return m_checkBounds; }
+    bool CheckBounds();
 
     void DoScroll(int orient, int type, int pos = 0, int lines = 1);
 
@@ -322,6 +323,8 @@ public:
 
     inline wxSize GetScrollClientSize() const;
     inline wxSize GetFullClientSize() const;
+
+    void SetFits() { m_fitsX = m_fitsY = true; }
 
 private:
     static wxWindow *EnsureParent(wxWindow *parent);
@@ -370,7 +373,7 @@ GraphCanvas::GraphCanvas(
     m_graph(NULL),
     m_isPanning(false),
     m_checkBounds(false),
-    m_border(100, 100),
+    m_border(0, 0),
     m_borderType(GraphCtrl::Percentage_Border),
     m_margin(GetScreenDPI() / 4),
     m_fitsX(true),
@@ -621,7 +624,7 @@ void GraphCanvas::OnIdle(wxIdleEvent&)
         SetCursor(wxCURSOR_DEFAULT);
 }
 
-void GraphCanvas::CheckBounds()
+bool GraphCanvas::CheckBounds()
 {
     wxClientDC dc(this);
     PrepareDC(dc);
@@ -645,8 +648,6 @@ void GraphCanvas::CheckBounds()
         else if (m_borderType == GraphCtrl::Ctrl_Border)
             b.Inflate(m_border);
 
-        b.Union(wxRect(cs).CentreIn(b));
-
         wxRect inner = m_graph->GetBounds();
         inner.Inflate(m_margin);
         inner.x = dc.LogicalToDeviceX(inner.x);
@@ -656,38 +657,65 @@ void GraphCanvas::CheckBounds()
         b.Union(inner);
     }
 
-    int x = min(0, b.x) + m_xScrollPosition;
-    m_ptOrigin.x -= x;
-    m_xScrollPosition -= x;
+    const wxRect b0 = b;
 
-    int y = min(0, b.y) + m_yScrollPosition;
-    m_ptOrigin.y -= y;
-    m_yScrollPosition -= y;
+    int x = -min(0, b.x);
+    int y = -min(0, b.y);
+
+    bool fitsX = m_fitsX, fitsY = m_fitsY;
+
+    m_fitsX = b.width <= cs.x;
+    m_fitsY = b.height <= cs.y;
 
     bool needHBar = false, needVBar = false;
     bool done = false;
 
-    while (!done) {
+    while (!done && !b.IsEmpty()) {
         done = true;
 
-        m_virtualSize.x = max(cs.x, b.GetRight()) + m_xScrollPosition;
+        b = b0;
+        wxRect csr = m_fitsY ? wxRect(fullclient) : wxRect(cs);
+        b.Union(csr.CentreIn(b));
+        m_fitsX = b.width <= csr.width;
+
+        x = -min(0, b.x);
+        m_virtualSize.x = max(cs.x, b.GetRight()) + x;
 
         if (m_virtualSize.x > cs.x) {
-            SetScrollbar(wxHORIZONTAL, m_xScrollPosition, cs.x,
-                         m_virtualSize.x);
+            SetScrollbar(wxHORIZONTAL, x, cs.x, m_virtualSize.x);
             GetClientSize(NULL, &cs.y);
             needHBar = true;
         }
+        else {
+            cs.y = fullclient.y;
+            needHBar = false;
+        }
 
-        m_virtualSize.y = max(cs.y, b.GetBottom()) + m_yScrollPosition;
+        b = b0;
+        csr = m_fitsX ? wxRect(fullclient) : wxRect(cs);
+        b.Union(csr.CentreIn(b));
+        m_fitsY = b.height <= csr.height;
+
+        y = -min(0, b.y);
+        m_virtualSize.y = max(cs.y, b.GetBottom()) + y;
 
         if (m_virtualSize.y > cs.y) {
-            SetScrollbar(wxVERTICAL, m_yScrollPosition, cs.y, m_virtualSize.y);
+            SetScrollbar(wxVERTICAL, y, cs.y, m_virtualSize.y);
             GetClientSize(&cs.x, NULL);
             done = needVBar;
             needVBar = true;
         }
+        else {
+            cs.x = fullclient.x;
+            needVBar = false;
+        }
     }
+
+    m_ptOrigin.x += x - m_xScrollPosition;
+    m_xScrollPosition = x;
+
+    m_ptOrigin.y += y - m_yScrollPosition;
+    m_yScrollPosition = y;
 
     if (!needHBar)
         SetScrollbar(wxHORIZONTAL, 0, 0, 0);
@@ -697,14 +725,16 @@ void GraphCanvas::CheckBounds()
     m_sizeScrollbar = fullclient - cs;
 
     m_checkBounds = false;
+
+    return m_fitsX != fitsX || m_fitsY != fitsY;
 }
 
 wxSize GraphCanvas::GetScrollClientSize() const
 {
     wxSize cs = GetClientSize();
-    if (m_fitsX)
-        cs.x += m_sizeScrollbar.x;
     if (m_fitsY)
+        cs.x += m_sizeScrollbar.x;
+    if (m_fitsX)
         cs.y += m_sizeScrollbar.y;
     return cs;
 }
@@ -1433,7 +1463,7 @@ wxRect GraphEdgeHandler::GetEraseRect() const
 
     wxList& arrows = line->GetArrows();
     wxList::iterator it;
-    int size;
+    int size = 0;
 
     for (it = arrows.begin(); it != arrows.end(); ++it) {
         wxArrowHead *head = static_cast<wxArrowHead*>(*it);
@@ -2526,7 +2556,6 @@ bool Graph::Deserialise(Archive& archive)
     GraphCtrl *ctrl = GetCtrl();
     if (ctrl) {
         ctrl->SetZoom(100.0);
-        GetCanvas()->CheckBounds();
         ctrl->Home();
     }
 
@@ -2815,10 +2844,17 @@ void GraphCtrl::Home()
         if (!root || it->GetPosition() < root->GetPosition())
             root = &*it;
 
+    if (m_canvas->GetCheckBounds())
+        m_canvas->SetFits();
+
     wxRect rc = m_graph->GetBounds();
     wxPoint ptCentre(rc.x + rc.width / 2, rc.y + rc.height / 2);
     wxPoint ptScroll = m_canvas->GetScroll();
     m_canvas->ScrollTo(ptCentre, false);
+
+    if (m_canvas->GetCheckBounds())
+        if (m_canvas->CheckBounds())
+            m_canvas->ScrollTo(ptCentre, false);
 
     if (root)
         m_canvas->EnsureVisible(root->GetBounds(), false);
@@ -2835,19 +2871,18 @@ void GraphCtrl::Fit()
     wxSize cs = m_canvas->GetFullClientSize();
     wxRect rc = m_graph->GetBounds();
     rc.Inflate(m_canvas->GetMargin());
-    wxPoint ptCentre(rc.x + rc.width / 2, rc.y + rc.height / 2);
 
     double scalex =  100.0 * cs.x / rc.width;
     double scaley =  100.0 * cs.y / rc.height;
     double scale = max(min(min(scalex, scaley), 100.0), 1.0);
 
     if (GetZoom() == scale) {
-        m_canvas->ScrollTo(ptCentre);
+        m_canvas->ScrollTo(wxTOP);
     }
     else {
         SetZoom(scale);
-        m_canvas->CheckBounds();
-        m_canvas->ScrollTo(ptCentre, false);
+        m_canvas->SetFits();
+        m_canvas->ScrollTo(wxTOP, false);
     }
 }
 

@@ -118,7 +118,7 @@
  * @endcode
  *
  * It is a good idea to use such device independent units when creating graphs
- * so that a saved graph will look similar when loaded on a different machine.
+ * so that graphs created on different machines look similar.
  *
  * @section saveload Saving and Loading
  *
@@ -223,7 +223,7 @@
  * @endcode
  *
  * <code>def</code> references a default object of the same type as
- * <code>this</code> derived from <code>GraphNode</code>. The
+ * <code>this</code>, derived from <code>GraphNode</code>. The
  * <code>Serialise</code> methods use this default object to determine if an
  * attribute value has the default value for whatever the derived type is, and
  * saves it only if it has changed.

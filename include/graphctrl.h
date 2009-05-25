@@ -860,20 +860,6 @@ template <class T> IterPair<T> GraphNode::Iter(int which) const
  * would allow multiple views to update a document in a doc/view
  * application.
  *
- * The GraphCtrl owns a canvas from the underlying graphics library as a
- * child window. A class derived from GraphCtrl can handle canvas events
- * by getting the canvas window with GetCanvas(), and connecting to the
- * required event. For example:
- *
- * @code
- *  wxWindow *canvas = GetCanvas();
- *
- *  canvas->SetBackgroundStyle(wxBG_STYLE_CUSTOM);
- *  canvas->Connect(wxEVT_ERASE_BACKGROUND,
- *                  wxEraseEventHandler(ProjectDesigner::OnCanvasBackground),
- *                  NULL, this);
- * @endcode
- *
  * @see Graph
  */
 class GraphCtrl : public wxControl

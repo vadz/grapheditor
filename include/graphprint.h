@@ -144,7 +144,7 @@ inline PrintLabels operator+(const PrintLabels& l1, const PrintLabels& l2)
  * @see GraphPrintout
  */
 inline PrintLabels Footer(
-    const wxString& text = _T("Page %PAGE% of %PAGES%"),
+    const wxString& text = _("Page %PAGE% of %PAGES%"),
     int align = wxALIGN_CENTRE,
     int height = 10,
     const wxFont& font = wxFont(12, wxSWISS, wxNORMAL, wxNORMAL))
@@ -159,7 +159,7 @@ inline PrintLabels Footer(
  * @see GraphPrintout
  */
 inline PrintLabels Header(
-    const wxString& text = _T("Page %PAGE% of %PAGES%"),
+    const wxString& text = _("Page %PAGE% of %PAGES%"),
     int align = wxALIGN_CENTRE,
     int height = 10,
     const wxFont& font = wxFont(12, wxSWISS, wxNORMAL, wxNORMAL))
@@ -256,9 +256,9 @@ public:
                   double scale = 100,
                   MaxPages shrinktofit = MaxPages::Unlimited,
                   PrintLabels labels = Footer(),
-                  const wxString& title = _T("Graph"));
+                  const wxString& title = _("Graph"));
     GraphPrintout(GraphPages *graphpages,
-                  const wxString& title = _T("Graph"));
+                  const wxString& title = _("Graph"));
     ~GraphPrintout();
 
     void OnPreparePrinting();

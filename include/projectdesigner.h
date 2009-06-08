@@ -172,12 +172,31 @@ public:
     void SetShowGrid(bool show);
     bool IsGridShown() const { return m_showGrid; }
 
+    //@{
+    /**
+     * @brief The grid factor determines how many of the snap grid's lines are
+     * drawn on the background.
+     *
+     * The default is 5, that is every fifth grid line is shown. This allows
+     * a fairly fine grid to be used, giving users and the automatic layout
+     * reasonable freedom to place nodes, while not overcrowding the
+     * background with gridlines.
+     */
+    int GetGridFactor() const { return m_gridFactor; }
+    void SetGridFactor(int factor) { m_gridFactor = factor; Refresh(); }
+    //@}
+
     static const wxChar DefaultName[];
+
+protected:
+    /** @brief Adjust the grid factor when zoomed-in to avoid overcrowding. */
+    virtual int AdjustedGridFactor() const;
 
 private:
     void Init();
     wxColour m_background[2];
     bool m_showGrid;
+    int m_gridFactor;
 
     DECLARE_EVENT_TABLE()
     DECLARE_DYNAMIC_CLASS(ProjectDesigner)

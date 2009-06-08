@@ -63,6 +63,7 @@ void ProjectDesigner::Init()
 
     m_background[0] = m_background[1] = GetBackgroundColour();
     m_showGrid = true;
+    m_gridFactor = 5;
 }
 
 ProjectDesigner::~ProjectDesigner()
@@ -88,6 +89,21 @@ void ProjectDesigner::SetShowGrid(bool show)
         m_showGrid = show;
         GetCanvas()->Refresh();
     }
+}
+
+int ProjectDesigner::AdjustedGridFactor() const
+{
+    int factor = max(m_gridFactor, 1);
+    double zoom = GetZoom();
+
+    if (zoom > 0) {
+        while (zoom <= 50) {
+            factor *= 2;
+            zoom *= 2;
+        }
+    }
+
+    return factor;
 }
 
 void ProjectDesigner::OnCanvasBackground(wxEraseEvent& event)
@@ -130,16 +146,7 @@ void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
     int factor;
 
     if (IsGridShown()) {
-        factor = 5;
-        double zoom = GetZoom();
-
-        if (zoom) {
-            while (zoom <= 50) {
-                factor *= 2;
-                zoom *= 2;
-            }
-        }
-
+        factor = AdjustedGridFactor();
         spacing *= factor;
     }
     else {

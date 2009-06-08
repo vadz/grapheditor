@@ -443,6 +443,7 @@ public:
     void OnSnapToGrid(wxCommandEvent&);
     void OnUISnapToGrid(wxUpdateUIEvent& event);
     void OnSetGrid(wxCommandEvent&);
+    void OnSetGridFactor(wxCommandEvent&);
 
     // help menu
     void OnHelp(wxCommandEvent&);
@@ -509,6 +510,7 @@ enum {
     ID_SHOWGRID,
     ID_SNAPTOGRID,
     ID_SETGRID,
+    ID_SETGRIDFACTOR,
     ID_ZOOM,
     ID_ZOOM_NORM,
     ID_FIT,
@@ -572,6 +574,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(ID_SNAPTOGRID, MyFrame::OnSnapToGrid)
     EVT_UPDATE_UI(ID_SNAPTOGRID, MyFrame::OnUISnapToGrid)
     EVT_MENU(ID_SETGRID, MyFrame::OnSetGrid)
+    EVT_MENU(ID_SETGRIDFACTOR, MyFrame::OnSetGridFactor)
 
     EVT_MENU(ID_LAYOUT, MyFrame::OnLayout)
     EVT_MENU(ID_SETSIZE, MyFrame::OnSetSize)
@@ -710,6 +713,7 @@ MyFrame::MyFrame(const wxString& title)
     testMenu->AppendCheckItem(ID_SHOWGRID, _T("&Show &Grid\tCtrl+G"))->Check();
     testMenu->AppendCheckItem(ID_SNAPTOGRID, _T("Snap &To Grid\tCtrl+T"))->Check();
     testMenu->Append(ID_SETGRID, _T("Set Grid &Spacing..."));
+    testMenu->Append(ID_SETGRIDFACTOR, _T("Set Grid &Factor..."));
     testMenu->AppendSeparator();
     testMenu->Append(wxID_ZOOM_IN, _T("Zoom&In\t+"));
     testMenu->Append(wxID_ZOOM_OUT, _T("Zoom&Out\t-"));
@@ -1679,4 +1683,14 @@ void MyFrame::OnSetGrid(wxCommandEvent&)
                                        1, 100, this);
     if (spacing >= 1)
         m_graph->SetGridSpacing<Points>(spacing);
+}
+
+void MyFrame::OnSetGridFactor(wxCommandEvent&)
+{
+    long factor = wxGetNumberFromUser(
+        _T("Display every n-th grid line."), _T(""),
+        _T("Grid Factor"), m_graphctrl->GetGridFactor(), 1, 10, this);
+
+    if (factor >= 1)
+        m_graphctrl->SetGridFactor(factor);
 }

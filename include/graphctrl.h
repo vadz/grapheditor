@@ -31,6 +31,9 @@ class wxShape;
 class wxLineShape;
 class wxTipWindow;
 
+/**
+ * @brief TT-Solutions
+ */
 namespace tt_solutions {
 
 typedef wxShape GraphShape;

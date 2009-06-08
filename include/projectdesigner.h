@@ -19,6 +19,9 @@
 
 #include "graphctrl.h"
 
+/**
+ * @brief Datactics
+ */
 namespace datactics {
 
 /**

@@ -892,7 +892,7 @@ public:
     /**
      * @brief Returns the current scaling as a percentage.
      */
-    virtual double GetZoom();
+    virtual double GetZoom() const;
 
     /**
      * @brief Sets the Graph object that this GraphCtrl will operate on.

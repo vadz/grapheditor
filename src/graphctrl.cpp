@@ -2802,7 +2802,7 @@ void GraphCtrl::SetZoom(double percent, const wxPoint& ptCentre)
     m_canvas->ScrollByOffset(x, y, false);
 }
 
-double GraphCtrl::GetZoom()
+double GraphCtrl::GetZoom() const
 {
     return m_canvas->GetScaleX() * 100.0;
 }

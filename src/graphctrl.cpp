@@ -2346,7 +2346,7 @@ bool Graph::Layout(const node_iterator_pair& range,
         wxCHECK(graph, false);
 
         // do the layout
-        ok = gvLayout(context, graph, "dot") == 0;
+        ok = gvLayout(context, graph, (char*)"dot") == 0;
     }
 
     if (ok)
@@ -2881,7 +2881,7 @@ void GraphCtrl::Fit()
     }
     else {
         SetZoom(scale);
-        m_canvas->SetFits();
+        m_canvas->CheckBounds();
         m_canvas->ScrollTo(wxTOP, false);
     }
 }
@@ -3059,11 +3059,12 @@ GraphElement& GraphElement::operator=(const GraphElement& element)
         m_colour = element.m_colour;
         m_bgcolour = element.m_bgcolour;
 
-        if (m_shape)
+        if (m_shape) {
             if (element.m_shape)
                 SetStyle(element.GetStyle());
             else
                 SetShape(NULL);
+        }
 
         m_style = element.m_style;
     }

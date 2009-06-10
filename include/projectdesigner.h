@@ -55,24 +55,40 @@ public:
     /** @brief Destructor. */
     ~ProjectNode();
 
+    /** @cond */
     void SetText(const wxString& text);
     void SetFont(const wxFont& font);
+    /** @endcond */
+
+    //@{
     /** @brief The node's id. */
     wxString GetId() const                  { return m_id; }
-    /** @brief The node's operation label. Synonym for GetText(). */
+    void SetId(const wxString& text);
+    //@}
+
+    /** @brief The node's operation label. Synonym for @c GetText(). */
     wxString GetOperation() const           { return GetText(); }
+    /** @brief The node's operation label. Synonym for @c SetText(). */
+    void SetOperation(const wxString& text) { SetText(text); }
+
+    //@{
     /** @brief The node's result label. */
     wxString GetResult() const              { return m_result; }
-    wxIcon GetIcon() const                  { return m_icon; }
-
-    /** @brief The node's id. */
-    void SetId(const wxString& text);
-    /** @brief The node's operation label. Synonym for SetText(). */
-    void SetOperation(const wxString& text) { SetText(text); }
-    /** @brief The node's result label. */
     void SetResult(const wxString& text);
-    void SetIcon(const wxIcon& icon);
+    //@}
 
+    //@{
+    /** @brief The node's icon. */
+    wxIcon GetIcon() const                  { return m_icon; }
+    void SetIcon(const wxIcon& icon);
+    //@}
+
+    /**
+     * @brief Save or load this node's attributes.
+     *
+     * Can be overridden in a derived class to handle any additional
+     * attributes.
+     */
     bool Serialise(tt_solutions::Archive::Item& arc);
 
     /**
@@ -83,17 +99,35 @@ public:
      */
     int HitTest(const wxPoint& pt) const;
 
-    int GetBorderThickness() const;
+    //@{
+    /**
+     * @brief The node's border thickness.
+     *
+     * @tparam T @c Points or @c Twips specifying the units of the thickness.
+     * If omitted defaults to pixels.
+     */
     template <class T> int GetBorderThickness() const;
-
-    void SetBorderThickness(int thickness);
     template <class T> void SetBorderThickness(int thickness);
+    //@}
+    /** @cond */
+    int GetBorderThickness() const;
+    void SetBorderThickness(int thickness);
+    /** @endcond */
 
-    int GetCornerRadius() const;
+    //@{
+    /**
+     * @brief The node's corner radius.
+     *
+     * @tparam T @c Points or @c Twips specifying the units of the radius.
+     * If omitted defaults to pixels.
+     */
     template <class T> int GetCornerRadius() const;
-
-    void SetCornerRadius(int radius);
     template <class T> void SetCornerRadius(int radius);
+    //@}
+    /** @cond */
+    int GetCornerRadius() const;
+    void SetCornerRadius(int radius);
+    /** @endcond */
 
     //@{
     /**
@@ -101,21 +135,32 @@ public:
      *
      * The minimum size of the node if the content text would otherwise
      * force a larger size.
+     *
+     * @tparam T @c Points or @c Twips specifying the units of the size.
+     * If omitted defaults to pixels.
      * */
-    wxSize GetMaxAutoSize() const { return m_maxAutoSize; }
     template <class T> wxSize GetMaxAutoSize() const;
-    void SetMaxAutoSize(const wxSize& size) { m_maxAutoSize = size; }
     template <class T> void SetMaxAutoSize(const wxSize& size);
     //@}
+    /** @cond */
+    wxSize GetMaxAutoSize() const { return m_maxAutoSize; }
+    void SetMaxAutoSize(const wxSize& size) { m_maxAutoSize = size; }
+    /** @endcond */
 
+    /** @cond */
     void OnDraw(wxDC& dc);
     void OnLayout(wxDC &dc);
+    /** @endcond */
 
+    /** @cond */
     wxPoint GetPerimeterPoint(const wxPoint& inside,
                               const wxPoint& outside) const;
+    /** @endcond */
 
 protected:
+    /** @cond */
     int GetSpacing() const;
+    /** @endcond */
 
 private:
     typedef tt_solutions::Pixels Pixels;
@@ -161,16 +206,26 @@ public:
     /** @brief Destructor. */
     ~ProjectDesigner();
 
+    /** @cond */
     void OnCanvasBackground(wxEraseEvent& event);
     void DrawCanvasBackground(wxDC& dc);
+    /** @endcond */
 
     /** @brief Sets the background colour of the control. */
     bool SetBackgroundColour(const wxColour& colour);
     /** @brief Sets the background colour gradient of the control. */
     void SetBackgroundGradient(const wxColour& from, const wxColour& to);
 
+    //@{
+    /**
+     * @brief The 'show-grid' flag.
+     *
+     * When @c true, every @e n-th grid line is drawn on the background, where
+     * @e n is determined by @c SetGridFactor().
+     */
     void SetShowGrid(bool show);
     bool IsGridShown() const { return m_showGrid; }
+    //@}
 
     //@{
     /**
@@ -180,13 +235,15 @@ public:
      * The default is 5, that is every fifth grid line is shown. This allows
      * a fairly fine grid to be used, giving users and the automatic layout
      * reasonable freedom to place nodes, while not overcrowding the
-     * background with gridlines.
+     * background with grid lines.
      */
     int GetGridFactor() const { return m_gridFactor; }
     void SetGridFactor(int factor) { m_gridFactor = factor; Refresh(); }
     //@}
 
+    /** @cond */
     static const wxChar DefaultName[];
+    /** @endcond */
 
 protected:
     /** @brief Adjust the grid factor when zoomed-in to avoid overcrowding. */

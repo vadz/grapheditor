@@ -2380,7 +2380,7 @@ bool Graph::Layout(const node_iterator_pair& range,
     }
     else {
         wxLogError(_(
-"An error occured laying out the graph with dot.\
+"An error occurred laying out the graph with dot.\
  Please check the installation of the graphviz library and\
  its configuration file 'PREFIX/lib/graphviz/config'"
                     ));

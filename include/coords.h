@@ -46,11 +46,13 @@ namespace tt_solutions {
 template <int U> class Coords
 {
 public:
+    /** @cond */
+    enum { Units = U };
+    /** @endcond */
     /**
      * @brief For Points 72, for Twips 1440, or the special value 0 for
      * Pixels.
      */
-    enum { Units = U };
     static const double Inch;
 
     /**
@@ -62,10 +64,10 @@ public:
      * @endcode
      *
      * @param i An integer or floating point x or y value.
-     * @param dpi An integer giving the DPI in the correspoinding x or y
+     * @param dpi An integer giving the DPI in the corresponding x or y
      * direction.
      *
-     * When i is integer <code>From</code> rounds <em>down</em>.
+     * When i is integer <code>%From()</code> rounds <em>down</em>.
      */
     template <class C, class T> static T From(T i, int dpi) {
         return Trans<Units, C::Units, T>::From(i, dpi);
@@ -79,10 +81,10 @@ public:
      * @endcode
      *
      * @param i An integer or floating point x or y value.
-     * @param dpi An integer giving the DPI in the correspoinding x or y
+     * @param dpi An integer giving the DPI in the corresponding x or y
      * direction.
      *
-     * When i is integer <code>To</code> rounds <em>up</em>.
+     * When i is integer <code>%To()</code> rounds <em>up</em>.
      */
     template <class C, class T> static T To(T i, int dpi) {
         return Trans<Units, C::Units, T>::To(i, dpi);
@@ -99,7 +101,7 @@ public:
      * @param pt A wxPoint or wxSize value.
      * @param dpi A wxSize giving the DPIs in the x and y directions.
      *
-     * <code>From</code> rounds <em>down</em>.
+     * <code>%From()</code> rounds <em>down</em>.
      */
     template <class C, class T> static T From(const T& pt, const wxSize& dpi) {
         return T(From<C>(pt.x, dpi.x), From<C>(pt.y, dpi.y));
@@ -115,7 +117,7 @@ public:
      * @param pt A wxPoint or wxSize value.
      * @param dpi A wxSize giving the DPIs in the x and y directions.
      *
-     * <code>To</code> rounds <em>up</em>.
+     * <code>%To()</code> rounds <em>up</em>.
      */
     template <class C, class T> static T To(const T& pt, const wxSize& dpi) {
         return T(To<C>(pt.x, dpi.x), To<C>(pt.y, dpi.y));
@@ -132,7 +134,7 @@ public:
      * @param rc A wxRect value.
      * @param dpi A wxSize giving the DPIs in the x and y directions.
      *
-     * <code>From</code> rounds <em>down</em>.
+     * <code>%From()</code> rounds <em>down</em>.
      */
     template <class C> static wxRect From(const wxRect& rc, const wxSize& dpi) {
         return wxRect(From<C>(rc.GetPosition(), dpi),
@@ -149,7 +151,7 @@ public:
      * @param rc A wxRect value.
      * @param dpi A wxSize giving the DPIs in the x and y directions.
      *
-     * <code>To</code> rounds <em>up</em>.
+     * <code>%To()</code> rounds <em>up</em>.
      */
     template <class C> static wxRect To(const wxRect& rc, const wxSize& dpi) {
         return wxRect(To<C>(rc.GetPosition(), dpi),

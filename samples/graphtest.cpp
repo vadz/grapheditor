@@ -139,7 +139,7 @@
  * @endcode
  *
  * The <code>Graph::Serialise</code> and <code>Graph::Deserialise</code>
- * methods in turn call the the <code>GraphElement::Serialise</code> method
+ * methods in turn call the <code>GraphElement::Serialise</code> method
  * for each element in the graph. For elements the same method takes care of
  * both serialisation and deserialisation.
  *
@@ -245,6 +245,8 @@
  * same icon data.
  */
 
+/** @cond */
+
 // ============================================================================
 // declarations
 // ============================================================================
@@ -322,7 +324,7 @@ _T("    control.                                                            ")
 _T("                                                                        ")
 _T("    <h3>Selection</h3>                                                  ")
 _T("                                                                        ")
-_T("    <p>Mutliple selection is possible by rubber-banding (dragging a     ")
+_T("    <p>Multiple selection is possible by rubber-banding (dragging a     ")
 _T("    rectangle over the background), or by ctrl+clicking graph           ")
 _T("    elements.                                                           ")
 _T("                                                                        ")
@@ -338,7 +340,7 @@ _T("                                                                        ")
 _T("    <h3>Grid Spacing</h3>                                               ")
 _T("                                                                        ")
 _T("    <p>When the graph control displays a grid, it draws one line for    ")
-_T("    every five gridlines of the associated graph.                       ")
+_T("    every five grid lines of the associated graph.                       ")
 _T("                                                                        ")
 _T("  </body>                                                               ")
 _T("</html>                                                                 ")
@@ -747,7 +749,6 @@ MyFrame::MyFrame(const wxString& title)
     m_graph = new Graph(this);
     m_graphctrl->SetGraph(m_graph);
     splitter->SplitVertically(m_tree, m_graphctrl, 240);
-    //m_graphctrl->SetFocus();
 
     // grey grid on a white background
     m_graphctrl->SetForegroundColour(*wxLIGHT_GREY);
@@ -1694,3 +1695,5 @@ void MyFrame::OnSetGridFactor(wxCommandEvent&)
     if (factor >= 1)
         m_graphctrl->SetGridFactor(factor);
 }
+
+/** @endcond */

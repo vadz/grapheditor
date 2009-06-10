@@ -27,7 +27,7 @@ namespace tt_solutions {
  * @brief Tree control with items that can be dragged onto a GraphCtrl
  * to create new nodes.
  *
- * Dropping a node fires the event <code>EVT_GRAPHTREE_DROP</code>.
+ * Dropping a node fires the event <code>#EVT_GRAPHTREE_DROP</code>.
  *
  * @see GraphTreeEvent
  */
@@ -88,10 +88,12 @@ private:
 class GraphTreeEvent : public wxCommandEvent
 {
 public:
+    /** @brief Constructor. */
     GraphTreeEvent(wxEventType commandType = wxEVT_NULL, int winid = 0)
         : wxCommandEvent(commandType, winid)
     { }
 
+    /** @brief Copy constructor. */
     GraphTreeEvent(const GraphTreeEvent& event)
         : wxCommandEvent(event),
           m_target(event.GetTarget()),
@@ -120,6 +122,7 @@ public:
     /** @brief The image of the item dropped. */
     void SetIcon(const wxIcon& icon) { m_icon = icon; }
 
+    /** @brief Clone. */
     wxEvent *Clone() const { return new GraphTreeEvent(*this); }
 
 private:

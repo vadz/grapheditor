@@ -87,7 +87,7 @@ namespace impl
  * as another existing object, or for a given typeid.
  *
  * The factory caches a default instance of the object, which you can
- * obtain using <code>factory.GetDefault()</code>. The <code>New</code>
+ * obtain using <code>factory.GetDefault()</code>. The <code>New()</code>
  * function creates new objects by copy constructing them from the default
  * object.
  */
@@ -104,8 +104,8 @@ public:
 
     /**
      * @brief Constructor, will create objects of the type given by the
-     * <code>name</code>. 
-     * 
+     * <code>name</code>.
+     *
      * The name is the name given when the <code>Impl</code> is defined.
      */
     Factory(const wxString& name)

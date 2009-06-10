@@ -304,7 +304,7 @@ int ProjectNode::HitTest(const wxPoint& pt) const
             return Hit_Image;
     }
 
-    // for non-custom sytles it just returns yes or no
+    // for non-custom styles it just returns yes or no
     return Hit_Yes;
 }
 
@@ -326,7 +326,7 @@ int ProjectNode::GetSpacing() const
 }
 
 // Recalculates the positions of the things within the node. Only recalcs
-// the sizes of the text lables, m_rcText and m_rcResult, when the rects
+// the sizes of the text labels, m_rcText and m_rcResult, when the rects
 // are null, so usual it runs quickly.
 //
 void ProjectNode::OnLayout(wxDC &dc)
@@ -369,7 +369,7 @@ void ProjectNode::OnLayout(wxDC &dc)
     }
     m_rcResult.x = spacing + iconHSpace;
 
-    // calcuate the position of the dividing line between the two sections
+    // calculate the position of the dividing line between the two sections
     m_divide = m_rcText.GetBottom() + 1 + spacing - border;
     m_divide = max(m_divide, corner + border / 2);
 

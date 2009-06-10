@@ -3,7 +3,7 @@
 # Purpose:      makefile for building doxygen docs
 # Author:       Vadim Zeitlin
 # Created:      2006-03-10
-# RCS-ID:       $Id:$
+# RCS-ID:       $Id$
 # Copyright:    (c) 2006 TT-Solutions SARL
 ##############################################################################
 
@@ -23,7 +23,7 @@ graph.chm: html/index.hhp
 	@# hhc always returns error exit code (thanks Microsoft) so ignore it
 	-$(HHC) $<
 
-html/index.hhp: graph.doxy ../include/*.h
+html/index.hhp: graph.doxy ../include/*.h ../samples/graphtest.cpp
 	$(DOXYGEN) graph.doxy
 
 clean:

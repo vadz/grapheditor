@@ -18,6 +18,7 @@
 #include <map>
 
 /**
+ * @file archive.h
  * @brief Serialisation archive.
  */
 

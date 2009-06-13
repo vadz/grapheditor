@@ -14,7 +14,7 @@
 
 #ifdef WXMAKINGDLL_OGL
     #define WXDLLIMPEXP_OGL WXEXPORT
-#elif defined(WXUSINGDLL)
+#elif defined(WXUSINGDLL_OGL)
     #define WXDLLIMPEXP_OGL WXIMPORT
 #else // not making nor using DLL
     #define WXDLLIMPEXP_OGL

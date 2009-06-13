@@ -479,7 +479,13 @@ void GraphCanvas::OnDragLeft(bool, double x, double y, int)
         // instead.
         wxMouseState mouse = wxGetMouseState();
 
-        if (mouse.LeftDown()) {
+#if wxCHECK_VERSION(2, 9, 0)
+        bool leftdown = mouse.LeftIsDown();
+#else
+        bool leftdown = mouse.LeftDown();
+#endif
+
+        if (leftdown) {
             m_ptDrag -= ScrollByOffset(m_ptDrag.x - mouse.GetX(),
                                        m_ptDrag.y - mouse.GetY());
             Update();
@@ -615,11 +621,17 @@ void GraphCanvas::OnIdle(wxIdleEvent&)
 {
     wxMouseState state = wxGetMouseState();
 
-    if (m_checkBounds && !state.LeftDown())
+#if wxCHECK_VERSION(2, 9, 0)
+    bool leftdown = state.LeftIsDown();
+#else
+    bool leftdown = state.LeftDown();
+#endif
+
+    if (m_checkBounds && !leftdown)
         CheckBounds();
 
     if (state.ShiftDown())
-        SetCursor(wxCURSOR_SIZING);
+        SetCursor(wxCURSOR_SIZENWSE);
     else
         SetCursor(wxCURSOR_DEFAULT);
 }

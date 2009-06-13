@@ -132,9 +132,10 @@ namespace impl
  * <code>GraphIterator<GraphNode></code> is assignable to a
  * <code>GraphIterator<GraphElement></code>, but not vice versa.
  *
- * The graph methods that return iterators take a template parameter allow the
- * type of the iterator to be specified. For example @c GetNodes<ProjectNode>
- * would return @c GraphIterator<ProjectNode> iterators.
+ * The graph methods that return iterators take a template parameter to allow
+ * the type of the iterator to be specified. For example @c
+ * GetNodes<ProjectNode>() would return @c GraphIterator<ProjectNode>
+ * iterators.
  *
  * Methods that return iterators return a begin/end pair in a
  * <code>std::pair</code>.  These can be assigned to a pair of variables

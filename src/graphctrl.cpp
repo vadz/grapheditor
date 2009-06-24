@@ -631,7 +631,8 @@ void GraphCanvas::OnIdle(wxIdleEvent&)
         CheckBounds();
 
     if (state.ShiftDown())
-        SetCursor(wxCURSOR_SIZENWSE);
+        // FIXME: want a four-way arrow, add an XPM for it
+        SetCursor(wxCURSOR_SIZING);
     else
         SetCursor(wxCURSOR_DEFAULT);
 }
@@ -3018,17 +3019,25 @@ void GraphCtrl::OnMouseMove(wxMouseEvent& event)
 
 void GraphCtrl::OnTipTimer(wxTimerEvent&)
 {
-    if (m_graph && !m_tipwin && FindFocus() == this) {
+    if (m_graph && !m_tipwin && FindFocus() == this && !GetCapture()) {
         wxMouseState mouse = wxGetMouseState();
-        wxPoint pt = ScreenToGraph(wxPoint(mouse.GetX(), mouse.GetY()));
-        GraphNode *node = m_graph->HitTest(pt);
+        wxPoint ptMouse(mouse.GetX(), mouse.GetY());
+        wxRect rcClient(m_canvas->ClientToScreen(wxPoint()),
+                        m_canvas->GetClientSize());
 
-        if (node) {
-            wxString tip = node->GetToolTip(pt);
+        if (rcClient.Contains(ptMouse)) {
+            wxPoint pt = ScreenToGraph(ptMouse);
+            GraphNode *node = m_graph->HitTest(pt);
 
-            if (!tip.empty()) {
-                wxRect rc = m_canvas->GraphToScreen(node->GetBounds());
-                m_tipwin = new wxTipWindow(this, tip, INT_MAX, &m_tipwin, &rc);
+            if (node) {
+                wxString tip = node->GetToolTip(pt);
+
+                if (!tip.empty()) {
+                    wxRect rc = m_canvas->GraphToScreen(node->GetBounds());
+                    rc.Intersect(rcClient);
+                    m_tipwin = new wxTipWindow(this, tip, INT_MAX,
+                                               &m_tipwin, &rc);
+                }
             }
         }
     }

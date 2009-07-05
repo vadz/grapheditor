@@ -1145,7 +1145,10 @@ public:
     /** @endcond */
 
     //@{
-    /** @brief The delay in milliseconds before nodes' tooltips are shown. */
+    /**
+     * @brief The delay in milliseconds before nodes' tooltips are shown. Can
+     * be set to 0 to disable tooltips.
+     */
     void SetToolTipDelay(int millisecs) { m_tipdelay = millisecs; }
     int GetToolTipDelay() const { return m_tipdelay; }
     //@}

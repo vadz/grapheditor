@@ -3011,11 +3011,45 @@ void GraphCtrl::OnMouseLeave(wxMouseEvent& event)
 
 void GraphCtrl::OnMouseMove(wxMouseEvent& event)
 {
-    if (m_graph)
+    if (m_graph && m_tipdelay > 0)
         m_tiptimer.Start(m_tipdelay, true);
 
     event.Skip();
 }
+
+// workaround for Tooltip crash
+
+namespace {
+
+class TipWindow : public wxTipWindow
+{
+public:
+    TipWindow(wxWindow *parent,
+              const wxString& text,
+              wxCoord maxLength = 100,
+              wxTipWindow** windowPtr = NULL,
+              wxRect *rectBound = NULL)
+    : wxTipWindow(parent, text, maxLength, windowPtr, rectBound) { }
+
+    ~TipWindow() { }
+
+    void OnKeyDown(wxKeyEvent& event);
+
+private:
+    DECLARE_EVENT_TABLE()
+};
+
+BEGIN_EVENT_TABLE(TipWindow, wxTipWindow)
+    EVT_KEY_DOWN(TipWindow::OnKeyDown)
+END_EVENT_TABLE()
+
+void TipWindow::OnKeyDown(wxKeyEvent& event)
+{
+    DismissAndNotify();
+    event.Skip(false);
+}
+
+} // namespace
 
 void GraphCtrl::OnTipTimer(wxTimerEvent&)
 {
@@ -3035,8 +3069,8 @@ void GraphCtrl::OnTipTimer(wxTimerEvent&)
                 if (!tip.empty()) {
                     wxRect rc = m_canvas->GraphToScreen(node->GetBounds());
                     rc.Intersect(rcClient);
-                    m_tipwin = new wxTipWindow(this, tip, INT_MAX,
-                                               &m_tipwin, &rc);
+                    m_tipwin = new TipWindow(this, tip, INT_MAX,
+                                             &m_tipwin, &rc);
                 }
             }
         }

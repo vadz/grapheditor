@@ -115,8 +115,8 @@ void wxShapeCanvas::OnMouseEvent(wxMouseEvent& event)
   // from, this may not be an intentional drag at all.
   if (dragging)
   {
-    int dx = abs(dc.LogicalToDeviceX((long) (x - m_firstDragX)));
-    int dy = abs(dc.LogicalToDeviceY((long) (y - m_firstDragY)));
+    int dx = abs(dc.LogicalToDeviceXRel((long) (x - m_firstDragX)));
+    int dy = abs(dc.LogicalToDeviceYRel((long) (y - m_firstDragY)));
     if (m_checkTolerance && (dx <= GetDiagram()->GetMouseTolerance()) && (dy <= GetDiagram()->GetMouseTolerance()))
     {
       return;

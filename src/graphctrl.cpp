@@ -615,7 +615,7 @@ void GraphCanvas::OnEndDragLeft(double x, double y, int key)
     }
 }
 
-void GraphCanvas::OnCaptureLost(wxMouseCaptureLostEvent& event)
+void GraphCanvas::OnCaptureLost(wxMouseCaptureLostEvent&)
 {
     wxMouseState state = wxGetMouseState();
 
@@ -1936,6 +1936,7 @@ private:
 
 Graph::Graph(wxEvtHandler *handler)
   : m_diagram(new GraphDiagram),
+    m_nodeHit(NULL),
     m_handler(handler),
     m_dpi(GetScreenDPI())
 {
@@ -2013,6 +2014,8 @@ void Graph::RefreshBounds()
     if (canvas)
         canvas->SetCheckBounds();
     m_rcBounds = wxRect();
+    m_rcHit = wxRect();
+    m_nodeHit = NULL;
 }
 
 void Graph::SetCanvas(GraphCanvas *canvas)
@@ -2229,6 +2232,72 @@ void Graph::Delete(const iterator_pair& range)
             Delete(wxStaticCast(element, GraphEdge));
         }
     }
+}
+
+const GraphNode *Graph::HitTest(const wxPoint& pt) const
+{
+    wxRect bounds = GetBounds();
+
+    if (!bounds.Contains(pt))
+        return NULL;
+
+    if (!m_rcHit.Contains(pt)) {
+        const_node_iterator begin, it;
+        tie(begin, it) = GetNodes();
+
+        m_rcHit = bounds;
+        m_nodeHit = NULL;
+
+        while (it != begin) {
+            const GraphNode& node = *--it;
+            wxRect nb = node.GetBounds();
+ 
+            if (!nb.Contains(pt)) {
+                wxRect rx, ry;
+                
+                if (nb.x > pt.x) {
+                    rx = m_rcHit;
+                    rx.width = nb.x - m_rcHit.x;
+                }
+                else if (nb.x + nb.width < pt.x) {
+                    rx = m_rcHit;
+                    rx.x = nb.x + nb.width;
+                    rx.width -= rx.x - m_rcHit.x;
+                }
+
+                if (nb.y > pt.y) {
+                    ry = m_rcHit;
+                    ry.height = nb.y - m_rcHit.y;
+                }
+                else if (nb.y + nb.height < pt.y) {
+                    ry = m_rcHit;
+                    ry.y = nb.y + nb.height;
+                    ry.height -= ry.y - m_rcHit.y;
+                }
+
+                rx.Intersect(m_rcHit);
+                ry.Intersect(m_rcHit);
+
+                if (rx.width * rx.height >= ry.width * ry.height)
+                    m_rcHit = rx;
+                else
+                    m_rcHit = ry;
+            }
+            else {
+                m_rcHit.Intersect(nb);
+                m_nodeHit = &node;
+                break;
+            }
+        }
+    }
+
+    return m_nodeHit;
+}
+
+GraphNode *Graph::HitTest(const wxPoint& pt)
+{
+    const Graph *graph = this;
+    return const_cast<GraphNode*>(graph->HitTest(pt));
 }
 
 GraphIteratorImpl *Graph::IterImpl(
@@ -3132,7 +3201,7 @@ void GraphCtrl::OnMouseMove(wxMouseEvent& event)
         }
         else {
             m_canvas->SetToolTip(NULL);
-#if wxCHECK_VERSION(3, 0, 0)
+#if !wxCHECK_VERSION(3, 0, 0)
             // removing the tooltip isn't working on wxGTK 2.8.x
             wxToolTip::Apply(m_canvas->GetConnectWidget(), "");
             wxToolTip::Apply(m_canvas->GetConnectWidget(), wxCharBuffer());
@@ -3227,7 +3296,7 @@ void TipWindow::OnMouse(wxMouseEvent& event)
     }
 }
 
-void TipWindow::OnCaptureLost(wxMouseCaptureLostEvent& event)
+void TipWindow::OnCaptureLost(wxMouseCaptureLostEvent&)
 {
 }
 

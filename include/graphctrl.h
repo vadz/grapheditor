@@ -1687,17 +1687,17 @@ public:
 
     //@{
     /**
-     * @brief Returns topmost element in the Z-order at the given coordinates.
+     * @brief Returns topmost node in the Z-order at the given coordinates.
      *
      * @tparam T If given, restricts the test to just elements of the given
-     * type. If omitted defaults to @c GraphElement.
+     * type. If omitted defaults to @c GraphNode.
      */
     template <class T> T *HitTest(const wxPoint& pt);
     template <class T> const T *HitTest(const wxPoint& pt) const;
     //@}
     /** @cond */
-    inline GraphNode *HitTest(const wxPoint& pt);
-    inline const GraphNode *HitTest(const wxPoint& pt) const;
+    GraphNode *HitTest(const wxPoint& pt);
+    const GraphNode *HitTest(const wxPoint& pt) const;
     /** @endcond */
 
     /**
@@ -1750,6 +1750,8 @@ private:
     impl::GraphDiagram *m_diagram;
     mutable wxRect m_rcBounds;
     mutable wxRect m_rcDraw;
+    mutable wxRect m_rcHit;
+    mutable const GraphNode *m_nodeHit;
     wxEvtHandler *m_handler;
     wxSize m_dpi;
 
@@ -1799,36 +1801,12 @@ template <class T> wxRect Graph::GetBounds() const
 
 template <class T> T *Graph::HitTest(const wxPoint& pt)
 {
-    GraphIterator<T> begin, it;
-    tie(begin, it) = GetElements<T>();
-
-    while (it != begin)
-        if ((--it)->GetBounds().Contains(pt))
-            return &*it;
-
-    return NULL;
+    return dynamic_cast<T*>(HitTest(pt));
 }
 
 template <class T> const T *Graph::HitTest(const wxPoint& pt) const
 {
-    GraphIterator<const T> begin, it;
-    tie(begin, it) = GetElements<const T>();
-
-    while (it != begin)
-        if ((--it)->GetBounds().Contains(pt))
-            return &*it;
-
-    return NULL;
-}
-
-GraphNode *Graph::HitTest(const wxPoint& pt)
-{
-    return HitTest<GraphNode>(pt);
-}
-
-const GraphNode *Graph::HitTest(const wxPoint& pt) const
-{
-    return HitTest<const GraphNode>(pt);
+    return dynamic_cast<T*>(HitTest(pt));
 }
 
 Graph::const_iterator_pair Graph::GetElements() const

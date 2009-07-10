@@ -2251,10 +2251,10 @@ const GraphNode *Graph::HitTest(const wxPoint& pt) const
         while (it != begin) {
             const GraphNode& node = *--it;
             wxRect nb = node.GetBounds();
- 
+
             if (!nb.Contains(pt)) {
                 wxRect rx, ry;
-                
+
                 if (nb.x > pt.x) {
                     rx = m_rcHit;
                     rx.width = nb.x - m_rcHit.x;
@@ -2910,7 +2910,7 @@ GraphCtrl::GraphCtrl(
     m_canvas(new GraphCanvas(this, winid, wxPoint(0, 0), size, 0)),
     m_graph(NULL),
     m_tiptimer(this),
-    m_tipmode(Tip_wxToolTip),
+    m_tipmode(true),
     m_tipdelay(500),
     m_tipwin(NULL),
     m_tipnode(NULL)
@@ -3180,10 +3180,10 @@ void GraphCtrl::OnMouseMove(wxMouseEvent& event)
     GraphNode *node = NULL;
 
     if (m_graph && m_tipdelay > 0) {
-        if (m_tipmode == Tip_wxTipWindow) {
+        /*if (m_tipmode == Tip_wxTipWindow) {
             m_tiptimer.Start(m_tipdelay, true);
-        }
-        else if (m_tipmode == Tip_wxToolTip) {
+        }*/
+        if (m_tipmode) {
             wxPoint pt = m_canvas->ClientToScreen(event.GetPosition());
             node = m_graph->HitTest(ScreenToGraph(pt));
         }

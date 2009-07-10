@@ -1144,42 +1144,26 @@ public:
     wxSize GetMargin() const;
     /** @endcond */
 
-    /**
-     * @brief Enable/Disable the tooltips.
-     *
-     * @see SetToolTipMode() \n SetToolTipDelay()
-     */
-    enum ToolTipMode {
-        Tip_Disable,        /**< Disable tooltips. */
-        Tip_wxTipWindow,    /**< Use wxTipWindow. */
-        Tip_wxToolTip       /**< Use wxToolTip. */
-    };
-
     //@{
     /**
      * @brief Enable/Disable the tooltips.
      *
-     * There are two implementations for the tooltips: the original
-     * one using @c wxTipWindow and a new one using @c wxToolTip
-     * (recommended).
-     *
-     * When enabled here, the tooltip are still disabled by setting the tip
+     * When enabled here, the tooltips are still disabled by setting the tip
      * delay to zero (see @c SetToolTipDelay()) or by calling @c
-     * wxToolTip::Enable(false) (in the case of @c Tip_wxToolTip).
+     * wxToolTip::Enable(false).
      */
-    void SetToolTipMode(ToolTipMode mode) { m_tipmode = mode; }
-    int GetToolTipMode() const { return m_tipmode; }
+    void EnableToolTips(bool enable = true) { m_tipmode = enable; }
+    bool ToolTipsEnabled() const { return m_tipmode != 0; }
     //@}
 
     //@{
     /**
-     * @brief The delay in milliseconds before nodes' tooltips are shown.
+     * @brief No longer used.
      *
      * Settting this to zero will disable the tooltips.
-     * When the tooltip mode is @c Tip_wxToolTip the delay must be set
-     * with @c wxToolTip::SetDelay().
+     * The tooltip delay can be set with @c wxToolTip::SetDelay().
      *
-     * @see SetToolTipMode()
+     * @see EnableToolTips()
      */
     void SetToolTipDelay(int millisecs) { m_tipdelay = millisecs; }
     int GetToolTipDelay() const { return m_tipdelay; }

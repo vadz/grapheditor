@@ -380,6 +380,8 @@ public:
     // return: if OnInit() returns false, the application terminates)
     virtual bool OnInit();
     virtual int OnExit();
+
+    virtual int FilterEvent(wxEvent& event);
 };
 
 // Define a new frame type: this is going to be our main frame
@@ -667,6 +669,20 @@ bool MyApp::OnInit()
 int MyApp::OnExit()
 {
     return wxApp::OnExit();
+}
+
+// Ignore this. Skipping key events can cause wxTipWindow to crash, so do it
+// here so that any potential problems will be spotted.
+//
+int MyApp::FilterEvent(wxEvent& event)
+{
+    if (event.GetEventType() == wxEVT_KEY_DOWN) {
+        wxKeyEvent *ke = dynamic_cast<wxKeyEvent*>(&event);
+        if (ke && ke->GetKeyCode() == WXK_CONTROL)
+            ke->Skip();
+    }
+ 
+    return -1;
 }
 
 // ----------------------------------------------------------------------------

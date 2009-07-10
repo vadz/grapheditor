@@ -1101,6 +1101,9 @@ public:
     ControlPointHandler(wxShapeEvtHandler *prev);
 
     void OnErase(wxDC& dc);
+
+protected:
+    wxRect GetEraseRect() const;
 };
 
 ControlPointHandler::ControlPointHandler(wxShapeEvtHandler *prev)
@@ -1114,6 +1117,13 @@ void ControlPointHandler::OnErase(wxDC& dc)
     control->SetX(control->m_shape->GetX() + control->m_xoffset);
     control->SetY(control->m_shape->GetY() + control->m_yoffset);
     GraphHandler::OnErase(dc);
+}
+
+wxRect ControlPointHandler::GetEraseRect() const
+{
+    wxRect rc = GraphHandler::GetEraseRect();
+    rc.Inflate(1);
+    return rc;
 }
 
 // ----------------------------------------------------------------------------
@@ -3062,6 +3072,7 @@ void GraphCtrl::Fit()
         SetZoom(scale);
         m_canvas->CheckBounds();
         m_canvas->ScrollTo(wxTOP, false);
+        m_canvas->Refresh();
     }
 }
 

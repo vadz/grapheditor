@@ -380,8 +380,6 @@ public:
     // return: if OnInit() returns false, the application terminates)
     virtual bool OnInit();
     virtual int OnExit();
-
-    virtual int FilterEvent(wxEvent& event);
 };
 
 // Define a new frame type: this is going to be our main frame
@@ -448,7 +446,6 @@ public:
     void OnUISnapToGrid(wxUpdateUIEvent& event);
     void OnSetGrid(wxCommandEvent&);
     void OnSetGridFactor(wxCommandEvent&);
-    void OnSetToolTipMode(wxCommandEvent&);
 
     // help menu
     void OnHelp(wxCommandEvent&);
@@ -516,7 +513,6 @@ enum {
     ID_SNAPTOGRID,
     ID_SETGRID,
     ID_SETGRIDFACTOR,
-    ID_SETTOOLTIPMODE,
     ID_ZOOM,
     ID_ZOOM_NORM,
     ID_FIT,
@@ -581,7 +577,6 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_UPDATE_UI(ID_SNAPTOGRID, MyFrame::OnUISnapToGrid)
     EVT_MENU(ID_SETGRID, MyFrame::OnSetGrid)
     EVT_MENU(ID_SETGRIDFACTOR, MyFrame::OnSetGridFactor)
-    EVT_MENU(ID_SETTOOLTIPMODE, MyFrame::OnSetToolTipMode)
 
     EVT_MENU(ID_LAYOUT, MyFrame::OnLayout)
     EVT_MENU(ID_SETSIZE, MyFrame::OnSetSize)
@@ -671,20 +666,6 @@ int MyApp::OnExit()
     return wxApp::OnExit();
 }
 
-// Ignore this. Skipping key events can cause wxTipWindow to crash, so do it
-// here so that any potential problems will be spotted.
-//
-int MyApp::FilterEvent(wxEvent& event)
-{
-    if (event.GetEventType() == wxEVT_KEY_DOWN) {
-        wxKeyEvent *ke = dynamic_cast<wxKeyEvent*>(&event);
-        if (ke && ke->GetKeyCode() == WXK_CONTROL)
-            ke->Skip();
-    }
- 
-    return -1;
-}
-
 // ----------------------------------------------------------------------------
 // main frame
 // ----------------------------------------------------------------------------
@@ -744,8 +725,6 @@ MyFrame::MyFrame(const wxString& title)
     testMenu->AppendSeparator();
     testMenu->Append(ID_BORDER, _T("Scroll &Border\tCtrl+B"));
     testMenu->Append(ID_MARGIN, _T("Scroll &Margin\tCtrl+M"));
-    testMenu->AppendSeparator();
-    testMenu->Append(ID_SETTOOLTIPMODE, _T("Set Toolt&ip Mode...\tCtrl+I"));
 
     // help menu
     wxMenu *helpMenu = new wxMenu;
@@ -1717,21 +1696,6 @@ void MyFrame::OnSetGridFactor(wxCommandEvent&)
 
     if (factor >= 1)
         m_graphctrl->SetGridFactor(factor);
-}
-
-void MyFrame::OnSetToolTipMode(wxCommandEvent&)
-{
-    static wxString choices[] = {
-        _T("Disabled"),
-        _T("Use wxTipWindow"),
-        _T("Use wxToolTip (recommended)")
-    };
-
-    int mode = wxGetSingleChoiceIndex(_T("Tooltip mode:"), _T("Tooltips"),
-                                      WXSIZEOF(choices), choices, this);
-
-    if (mode >= 0)
-        m_graphctrl->SetToolTipMode(GraphCtrl::ToolTipMode(mode));
 }
 
 /** @endcond */

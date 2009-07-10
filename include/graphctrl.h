@@ -1144,10 +1144,42 @@ public:
     wxSize GetMargin() const;
     /** @endcond */
 
+    /**
+     * @brief Enable/Disable the tooltips.
+     *
+     * @see SetToolTipMode() \n SetToolTipDelay()
+     */
+    enum ToolTipMode {
+        Tip_Disable,        /**< Disable tooltips. */
+        Tip_wxTipWindow,    /**< Use wxTipWindow. */
+        Tip_wxToolTip       /**< Use wxToolTip. */
+    };
+
     //@{
     /**
-     * @brief The delay in milliseconds before nodes' tooltips are shown. Can
-     * be set to 0 to disable tooltips.
+     * @brief Enable/Disable the tooltips.
+     *
+     * There are two implementations for the tooltips: the original
+     * one using @c wxTipWindow and a new one using @c wxToolTip
+     * (recommended).
+     *
+     * When enabled here, the tooltip are still disabled by setting the tip
+     * delay to zero (see @c SetToolTipDelay()) or by calling @c
+     * wxToolTip::Enable(false) (in the case of @c Tip_wxToolTip).
+     */
+    void SetToolTipMode(ToolTipMode mode) { m_tipmode = mode; }
+    int GetToolTipMode() const { return m_tipmode; }
+    //@}
+
+    //@{
+    /**
+     * @brief The delay in milliseconds before nodes' tooltips are shown.
+     *
+     * Settting this to zero will disable the tooltips.
+     * When the tooltip mode is @c Tip_wxToolTip the delay must be set
+     * with @c wxToolTip::SetDelay().
+     *
+     * @see SetToolTipMode()
      */
     void SetToolTipDelay(int millisecs) { m_tipdelay = millisecs; }
     int GetToolTipDelay() const { return m_tipdelay; }
@@ -1219,8 +1251,10 @@ private:
     impl::GraphCanvas *m_canvas;
     Graph *m_graph;
     wxTimer m_tiptimer;
+    int m_tipmode;
     int m_tipdelay;
     wxTipWindow *m_tipwin;
+    GraphNode *m_tipnode;
     static int sm_leftDrag;
     static int sm_rightDrag;
 

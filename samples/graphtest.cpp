@@ -446,6 +446,7 @@ public:
     void OnUISnapToGrid(wxUpdateUIEvent& event);
     void OnSetGrid(wxCommandEvent&);
     void OnSetGridFactor(wxCommandEvent&);
+    void OnSetToolTipMode(wxCommandEvent&);
 
     // help menu
     void OnHelp(wxCommandEvent&);
@@ -513,6 +514,7 @@ enum {
     ID_SNAPTOGRID,
     ID_SETGRID,
     ID_SETGRIDFACTOR,
+    ID_SETTOOLTIPMODE,
     ID_ZOOM,
     ID_ZOOM_NORM,
     ID_FIT,
@@ -577,6 +579,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_UPDATE_UI(ID_SNAPTOGRID, MyFrame::OnUISnapToGrid)
     EVT_MENU(ID_SETGRID, MyFrame::OnSetGrid)
     EVT_MENU(ID_SETGRIDFACTOR, MyFrame::OnSetGridFactor)
+    EVT_MENU(ID_SETTOOLTIPMODE, MyFrame::OnSetToolTipMode)
 
     EVT_MENU(ID_LAYOUT, MyFrame::OnLayout)
     EVT_MENU(ID_SETSIZE, MyFrame::OnSetSize)
@@ -725,6 +728,8 @@ MyFrame::MyFrame(const wxString& title)
     testMenu->AppendSeparator();
     testMenu->Append(ID_BORDER, _T("Scroll &Border\tCtrl+B"));
     testMenu->Append(ID_MARGIN, _T("Scroll &Margin\tCtrl+M"));
+    testMenu->AppendSeparator();
+    testMenu->Append(ID_SETTOOLTIPMODE, _T("Set Toolt&ip Mode...\tCtrl+I"));
 
     // help menu
     wxMenu *helpMenu = new wxMenu;
@@ -1636,14 +1641,16 @@ void MyFrame::OnBorder(wxCommandEvent&)
     int type = wxGetSingleChoiceIndex(_T("Type of border:"), _T("Border"),
                                       WXSIZEOF(choices), choices, this);
 
-    m_graphctrl->SetBorderType(GraphCtrl::BorderType(type));
+    if (type >= 0) {
+        m_graphctrl->SetBorderType(GraphCtrl::BorderType(type));
 
-    long size = wxGetNumberFromUser(
-        _T("Enter the border size:"), _T("Border size"),
-        _T("Border"), m_graphctrl->GetBorder().x, 0, 500, this);
+        long size = wxGetNumberFromUser(
+            _T("Enter the border size:"), _T("Border size"),
+            _T("Border"), m_graphctrl->GetBorder().x, 0, 500, this);
 
-    if (size >= 0)
-        m_graphctrl->SetBorder(wxSize(size, size));
+        if (size >= 0)
+            m_graphctrl->SetBorder(wxSize(size, size));
+    }
 }
 
 void MyFrame::OnMargin(wxCommandEvent&)
@@ -1694,6 +1701,21 @@ void MyFrame::OnSetGridFactor(wxCommandEvent&)
 
     if (factor >= 1)
         m_graphctrl->SetGridFactor(factor);
+}
+
+void MyFrame::OnSetToolTipMode(wxCommandEvent&)
+{
+    static wxString choices[] = {
+        _T("Disabled"),
+        _T("Use wxTipWindow"),
+        _T("Use wxToolTip (recommended)")
+    };
+
+    int mode = wxGetSingleChoiceIndex(_T("Tooltip mode:"), _T("Tooltips"),
+                                      WXSIZEOF(choices), choices, this);
+
+    if (mode >= 0)
+        m_graphctrl->SetToolTipMode(GraphCtrl::ToolTipMode(mode));
 }
 
 /** @endcond */

@@ -1052,12 +1052,13 @@ void GraphHandler::OnErase(wxDC& dc)
 
     if (GetShape()->IsShown() && dc.IsKindOf(CLASSINFO(wxWindowDC)))
     {
-        wxRect rc = GetEraseRect();
+        wxRect rcGraph = GetEraseRect();
+        wxRect rc;
 
-        rc.x = dc.LogicalToDeviceX(rc.x);
-        rc.y = dc.LogicalToDeviceY(rc.y);
-        rc.width = dc.LogicalToDeviceXRel(rc.width);
-        rc.height = dc.LogicalToDeviceYRel(rc.height);
+        rc.x = dc.LogicalToDeviceX(rcGraph.x);
+        rc.y = dc.LogicalToDeviceY(rcGraph.y);
+        rc.width = dc.LogicalToDeviceX(rcGraph.x + rcGraph.width) - rc.x + 1;
+        rc.height = dc.LogicalToDeviceY(rcGraph.y + rcGraph.height) - rc.y + 1;
 
         wxWindow *canvas = shape->GetCanvas();
         canvas->RefreshRect(rc);
@@ -1067,7 +1068,7 @@ void GraphHandler::OnErase(wxDC& dc)
 wxRect GraphHandler::GetEraseRect() const
 {
     wxShape *shape = GetShape();
-    wxPen *pen = GetShape()->GetPen();
+    wxPen *pen = shape->GetPen();
     int penWidth = pen ? pen->GetWidth() : 0;
 
     double sizeX, sizeY;
@@ -1101,9 +1102,6 @@ public:
     ControlPointHandler(wxShapeEvtHandler *prev);
 
     void OnErase(wxDC& dc);
-
-protected:
-    wxRect GetEraseRect() const;
 };
 
 ControlPointHandler::ControlPointHandler(wxShapeEvtHandler *prev)
@@ -1117,13 +1115,6 @@ void ControlPointHandler::OnErase(wxDC& dc)
     control->SetX(control->m_shape->GetX() + control->m_xoffset);
     control->SetY(control->m_shape->GetY() + control->m_yoffset);
     GraphHandler::OnErase(dc);
-}
-
-wxRect ControlPointHandler::GetEraseRect() const
-{
-    wxRect rc = GraphHandler::GetEraseRect();
-    rc.Inflate(1);
-    return rc;
 }
 
 // ----------------------------------------------------------------------------

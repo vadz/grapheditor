@@ -706,7 +706,7 @@ MyFrame::MyFrame(const wxString& title)
     editMenu->Append(wxID_PASTE)->Enable(false);
     editMenu->Append(wxID_CLEAR, _T("&Delete\tDel"));
     editMenu->AppendSeparator();
-    editMenu->Append(wxID_SELECTALL);
+    editMenu->Append(wxID_SELECTALL, _T("Select &All\tCtrl+A"));
 
     // test menu
     wxMenu *testMenu = new wxMenu;
@@ -728,7 +728,7 @@ MyFrame::MyFrame(const wxString& title)
 
     // help menu
     wxMenu *helpMenu = new wxMenu;
-    helpMenu->Append(wxID_HELP);
+    helpMenu->Append(wxID_HELP, _T("&Help\tF1"));
     helpMenu->AppendSeparator();
     helpMenu->Append(wxID_ABOUT);
 

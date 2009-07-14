@@ -38,7 +38,6 @@
 // the client data field for anything else.
 
 #include "graphctrl.h"
-#include <wx/tipwin.h>
 #include <wx/tooltip.h>
 #include <wx/ogl/ogl.h>
 #include <bitset>
@@ -2889,9 +2888,7 @@ IMPLEMENT_DYNAMIC_CLASS(GraphCtrl, wxControl)
 BEGIN_EVENT_TABLE(GraphCtrl, wxControl)
     EVT_SIZE(GraphCtrl::OnSize)
     EVT_CHAR(GraphCtrl::OnChar)
-    EVT_TIMER(wxID_ANY, GraphCtrl::OnTipTimer)
     EVT_MOTION(GraphCtrl::OnMouseMove)
-    EVT_ENTER_WINDOW(GraphCtrl::OnMouseLeave)
     EVT_MOUSEWHEEL(GraphCtrl::OnMouseWheel)
 END_EVENT_TABLE()
 
@@ -2910,10 +2907,7 @@ GraphCtrl::GraphCtrl(
   : wxControl(parent, winid, pos, size, style | wxWANTS_CHARS, validator, name),
     m_canvas(new GraphCanvas(this, winid, wxPoint(0, 0), size, 0)),
     m_graph(NULL),
-    m_tiptimer(this),
-    m_tipmode(true),
-    m_tipdelay(500),
-    m_tipwin(NULL),
+    m_tipenable(true),
     m_tipnode(NULL)
 {
 }
@@ -3170,25 +3164,13 @@ void GraphCtrl::OnMouseWheel(wxMouseEvent& event)
     event.Skip();
 }
 
-void GraphCtrl::OnMouseLeave(wxMouseEvent& event)
-{
-    m_tiptimer.Stop();
-
-    event.Skip();
-}
-
 void GraphCtrl::OnMouseMove(wxMouseEvent& event)
 {
     GraphNode *node = NULL;
 
-    if (m_graph && m_tipdelay > 0) {
-        /*if (m_tipmode == Tip_wxTipWindow) {
-            m_tiptimer.Start(m_tipdelay, true);
-        }*/
-        if (m_tipmode) {
-            wxPoint pt = m_canvas->ClientToScreen(event.GetPosition());
-            node = m_graph->HitTest(ScreenToGraph(pt));
-        }
+    if (m_graph && m_tipenable) {
+        wxPoint pt = m_canvas->ClientToScreen(event.GetPosition());
+        node = m_graph->HitTest(ScreenToGraph(pt));
     }
 
     if (node != m_tipnode) {
@@ -3198,136 +3180,24 @@ void GraphCtrl::OnMouseMove(wxMouseEvent& event)
         if (tip.empty())
             node = NULL;
 
-        if (node) {
-            m_canvas->SetToolTip(tip);
-        }
-        else {
-            m_canvas->SetToolTip(NULL);
+        if (node != m_tipnode) {
+            if (node) {
+                m_canvas->SetToolTip(tip);
+            }
+            else {
+                m_canvas->SetToolTip(NULL);
 #if defined __WXGTK__ && !wxCHECK_VERSION(3, 0, 0)
-            // removing the tooltip isn't working on wxGTK 2.8.x
-            wxToolTip::Apply(m_canvas->GetConnectWidget(), "");
-            wxToolTip::Apply(m_canvas->GetConnectWidget(), wxCharBuffer());
+                // removing the tooltip isn't working on wxGTK 2.8.x
+                wxToolTip::Apply(m_canvas->GetConnectWidget(), "");
+                wxToolTip::Apply(m_canvas->GetConnectWidget(), wxCharBuffer());
 #endif
-        }
+            }
 
-        m_tipnode = node;
+            m_tipnode = node;
+        }
     }
 
     event.Skip();
-}
-
-// workarounds for wxTipWindow problems
-
-namespace {
-
-class TipWindow : public wxTipWindow
-{
-public:
-    TipWindow(wxWindow *parent,
-              const wxString& text,
-              wxCoord maxLength = 100,
-              wxTipWindow** windowPtr = NULL,
-              wxRect *rectBound = NULL);
-    ~TipWindow() { }
-
-    void OnKeyDown(wxKeyEvent& event);
-    void OnMouse(wxMouseEvent& event);
-    void OnCaptureLost(wxMouseCaptureLostEvent& event);
-
-private:
-    DECLARE_EVENT_TABLE()
-};
-
-BEGIN_EVENT_TABLE(TipWindow, wxTipWindow)
-    EVT_KEY_DOWN(TipWindow::OnKeyDown)
-    EVT_MOUSE_EVENTS(TipWindow::OnMouse)
-    EVT_MOUSE_CAPTURE_LOST(TipWindow::OnCaptureLost)
-END_EVENT_TABLE()
-
-TipWindow::TipWindow(
-        wxWindow *parent,
-        const wxString& text,
-        wxCoord maxLength,
-        wxTipWindow** windowPtr,
-        wxRect *rectBound)
-  : wxTipWindow(parent, text, maxLength, windowPtr, rectBound)
-{
-    wxWindow *view = GetChildren().front();
-
-    if (view) {
-        view->Connect(wxEVT_MIDDLE_DOWN,
-                      wxMouseEventHandler(TipWindow::OnMouse), NULL, this);
-        view->Connect(wxEVT_RIGHT_DOWN,
-                      wxMouseEventHandler(TipWindow::OnMouse), NULL, this);
-        view->Connect(wxEVT_MOUSE_CAPTURE_LOST,
-                      wxMouseCaptureLostEventHandler(TipWindow::OnCaptureLost),
-                      NULL, this);
-    }
-}
-
-void TipWindow::OnKeyDown(wxKeyEvent& event)
-{
-    DismissAndNotify();
-    event.Skip(false);
-}
-
-void TipWindow::OnMouse(wxMouseEvent& event)
-{
-    // do the coords translation now as after DismissAndNotify()
-    // m_popup may be destroyed
-    wxMouseEvent event2(event);
-
-    ClientToScreen(&event2.m_x, &event2.m_y);
-
-    // clicking outside a popup dismisses it
-    DismissAndNotify();
-    event.Skip(false);
-
-    // dismissing a tooltip shouldn't waste a click, i.e. you
-    // should be able to dismiss it and press the button with the
-    // same click, so repost this event to the window beneath us
-    wxWindow *winUnder = wxFindWindowAtPoint(event2.GetPosition());
-    if ( winUnder )
-    {
-        // translate the event coords to the ones of the window
-        // which is going to get the event
-        winUnder->ScreenToClient(&event2.m_x, &event2.m_y);
-
-        event2.SetEventObject(winUnder);
-        wxPostEvent(winUnder, event2);
-    }
-}
-
-void TipWindow::OnCaptureLost(wxMouseCaptureLostEvent&)
-{
-}
-
-} // namespace
-
-void GraphCtrl::OnTipTimer(wxTimerEvent&)
-{
-    if (m_graph && !m_tipwin && FindFocus() == this && !GetCapture()) {
-        wxMouseState mouse = wxGetMouseState();
-        wxPoint ptMouse(mouse.GetX(), mouse.GetY());
-        wxRect rcClient(m_canvas->ClientToScreen(wxPoint()),
-                        m_canvas->GetClientSize());
-
-        if (rcClient.Contains(ptMouse)) {
-            wxPoint pt = ScreenToGraph(ptMouse);
-            GraphNode *node = m_graph->HitTest(pt);
-
-            if (node) {
-                wxString tip = node->GetToolTip(pt);
-
-                if (!tip.empty()) {
-                    wxRect rc = m_canvas->GraphToScreen(node->GetBounds());
-                    rc.Intersect(rcClient);
-                    m_tipwin = new TipWindow(this, tip, INT_MAX,
-                                             &m_tipwin, &rc);
-                }
-            }
-        }
-    }
 }
 
 // ----------------------------------------------------------------------------

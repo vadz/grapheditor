@@ -29,7 +29,6 @@
 
 class wxShape;
 class wxLineShape;
-class wxTipWindow;
 
 /**
  * @brief TT-Solutions
@@ -1148,25 +1147,11 @@ public:
     /**
      * @brief Enable/Disable the tooltips.
      *
-     * When enabled here, the tooltips are still disabled by setting the tip
-     * delay to zero (see @c SetToolTipDelay()) or by calling @c
+     * When enabled here, the tooltips are still disabled by calling @c
      * wxToolTip::Enable(false).
      */
-    void EnableToolTips(bool enable = true) { m_tipmode = enable; }
-    bool ToolTipsEnabled() const { return m_tipmode != 0; }
-    //@}
-
-    //@{
-    /**
-     * @brief No longer used.
-     *
-     * Settting this to zero will disable the tooltips.
-     * The tooltip delay can be set with @c wxToolTip::SetDelay().
-     *
-     * @see EnableToolTips()
-     */
-    void SetToolTipDelay(int millisecs) { m_tipdelay = millisecs; }
-    int GetToolTipDelay() const { return m_tipdelay; }
+    void EnableToolTips(bool enable = true) { m_tipenable = enable; }
+    bool ToolTipsEnabled() const { return m_tipenable; }
     //@}
 
     /**
@@ -1214,8 +1199,6 @@ public:
     void OnChar(wxKeyEvent& event);
     void OnMouseWheel(wxMouseEvent& event);
     void OnMouseMove(wxMouseEvent& event);
-    void OnMouseLeave(wxMouseEvent& event);
-    void OnTipTimer(wxTimerEvent& event);
     /** @endcond */
 
     /** @cond */
@@ -1234,10 +1217,7 @@ private:
     impl::Initialisor m_initalise;
     impl::GraphCanvas *m_canvas;
     Graph *m_graph;
-    wxTimer m_tiptimer;
-    int m_tipmode;
-    int m_tipdelay;
-    wxTipWindow *m_tipwin;
+    bool m_tipenable;
     GraphNode *m_tipnode;
     static int sm_leftDrag;
     static int sm_rightDrag;

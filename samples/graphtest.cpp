@@ -446,6 +446,7 @@ public:
     void OnUISnapToGrid(wxUpdateUIEvent& event);
     void OnSetGrid(wxCommandEvent&);
     void OnSetGridFactor(wxCommandEvent&);
+    void OnSetToolTipMode(wxCommandEvent&);
 
     // help menu
     void OnHelp(wxCommandEvent&);
@@ -513,6 +514,7 @@ enum {
     ID_SNAPTOGRID,
     ID_SETGRID,
     ID_SETGRIDFACTOR,
+    ID_SETTOOLTIPMODE,
     ID_ZOOM,
     ID_ZOOM_NORM,
     ID_FIT,
@@ -577,6 +579,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_UPDATE_UI(ID_SNAPTOGRID, MyFrame::OnUISnapToGrid)
     EVT_MENU(ID_SETGRID, MyFrame::OnSetGrid)
     EVT_MENU(ID_SETGRIDFACTOR, MyFrame::OnSetGridFactor)
+    EVT_MENU(ID_SETTOOLTIPMODE, MyFrame::OnSetToolTipMode)
 
     EVT_MENU(ID_LAYOUT, MyFrame::OnLayout)
     EVT_MENU(ID_SETSIZE, MyFrame::OnSetSize)
@@ -725,6 +728,8 @@ MyFrame::MyFrame(const wxString& title)
     testMenu->AppendSeparator();
     testMenu->Append(ID_BORDER, _T("Scroll &Border\tCtrl+B"));
     testMenu->Append(ID_MARGIN, _T("Scroll &Margin\tCtrl+M"));
+    testMenu->AppendSeparator();
+    testMenu->Append(ID_SETTOOLTIPMODE, _T("Set Toolt&ip Mode...\tCtrl+I"));
 
     // help menu
     wxMenu *helpMenu = new wxMenu;
@@ -1696,6 +1701,21 @@ void MyFrame::OnSetGridFactor(wxCommandEvent&)
 
     if (factor >= 1)
         m_graphctrl->SetGridFactor(factor);
+}
+
+void MyFrame::OnSetToolTipMode(wxCommandEvent&)
+{
+    static wxString choices[] = {
+        _T("Disable"),
+        _T("Enable"),
+        _T("Use wxToolTip")
+    };
+
+    int mode = wxGetSingleChoiceIndex(_T("Tooltip mode:"), _T("Tooltips"),
+                                      WXSIZEOF(choices), choices, this);
+
+    if (mode >= 0)
+        m_graphctrl->EnableToolTips(mode);
 }
 
 /** @endcond */

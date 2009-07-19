@@ -101,6 +101,7 @@ GNUmakefile: grapheditor.bkl
             src/factory.cpp
             src/archive.cpp
             src/base64.cpp
+            src/tipwin.cpp
         </sources>
     </lib>
 

@@ -1143,15 +1143,48 @@ public:
     wxSize GetMargin() const;
     /** @endcond */
 
+    /**
+     * @brief Enable/Disable the tooltips.
+     *
+     * @see EnableToolTips() \n SetToolTipDelay()
+     */
+    enum ToolTipMode {
+        Tip_Disable,        /**< Disable tooltips. */
+        Tip_Enable,         /**< Enable tooltips. */
+        Tip_wxToolTip       /**< Enable using wxToolTip. */
+    };
+
     //@{
     /**
      * @brief Enable/Disable the tooltips.
      *
-     * When enabled here, the tooltips are still disabled by calling @c
-     * wxToolTip::Enable(false).
+     * Setting this to @c Tip_Enable enables the new @c TipWindow tooltips.
+     *
+     * Setting it to @c Tip_wxToolTip instead uses the tooltip code
+     * from the previous version. This is known <em>not</em> to work on
+     * some versions of GTK+. It's provided as a backup for Windows builds
+     * where it has had more testing than the new code.
+     *
+     * When enabled here, the tooltip are still disabled by setting the tip
+     * delay to zero (see @c SetToolTipDelay()) or by calling @c
+     * wxToolTip::Enable(false) (in the case of @c Tip_wxToolTip).
      */
-    void EnableToolTips(bool enable = true) { m_tipenable = enable; }
-    bool ToolTipsEnabled() const { return m_tipenable; }
+    void EnableToolTips(int mode = Tip_Enable) { m_tipmode = mode; }
+    int ToolTipsEnabled() const { return m_tipmode; }
+    //@}
+
+    //@{
+    /**
+     * @brief The delay in milliseconds before nodes' tooltips are shown.
+     *
+     * Settting this to zero will disable the tooltips.
+     * When the tooltip mode is @c Tip_wxToolTip the delay must be set
+     * with @c wxToolTip::SetDelay().
+     *
+     * @see SetToolTipMode()
+     */
+    void SetToolTipDelay(int millisecs) { m_tipdelay = millisecs; }
+    int GetToolTipDelay() const { return m_tipdelay; }
     //@}
 
     /**
@@ -1199,6 +1232,13 @@ public:
     void OnChar(wxKeyEvent& event);
     void OnMouseWheel(wxMouseEvent& event);
     void OnMouseMove(wxMouseEvent& event);
+    void OnMouseLeave(wxMouseEvent& event);
+    void OnTipTimer(wxTimerEvent& event);
+    void OnIdle(wxIdleEvent& event);
+#ifdef __WXGTK__
+    void OnSetFocus(wxFocusEvent& event);
+    void OnKillFocus(wxFocusEvent& event);
+#endif
     /** @endcond */
 
     /** @cond */
@@ -1213,12 +1253,20 @@ protected:
 
 private:
     void ScrollHomeEnd(bool home);
+    void CheckTip(const wxPoint& pt = wxGetMousePosition());
+    void OpenTip(const wxString& tip);
+    void CloseTip(const wxPoint& pt = wxDefaultPosition);
 
     impl::Initialisor m_initalise;
     impl::GraphCanvas *m_canvas;
     Graph *m_graph;
-    bool m_tipenable;
+
+    wxTimer m_tiptimer;
+    int m_tipmode;
+    int m_tipdelay;
     GraphNode *m_tipnode;
+    bool m_tipopen;
+
     static int sm_leftDrag;
     static int sm_rightDrag;
 

@@ -38,6 +38,7 @@
 // the client data field for anything else.
 
 #include "graphctrl.h"
+#include "tipwin.h"
 #include <wx/tooltip.h>
 #include <wx/ogl/ogl.h>
 #include <bitset>
@@ -97,6 +98,9 @@ namespace {
 const wxString SORT_ELEMENT = _T("el");
 const wxString SORT_NODE    = SORT_ELEMENT + _T("1");
 const wxString SORT_EDGE    = SORT_ELEMENT + _T("2");
+
+// id for the tooltip window
+const int ID_TIPWIN = 99;
 
 // the wxShape's client data field points back to the GraphElement
 GraphElement *GetElement(wxShape *shape)
@@ -202,21 +206,6 @@ wxSize GetScreenDPI()
     return dpi;
 }
 
-bool InDClickTime(long ts1, long ts2)
-{
-    long msec = 250;
-#if wxCHECK_VERSION(2, 9, 0)
-    msec = wxSystemSettings::GetMetric(wxSYS_DCLICK_MSEC);
-#endif
-    return ts1 - ts2 < msec;
-}
-
-bool InDClickRect(const wxPoint& pt1, const wxPoint& pt2)
-{
-    return abs(pt1.x - pt2.x) < wxSystemSettings::GetMetric(wxSYS_DCLICK_X)
-        && abs(pt1.y - pt2.y) < wxSystemSettings::GetMetric(wxSYS_DCLICK_Y);
-}
-
 } // namespace
 
 // ----------------------------------------------------------------------------
@@ -302,7 +291,6 @@ public:
     bool SetCapturedCursor(const wxCursor& cursor);
 
     void OnScroll(wxScrollWinEvent& event);
-    void OnIdle(wxIdleEvent& event);
     void OnPaint(wxPaintEvent& event);
     void OnSize(wxSizeEvent& event);
     void OnSetFocus(wxFocusEvent& event);
@@ -359,8 +347,6 @@ private:
     wxSize m_margin;
     bool m_fitsX;
     bool m_fitsY;
-    long m_tsTip;
-    wxPoint m_ptTip;
 
     DECLARE_EVENT_TABLE()
     DECLARE_DYNAMIC_CLASS(GraphCanvas)
@@ -373,7 +359,6 @@ IMPLEMENT_DYNAMIC_CLASS(GraphCanvas, wxShapeCanvas)
 
 BEGIN_EVENT_TABLE(GraphCanvas, wxShapeCanvas)
     EVT_SCROLLWIN(GraphCanvas::OnScroll)
-    EVT_IDLE(GraphCanvas::OnIdle)
     EVT_PAINT(GraphCanvas::OnPaint)
     EVT_SIZE(GraphCanvas::OnSize)
     EVT_LEFT_DOWN(GraphCanvas::OnLeftButton)
@@ -399,8 +384,7 @@ GraphCanvas::GraphCanvas(
     m_borderType(GraphCtrl::Percentage_Border),
     m_margin(GetScreenDPI() / 4),
     m_fitsX(true),
-    m_fitsY(true),
-    m_tsTip(0)
+    m_fitsY(true)
 {
     SetScrollRate(1, 1);
     SetFont(DefaultFont());
@@ -454,21 +438,7 @@ void GraphCanvas::OnLeftButton(wxMouseEvent& event)
         if (FindFocus() != GetParent())
             SetFocus();
 
-        long ts1 = m_tsTip;
-        long ts2 = event.GetTimestamp();
-
-        wxPoint pt1(m_ptTip);
-        wxPoint pt2(event.GetPosition());
-
-        m_tsTip = ts2;
-        m_ptTip = pt2;
-
-        if (InDClickTime(ts2, ts1) && InDClickRect(pt2, pt1)) {
-            wxMouseEvent event2(event);
-            event2.SetEventType(wxEVT_LEFT_DCLICK);
-            GetEventHandler()->ProcessEvent(event2);
-        }
-        else if (event.ShiftDown() && !event.Dragging()) {
+        if (event.ShiftDown() && !event.Dragging()) {
             wxClientDC dc(this);
             PrepareDC(dc);
             wxPoint ptLog(event.GetLogicalPosition(dc));
@@ -701,40 +671,6 @@ void GraphCanvas::OnScroll(wxScrollWinEvent& event)
     int pos = event.GetPosition();
 
     DoScroll(orient, type, pos);
-}
-
-// The scrollbars are sized to allow scrolling over the bounding rectangle of
-// all the nodes currently in the graph. Panning allows scrolling beyond this
-// region, and in this case the scrollbars adjust to include the current
-// position.
-//
-// Code that moves nodes or otherwise affects the scrollbars, sets the flag
-// SetCheckBounds(). Then in the idle time the bounding rectangle of all the
-// nodes is recalculated and the scrollbars adjusted if necessary.
-//
-// The reason this is done during the idle time, is that scrolling back to
-// the origin may cause the scrollbars to disappear, and when this is done
-// using the mouse, the mouse then stops working. Presumably because the
-// scrollbar is destroyed without releasing the capture.
-//
-void GraphCanvas::OnIdle(wxIdleEvent&)
-{
-    wxMouseState state = wxGetMouseState();
-
-#if wxCHECK_VERSION(2, 9, 0)
-    bool leftdown = state.LeftIsDown();
-#else
-    bool leftdown = state.LeftDown();
-#endif
-
-    if (m_checkBounds && !leftdown)
-        CheckBounds();
-
-    if (state.ShiftDown())
-        // FIXME: want a four-way arrow, add an XPM for it
-        SetCursor(wxCURSOR_SIZING);
-    else
-        SetCursor(wxCURSOR_DEFAULT);
 }
 
 bool GraphCanvas::CheckBounds()
@@ -2888,8 +2824,15 @@ IMPLEMENT_DYNAMIC_CLASS(GraphCtrl, wxControl)
 BEGIN_EVENT_TABLE(GraphCtrl, wxControl)
     EVT_SIZE(GraphCtrl::OnSize)
     EVT_CHAR(GraphCtrl::OnChar)
+    EVT_TIMER(wxID_ANY, GraphCtrl::OnTipTimer)
     EVT_MOTION(GraphCtrl::OnMouseMove)
+    EVT_LEAVE_WINDOW(GraphCtrl::OnMouseLeave)
     EVT_MOUSEWHEEL(GraphCtrl::OnMouseWheel)
+    EVT_IDLE(GraphCtrl::OnIdle)
+#ifdef __WXGTK__
+    EVT_SET_FOCUS(GraphCtrl::OnSetFocus)
+    EVT_KILL_FOCUS(GraphCtrl::OnKillFocus)
+#endif
 END_EVENT_TABLE()
 
 const wxChar GraphCtrl::DefaultName[] = _T("graphctrl");
@@ -2907,8 +2850,11 @@ GraphCtrl::GraphCtrl(
   : wxControl(parent, winid, pos, size, style | wxWANTS_CHARS, validator, name),
     m_canvas(new GraphCanvas(this, winid, wxPoint(0, 0), size, 0)),
     m_graph(NULL),
-    m_tipenable(true),
-    m_tipnode(NULL)
+    m_tiptimer(this),
+    m_tipmode(Tip_Enable),
+    m_tipdelay(500),
+    m_tipnode(NULL),
+    m_tipopen(false)
 {
 }
 
@@ -3106,6 +3052,106 @@ wxWindow *GraphCtrl::GetCanvas() const
     return m_canvas;
 }
 
+void GraphCtrl::CheckTip(const wxPoint& pt)
+{
+    GraphNode *node = NULL;
+
+    if (m_graph && m_tipdelay > 0 && m_tipmode != Tip_Disable)
+        node = m_graph->HitTest(ScreenToGraph(pt));
+
+    if (node != m_tipnode) {
+        wxString tip;
+        if (node)
+            tip = node->GetToolTip();
+        if (tip.empty())
+            node = NULL;
+
+        if (node)
+            OpenTip(tip);
+        else
+            CloseTip();
+
+        m_tipnode = node;
+    }
+}
+
+void GraphCtrl::OpenTip(const wxString& tip)
+{
+    if (m_tipmode == Tip_wxToolTip)
+        m_canvas->SetToolTip(tip);
+    else if (m_tipmode == Tip_Enable)
+        m_tiptimer.Start(m_tipdelay, true);
+
+    m_tipopen = true;
+}
+
+void GraphCtrl::CloseTip(const wxPoint& pt)
+{
+    if (m_tipopen) {
+        m_tipopen = false;
+
+        if (m_canvas->GetToolTip() != NULL) {
+            m_canvas->SetToolTip(NULL);
+#if defined __WXGTK__ && !wxCHECK_VERSION(3, 0, 0)
+            // removing the tooltip isn't working on wxGTK 2.8.x
+            wxToolTip::Apply(m_canvas->GetConnectWidget(), "");
+            wxToolTip::Apply(m_canvas->GetConnectWidget(), wxCharBuffer());
+#endif
+        }
+
+        m_tiptimer.Stop();
+
+        wxWindow *tipwin = m_canvas->FindWindow(ID_TIPWIN);
+        if (tipwin) {
+            if (pt == wxDefaultPosition
+                || !tipwin->GetScreenRect().Contains(ClientToScreen(pt)))
+            {
+                tipwin->Destroy();
+                m_tipnode = NULL;
+            }
+            else {
+                m_tipopen = true;
+            }
+        }
+    }
+}
+
+// The scrollbars are sized to allow scrolling over the bounding rectangle of
+// all the nodes currently in the graph. Panning allows scrolling beyond this
+// region, and in this case the scrollbars adjust to include the current
+// position.
+//
+// Code that moves nodes or otherwise affects the scrollbars, sets the flag
+// SetCheckBounds(). Then in the idle time the bounding rectangle of all the
+// nodes is recalculated and the scrollbars adjusted if necessary.
+//
+// The reason this is done during the idle time, is that scrolling back to
+// the origin may cause the scrollbars to disappear, and when this is done
+// using the mouse, the mouse then stops working. Presumably because the
+// scrollbar is destroyed without releasing the capture.
+//
+void GraphCtrl::OnIdle(wxIdleEvent&)
+{
+    wxMouseState state = wxGetMouseState();
+
+#if wxCHECK_VERSION(2, 9, 0)
+    bool leftdown = state.LeftIsDown();
+#else
+    bool leftdown = state.LeftDown();
+#endif
+
+    if (m_canvas->GetCheckBounds() && !leftdown) {
+        m_canvas->CheckBounds();
+        CheckTip(wxPoint(state.GetX(), state.GetY()));
+    }
+
+    if (state.ShiftDown())
+        // FIXME: want a four-way arrow, add an XPM for it
+        m_canvas->SetCursor(wxCURSOR_SIZING);
+    else
+        m_canvas->SetCursor(wxCURSOR_DEFAULT);
+}
+
 void GraphCtrl::OnSize(wxSizeEvent&)
 {
     m_canvas->SetSize(GetClientSize());
@@ -3164,40 +3210,58 @@ void GraphCtrl::OnMouseWheel(wxMouseEvent& event)
     event.Skip();
 }
 
+void GraphCtrl::OnMouseLeave(wxMouseEvent& event)
+{
+    CloseTip(event.GetPosition());
+    event.Skip();
+}
+
+#ifdef __WXGTK__
+
+void GraphCtrl::OnSetFocus(wxFocusEvent& event)
+{
+    CheckTip();
+    event.Skip();
+}
+
+void GraphCtrl::OnKillFocus(wxFocusEvent& event)
+{
+    CloseTip();
+    event.Skip();
+}
+
+#endif
+
 void GraphCtrl::OnMouseMove(wxMouseEvent& event)
 {
-    GraphNode *node = NULL;
-
-    if (m_graph && m_tipenable) {
-        wxPoint pt = m_canvas->ClientToScreen(event.GetPosition());
-        node = m_graph->HitTest(ScreenToGraph(pt));
-    }
-
-    if (node != m_tipnode) {
-        wxString tip;
-        if (node)
-            tip = node->GetToolTip();
-        if (tip.empty())
-            node = NULL;
-
-        if (node != m_tipnode) {
-            if (node) {
-                m_canvas->SetToolTip(tip);
-            }
-            else {
-                m_canvas->SetToolTip(NULL);
-#if defined __WXGTK__ && !wxCHECK_VERSION(3, 0, 0)
-                // removing the tooltip isn't working on wxGTK 2.8.x
-                wxToolTip::Apply(m_canvas->GetConnectWidget(), "");
-                wxToolTip::Apply(m_canvas->GetConnectWidget(), wxCharBuffer());
-#endif
-            }
-
-            m_tipnode = node;
-        }
-    }
+    if (event.Dragging())
+        CloseTip();
+    else
+        CheckTip(m_canvas->ClientToScreen(event.GetPosition()));
 
     event.Skip();
+}
+
+void GraphCtrl::OnTipTimer(wxTimerEvent&)
+{
+#ifdef __WXGTK__
+    if (FindFocus() != this)
+        return;
+#endif
+
+    if (m_graph && !m_canvas->FindWindow(ID_TIPWIN)) {
+        wxPoint pt = ScreenToGraph(wxGetMousePosition());
+        GraphNode *node = m_graph->HitTest(pt);
+
+        if (node) {
+            wxString tip = node->GetToolTip(pt);
+
+            if (!tip.empty()) {
+                wxWindow *tipwin = new TipWindow(m_canvas, ID_TIPWIN, tip);
+                tipwin->Show();
+            }
+        }
+    }
 }
 
 // ----------------------------------------------------------------------------

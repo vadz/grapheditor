@@ -328,6 +328,8 @@ public:
     wxRect ScreenToGraph(const wxRect& rcScreen);
     wxRect GraphToScreen(const wxRect& rcGraph);
 
+    wxRect GetClientScreenRect() const;
+
     inline wxSize GetScrollClientSize() const;
     inline wxSize GetFullClientSize() const;
 
@@ -954,6 +956,11 @@ wxRect GraphCanvas::GraphToScreen(const wxRect& rcGraph)
     wxSize size(dc.LogicalToDeviceXRel(rcGraph.width),
                 dc.LogicalToDeviceYRel(rcGraph.height));
     return wxRect(ClientToScreen(pt), size);
+}
+
+wxRect GraphCanvas::GetClientScreenRect() const
+{
+    return wxRect(ClientToScreen(wxPoint()), GetClientSize());
 }
 
 } // namespace impl
@@ -3056,7 +3063,8 @@ void GraphCtrl::CheckTip(const wxPoint& pt)
 {
     GraphNode *node = NULL;
 
-    if (m_graph && m_tipdelay > 0 && m_tipmode != Tip_Disable)
+    if (m_graph && m_tipdelay > 0 && m_tipmode != Tip_Disable
+            && m_canvas->GetClientScreenRect().Contains(pt))
         node = m_graph->HitTest(ScreenToGraph(pt));
 
     if (node != m_tipnode) {
@@ -3103,14 +3111,14 @@ void GraphCtrl::CloseTip(const wxPoint& pt)
 
         wxWindow *tipwin = m_canvas->FindWindow(ID_TIPWIN);
         if (tipwin) {
-            if (pt == wxDefaultPosition
-                || !tipwin->GetScreenRect().Contains(ClientToScreen(pt)))
-            {
+            if (pt != wxDefaultPosition) {
+                wxPoint ptScreen = ClientToScreen(pt);
+                m_tipopen = tipwin->GetScreenRect().Contains(ptScreen) &&
+                            m_canvas->GetClientScreenRect().Contains(ptScreen);
+            }
+            if (!m_tipopen) {
                 tipwin->Destroy();
                 m_tipnode = NULL;
-            }
-            else {
-                m_tipopen = true;
             }
         }
     }
@@ -3250,16 +3258,24 @@ void GraphCtrl::OnTipTimer(wxTimerEvent&)
 #endif
 
     if (m_graph && !m_canvas->FindWindow(ID_TIPWIN)) {
-        wxPoint pt = ScreenToGraph(wxGetMousePosition());
-        GraphNode *node = m_graph->HitTest(pt);
+        wxPoint ptScreen = wxGetMousePosition();
 
-        if (node) {
-            wxString tip = node->GetToolTip(pt);
+        if (m_canvas->GetClientScreenRect().Contains(ptScreen)) {
+            wxPoint pt = ScreenToGraph(ptScreen);
+            GraphNode *node = m_graph->HitTest(pt);
 
-            if (!tip.empty()) {
-                wxWindow *tipwin = new TipWindow(m_canvas, ID_TIPWIN, tip);
-                tipwin->Show();
+            if (node) {
+                wxString tip = node->GetToolTip(pt);
+
+                if (!tip.empty()) {
+                    wxWindow *tipwin = new TipWindow(m_canvas, ID_TIPWIN, tip);
+                    tipwin->Show();
+                }
             }
+        }
+        else {
+            m_tipopen = false;
+            m_tipnode = NULL;
         }
     }
 }

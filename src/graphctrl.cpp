@@ -3242,10 +3242,13 @@ void GraphCtrl::OnKillFocus(wxFocusEvent& event)
 
 void GraphCtrl::OnMouseMove(wxMouseEvent& event)
 {
-    if (event.Dragging())
+    if (event.Dragging()) {
         CloseTip();
-    else
+        m_tipnode = NULL;
+    }
+    else {
         CheckTip(m_canvas->ClientToScreen(event.GetPosition()));
+    }
 
     event.Skip();
 }
@@ -3253,8 +3256,11 @@ void GraphCtrl::OnMouseMove(wxMouseEvent& event)
 void GraphCtrl::OnTipTimer(wxTimerEvent&)
 {
 #ifdef __WXGTK__
-    if (FindFocus() != this)
+    if (FindFocus() != this) {
+        m_tipopen = false;
+        m_tipnode = NULL;
         return;
+    }
 #endif
 
     if (m_graph && !m_canvas->FindWindow(ID_TIPWIN)) {

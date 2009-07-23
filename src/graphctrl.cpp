@@ -3085,10 +3085,14 @@ void GraphCtrl::CheckTip(const wxPoint& pt)
 
 void GraphCtrl::OpenTip(const wxString& tip)
 {
+    bool tipopen = m_tipopen;
+
+    CloseTip();
+
     if (m_tipmode == Tip_wxToolTip)
         m_canvas->SetToolTip(tip);
     else if (m_tipmode == Tip_Enable)
-        m_tiptimer.Start(m_tipdelay, true);
+        m_tiptimer.Start(tipopen ? 1 : m_tipdelay, true);
 
     m_tipopen = true;
 }

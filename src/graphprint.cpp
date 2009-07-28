@@ -29,9 +29,12 @@ GraphPrintout::GraphPrintout(Graph *graph,
                              double scale,
                              MaxPages shrinktofit,
                              PrintLabels labels,
+                             double posX,
+                             double posY,
                              const wxString& title)
   : wxPrintout(title),
-    m_graphpages(new GraphPages(graph, setup, scale, shrinktofit, labels))
+    m_graphpages(new GraphPages(graph, setup, scale,
+                                shrinktofit, labels, posX, posY))
 {
     m_graphpages->SetPrintout(this);
 }
@@ -83,13 +86,17 @@ GraphPages::GraphPages(Graph *graph,
                        const wxPageSetupDialogData& setup,
                        double scale,
                        MaxPages shrinktofit,
-                       PrintLabels labels)
+                       PrintLabels labels,
+                       double posX,
+                       double posY)
   : m_printout(NULL),
     m_graph(graph),
     m_scale(scale / 100),
     m_max(shrinktofit),
     m_setup(setup),
-    m_labels(labels)
+    m_labels(labels),
+    m_posX(min(max(posX, 0.0), 1.0)),
+    m_posY(min(max(posY, 0.0), 1.0))
 {
 }
 
@@ -186,8 +193,8 @@ void GraphPages::PreparePrinting()
     double w = wPrint / m_scale * dpiGraph.x;
     double h = hPrint / m_scale * dpiGraph.y;
 
-    m_firstPage.x = rcGraph.x + int((rcGraph.width - w * m_pages.x) / 2);
-    m_firstPage.y = rcGraph.y + int((rcGraph.height - h * m_pages.y) / 2);
+    m_firstPage.x = rcGraph.x + int((rcGraph.width - w * m_pages.x) * m_posX);
+    m_firstPage.y = rcGraph.y + int((rcGraph.height - h * m_pages.y) * m_posY);
 }
 
 void GraphPages::DrawLabel(wxDC *dc, const PrintLabel& label,

@@ -225,7 +225,9 @@ public:
                const wxPageSetupDialogData& setup,
                double scale = 100,
                MaxPages shrinktofit = MaxPages::Unlimited,
-               PrintLabels labels = Footer());
+               PrintLabels labels = Footer(),
+               double posX = .5,
+               double posY = .3);
 
     /** @brief Destructor. */
     virtual ~GraphPages() { }
@@ -271,6 +273,8 @@ private:
     wxRect m_header;
     wxRect m_footer;
     PrintLabels m_labels;
+    double m_posX;
+    double m_posY;
 };
 
 /**
@@ -296,7 +300,7 @@ public:
      *
      * @code
      *  Footer(m_filename, wxALIGN_LEFT) +
-     *  Footer(_T("%PAGE% / %PAGES%"), wxALIGN_RIGHT));
+     *  Footer(_T("%PAGE% / %PAGES%"), wxALIGN_RIGHT))
      * @endcode
      *
      * @param graph The graph to print.
@@ -304,6 +308,10 @@ public:
      * @param scale The maximum scaling percentage that should be used.
      * @param shrinktofit The maximum number of pages that should be used.
      * @param labels One or more headers and footers.
+     * @param posX The horizontal position of the graph in the printout,
+     *  a value between 0.0 (left) and 1.0 (right).
+     * @param posY The vertical position of the graph in the printout,
+     *  a value between 0.0 (top) and 1.0 (bottom).
      * @param title Text displayed in the printing dialog.
      */
     GraphPrintout(Graph *graph,
@@ -311,6 +319,8 @@ public:
                   double scale = 100,
                   MaxPages shrinktofit = MaxPages::Unlimited,
                   PrintLabels labels = Footer(),
+                  double posX = .5,
+                  double posY = .3,
                   const wxString& title = _("Graph"));
     /**
      * @brief Constructor.

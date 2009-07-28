@@ -422,6 +422,7 @@ public:
     void OnPreview(wxCommandEvent &event);
     void OnPrintSetup(wxCommandEvent &event);
     void OnPrintScaling(wxCommandEvent&);
+    void OnPrintPosition(wxCommandEvent&);
     void OnQuit(wxCommandEvent& event);
 
     // edit menu
@@ -495,6 +496,8 @@ private:
 
     MaxPages m_pages;
     double m_printscale;
+    double m_printPosX;
+    double m_printPosY;
 
     // any class wishing to process wxWidgets events must use this macro
     DECLARE_EVENT_TABLE()
@@ -508,6 +511,7 @@ private:
 enum {
     ID_SAVEIMAGE,
     ID_PRINT_SCALING,
+    ID_PRINT_POSITION,
     ID_LIMIT_PAGES,
     ID_LAYOUTALL,
     ID_SHOWGRID,
@@ -558,6 +562,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(wxID_PREVIEW, MyFrame::OnPreview)
     EVT_MENU(wxID_PRINT_SETUP, MyFrame::OnPrintSetup)
     EVT_MENU(ID_PRINT_SCALING, MyFrame::OnPrintScaling)
+    EVT_MENU(ID_PRINT_POSITION, MyFrame::OnPrintPosition)
 
     EVT_MENU(wxID_CUT, MyFrame::OnCut)
     EVT_MENU(wxID_COPY, MyFrame::OnCopy)
@@ -696,6 +701,7 @@ MyFrame::MyFrame(const wxString& title)
     fileMenu->Append(wxID_PREVIEW);
     fileMenu->Append(wxID_PRINT_SETUP, _T("Print Set&up..."));
     fileMenu->Append(ID_PRINT_SCALING, _T("Print S&caling..."));
+    fileMenu->Append(ID_PRINT_POSITION, _T("Print Posi&tion..."));
     fileMenu->AppendSeparator();
     fileMenu->Append(wxID_EXIT);
 
@@ -813,6 +819,11 @@ MyFrame::MyFrame(const wxString& title)
     m_printDialogData.GetPrintData().SetOrientation(wxLANDSCAPE);
 
     m_printscale = 100;
+
+    // centre the graph horizontally in the printout
+    m_printPosX = .5;
+    // and towards the top, split free space 30% / 70%
+    m_printPosY = .3;
 }
 
 MyFrame::~MyFrame()
@@ -1509,7 +1520,8 @@ GraphPrintout *MyFrame::NewPrintout()
     return new GraphPrintout(
         m_graph, m_pageSetupDialogData, m_printscale, m_pages,
         Footer(m_filename, wxALIGN_LEFT) +
-        Footer(_T("%PAGE% / %PAGES%"), wxALIGN_RIGHT));
+        Footer(_T("%PAGE% / %PAGES%"), wxALIGN_RIGHT),
+        m_printPosX, m_printPosY);
 }
 
 void MyFrame::OnPrintScaling(wxCommandEvent&)
@@ -1554,6 +1566,19 @@ void MyFrame::OnPrintScaling(wxCommandEvent&)
     }
 
     m_printscale = wxMin(MaxScale, wxMax(MinScale, m_printscale));
+}
+
+void MyFrame::OnPrintPosition(wxCommandEvent&)
+{
+    wxString prompt;
+    prompt << _T("Where to place the graph within the printout. Two values")
+           << _T(" between 0.0 (top/left) and 1.0 (bottom/right):");
+
+    wxString str;
+    str.Printf(_T("%g, %g"), m_printPosX, m_printPosY);
+    str = wxGetTextFromUser(prompt, _T("Printout position"), str, this);
+
+    wxSscanf(str.c_str(), _T(" %lg , %lg "), &m_printPosX, &m_printPosY);
 }
 
 void MyFrame::OnCut(wxCommandEvent&)

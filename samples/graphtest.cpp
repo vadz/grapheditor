@@ -411,6 +411,8 @@ public:
     void OnClickEdge(GraphEvent& event);
     void OnActivateEdge(GraphEvent& event);
     void OnMenuEdge(GraphEvent& event);
+    void OnClick(GraphEvent& event);
+    void OnMenu(GraphEvent& event);
     void OnZoomCtrl(GraphEvent& event);
 
     // file menu
@@ -627,6 +629,8 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_GRAPH_EDGE_CLICK(wxID_ANY, MyFrame::OnClickEdge)
     EVT_GRAPH_EDGE_ACTIVATE(wxID_ANY, MyFrame::OnActivateEdge)
     EVT_GRAPH_EDGE_MENU(wxID_ANY, MyFrame::OnMenuEdge)
+    EVT_GRAPH_CLICK(wxID_ANY, MyFrame::OnClick)
+    EVT_GRAPH_MENU(wxID_ANY, MyFrame::OnMenu)
     EVT_GRAPH_CTRL_ZOOM(wxID_ANY, MyFrame::OnZoomCtrl)
 END_EVENT_TABLE()
 
@@ -1119,6 +1123,18 @@ void MyFrame::OnMenuEdge(GraphEvent& event)
     m_element = m_edge = event.GetEdge();
     PopupMenu(&menu, ptClient.x, ptClient.y);
     m_element = m_edge = NULL;
+}
+
+void MyFrame::OnClick(GraphEvent& event)
+{
+    wxPoint pt = event.GetPosition();
+    wxLogDebug(_T("OnClick %d %d"), pt.x, pt.y);
+}
+
+void MyFrame::OnMenu(GraphEvent& event)
+{
+    wxPoint pt = event.GetPosition();
+    wxLogDebug(_T("OnMenu %d %d"), pt.x, pt.y);
 }
 
 // This event notifies that the zoom factor is being changed.

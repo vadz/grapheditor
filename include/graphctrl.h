@@ -2061,7 +2061,10 @@ BEGIN_DECLARE_EVENT_TYPES()
     DECLARE_EVENT_TYPE(Evt_Graph_Edge_Activate, wxEVT_USER_FIRST + 1113)
     DECLARE_EVENT_TYPE(Evt_Graph_Edge_Menu, wxEVT_USER_FIRST + 1114)
 
-    DECLARE_EVENT_TYPE(Evt_Graph_Ctrl_Zoom, wxEVT_USER_FIRST + 1115)
+    DECLARE_EVENT_TYPE(Evt_Graph_Click, wxEVT_USER_FIRST + 1115)
+    DECLARE_EVENT_TYPE(Evt_Graph_Menu, wxEVT_USER_FIRST + 1116)
+
+    DECLARE_EVENT_TYPE(Evt_Graph_Ctrl_Zoom, wxEVT_USER_FIRST + 1117)
 
 END_DECLARE_EVENT_TYPES()
 
@@ -2213,6 +2216,21 @@ END_DECLARE_EVENT_TYPES()
  * mouse click.
  */
 #define EVT_GRAPH_EDGE_MENU(id, fn) DECLARE_GRAPH_EVT1(Edge_Menu, id, fn)
+
+/**
+ * @brief Fires when the graph background is clicked.
+ *
+ * <code>GraphEvent::GetPosition()</code> returns the position of the
+ * mouse click.
+ */
+#define EVT_GRAPH_CLICK(id, fn) DECLARE_GRAPH_EVT1(Click, id, fn)
+/**
+ * @brief Fires when the graph background is right clicked.
+ *
+ * <code>GraphEvent::GetPosition()</code> returns the position of the
+ * mouse click.
+ */
+#define EVT_GRAPH_MENU(id, fn) DECLARE_GRAPH_EVT1(Menu, id, fn)
 
 /**
  * @brief Fires when the control zoom factor changes.

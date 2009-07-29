@@ -86,6 +86,9 @@ DEFINE_EVENT_TYPE(Evt_Graph_Edge_Click)
 DEFINE_EVENT_TYPE(Evt_Graph_Edge_Activate)
 DEFINE_EVENT_TYPE(Evt_Graph_Edge_Menu)
 
+DEFINE_EVENT_TYPE(Evt_Graph_Click)
+DEFINE_EVENT_TYPE(Evt_Graph_Menu)
+
 DEFINE_EVENT_TYPE(Evt_Graph_Ctrl_Zoom)
 
 // ----------------------------------------------------------------------------
@@ -276,7 +279,10 @@ public:
 
     static const wxChar DefaultName[];
 
+    bool SendEvent(wxEventType cmd, double x, double y);
+
     void OnLeftClick(double x, double y, int keys);
+    void OnRightClick(double x, double y, int keys);
 
     void OnDragLeft(bool draw, double x, double y, int keys);
     void OnBeginDragLeft(double x, double y, int keys);
@@ -475,9 +481,25 @@ wxWindow *GraphCanvas::EnsureParent(wxWindow *parent)
     return parent;
 }
 
-void GraphCanvas::OnLeftClick(double, double, int)
+bool GraphCanvas::SendEvent(wxEventType cmd, double x, double y)
+{
+    GraphEvent event(cmd, GetId());
+    event.SetPosition(wxPoint(int(x), int(y)));
+    event.SetEventObject(this);
+    GetEventHandler()->ProcessEvent(event);
+
+    return event.IsAllowed();
+}
+
+void GraphCanvas::OnLeftClick(double x, double y, int)
 {
     GetGraph()->UnselectAll();
+    SendEvent(Evt_Graph_Click, x, y);
+}
+
+void GraphCanvas::OnRightClick(double x, double y, int)
+{
+    SendEvent(Evt_Graph_Menu, x, y);
 }
 
 void GraphCanvas::OnBeginDragLeft(double x, double y, int keys)

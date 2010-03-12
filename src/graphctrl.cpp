@@ -46,7 +46,11 @@
 
 #ifndef NO_GRAPHVIZ
 #include <gvc.h>
-#include <gd.h>
+// This macro is defined in different Graphviz headers in different versions so
+// instead of choosing the right one, just define it ourselves.
+#ifndef PS2INCH
+    #define PS2INCH(ps) ((ps)/72.)
+#endif
 #endif
 
 #if defined(__VISUALC__) && !defined(NDEBUG)

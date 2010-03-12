@@ -3131,7 +3131,7 @@ void GraphCtrl::CloseTip(const wxPoint& pt)
 
         if (m_canvas->GetToolTip() != NULL) {
             m_canvas->SetToolTip(NULL);
-#if defined __WXGTK__ && !wxCHECK_VERSION(3, 0, 0)
+#if defined __WXGTK__ && !wxCHECK_VERSION(2, 9, 0)
             // removing the tooltip isn't working on wxGTK 2.8.x
             wxToolTip::Apply(m_canvas->GetConnectWidget(), "");
             wxToolTip::Apply(m_canvas->GetConnectWidget(), wxCharBuffer());

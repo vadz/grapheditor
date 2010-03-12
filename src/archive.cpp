@@ -104,8 +104,9 @@ void Parser::StartElement(const XML_Char *name, const XML_Char **atts)
     m_depth++;
 
     if (m_depth == 1) {
-        if (FromXml(name) != TAGARCHIVE)
+        if (FromXml(name) != TAGARCHIVE) {
             wxLogError(_("Error loading: unknown root element"));
+        }
     }
     else if (m_depth == 2) {
         wxASSERT(m_item == NULL);
@@ -130,9 +131,10 @@ void Parser::StartElement(const XML_Char *name, const XML_Char **atts)
         else {
             m_item = m_archive->Put(classname, id, sortkey);
 
-            if (!m_item)
+            if (!m_item) {
                 wxLogError(_("Error loading <%s %s='%s'> id is not unique"),
                            classname.c_str(), TAGID, id.c_str());
+            }
         }
     }
 }
@@ -144,10 +146,11 @@ void Parser::EndElement(const XML_Char *name)
     }
     else if (m_depth == 3) {
         wxString pname = FromXml(name);
-        if (m_item && !m_item->Put(pname, m_value))
+        if (m_item && !m_item->Put(pname, m_value)) {
             wxLogError(_("Error loading <%s %s='%s'> ignoring duplicate <%s>"),
                        m_item->GetClass().c_str(), TAGID,
                        m_item->GetId().c_str(), pname.c_str());
+        }
         m_value.clear();
     }
 

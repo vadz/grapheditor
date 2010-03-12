@@ -2659,8 +2659,9 @@ bool Graph::Serialise(Archive& archive, const iterator_pair& range)
     graph->Put(TAGSNAP, GetSnapToGrid());
     graph->Put(TAGBOUNDS, Twips::From<Pixels>(rcBounds, GetDPI()));
 
-    if (badfactory)
+    if (badfactory) {
         wxLogError(_("Internal error, not all elements could be saved"));
+    }
 
     return true;
 }

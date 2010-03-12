@@ -1086,8 +1086,9 @@ void MyFrame::OnConnect(GraphEvent& event)
         }
     }
 
-    if (!ok)
+    if (!ok) {
         wxLogError(_T("A 'Sort' node can have only one input and one output"));
+    }
 }
 
 void MyFrame::OnClickEdge(GraphEvent&)

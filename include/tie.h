@@ -26,12 +26,22 @@ namespace tt_solutions {
  */
 namespace impl
 {
-
+    /**
+     * @brief Implementation helper for tie().
+     *
+     * This class is never used directly but only as a return value of tie().
+     * We must define our own class instead of simply using
+     * <code>std::pair</code> to work around a well-known problem with using
+     * reference types with the latter but the user code should remain unaware
+     * of this.
+     */
     template <class A, class B>
     struct RefPair
     {
+        /// Constructor from pair components.
         RefPair(A& a, B& b) : first(a), second(b) { }
 
+        /// Assignment operator from a <code>std::pair</code>
         RefPair& operator=(const std::pair<A, B>& p)
         {
             first = p.first;
@@ -39,6 +49,7 @@ namespace impl
             return *this;
         }
 
+        /// Assignment operator.
         RefPair& operator=(const RefPair<A, B>& t)
         {
             first = t.first;
@@ -46,8 +57,8 @@ namespace impl
             return *this;
         }
 
-        A& first;
-        B& second;
+        A& first;       ///< First pair component.
+        B& second;      ///< Second pair component.
     };
 
 } // namespace impl

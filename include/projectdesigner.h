@@ -163,24 +163,27 @@ protected:
     /** @endcond */
 
 private:
+    /// Bring the Pixels coordinates type into this class scope.
     typedef tt_solutions::Pixels Pixels;
+    /// Bring the Twips coordinates type into this class scope.
     typedef tt_solutions::Twips Twips;
 
+    /// Helper of GetPerimeterPoint().
     wxPoint GetCornerPoint(const wxPoint& centre,
                            int radius, int sign,
                            const wxPoint& inside,
                            const wxPoint& outside) const;
 
-    wxString m_id;
-    wxString m_result;
-    wxIcon m_icon;
-    int m_cornerRadius;
-    int m_borderThickness;
-    wxRect m_rcIcon;
-    wxRect m_rcText;
-    wxRect m_rcResult;
-    wxSize m_maxAutoSize;
-    int m_divide;
+    wxString m_id;              ///< Unique project id.
+    wxString m_result;          ///< Result label.
+    wxIcon m_icon;              ///< Node icon.
+    int m_cornerRadius;         ///< Corner radius in pixels.
+    int m_borderThickness;      ///< Border thickness.
+    wxRect m_rcIcon;            ///< Icon area.
+    wxRect m_rcText;            ///< Text area.
+    wxRect m_rcResult;          ///< Result area.
+    wxSize m_maxAutoSize;       ///< Max auto layout size. 144*72pp by default.
+    int m_divide;               ///< Position of the dividing line.
 
     DECLARE_DYNAMIC_CLASS(ProjectNode)
 };
@@ -250,9 +253,24 @@ protected:
     virtual int AdjustedGridFactor() const;
 
 private:
+    /// Common part of all ctors.
     void Init();
+
+    /**
+     * @brief Colours defining the background.
+     *
+     * If the colours are equal, a solid background are used. Otherwise the
+     * background is drawn using a gradient from the first to the second array
+     * elements.
+     *
+     * Notice that the array always contains two elements.
+     */
     wxColour m_background[2];
+
+    /// True if the grid is shown. True by default.
     bool m_showGrid;
+
+    /// Grid factor. Default is 5. @see GetGridFactor().
     int m_gridFactor;
 
     DECLARE_EVENT_TABLE()

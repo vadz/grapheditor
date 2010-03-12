@@ -101,8 +101,19 @@ public:
     class Item
     {
     private:
+        /**
+         * @brief Map used to store item attributes.
+         *
+         * A map with string keys and string values used for storing the items
+         * attributes.
+         */
         typedef std::map<wxString, wxString> StringMap;
 
+        /**
+         * @brief Item constructor.
+         *
+         * This is used by Archive::Put() to add items to the archive.
+         */
         Item(Archive& archive,
              const wxString& name,
              const wxString& id,
@@ -367,19 +378,35 @@ public:
         //@}
 
     private:
-        Archive& m_archive;
-        wxString m_class;
-        wxString m_id;
-        wxString m_sort;
-        StringMap m_attribs;
+        Archive& m_archive;     ///< Back pointer to the archive.
+        wxString m_class;       ///< Class of the item.
+        wxString m_id;          ///< Unique id of the item.
+        wxString m_sort;        ///< Optional sort order.
+        StringMap m_attribs;    ///< Items attributes map.
+
+        /// Optional pointer to another instance of the same item.
         wxObject *m_instance;
+
+        /// True if we own, i.e. should delete, m_instance pointer.
         bool m_owns;
 
         friend class Archive;
     };
 
 private:
+    /**
+     * @brief Map used to store the archive items.
+     *
+     * Map with string keys and items as values.
+     */
     typedef std::map<wxString, Item*> ItemMap;
+
+    /**
+     * @brief Map used to store sort order of the items.
+     *
+     * Notice that this map is always used, even if no explicit sort order is
+     * set.
+     */
     typedef std::multimap<wxString, Item*> SortMap;
 
 public:
@@ -513,13 +540,49 @@ public:
     //@}
 
 private:
+    /**
+     * Ensure that all items are in sorted order in m_sort.
+     *
+     * Does nothing if the items are already sorted or calls SortAdd() for all
+     * of them if they are not.
+     */
     void Sort() const;
+
+    /**
+     * Adds an item to m_sort.
+     *
+     * Simply inserts the item with its sort key into m_sort map.
+     */
     void SortAdd(Item *item) const;
+
+    /**
+     * Removes an item from m_sort.
+     *
+     * Removes the item from m_sort map. Notice that this is a relatively
+     * expensive operation as the entire range of the items with the same sort
+     * key needs to be checked.
+     */
     void SortRemove(Item *item) const;
+
+    /**
+     * Implementation of the public GetItems().
+     */
     iterator_pair DoGetItems(const wxString& prefix) const;
 
+    /// The map containing all the items.
     ItemMap m_items;
+
+    /**
+     * Map containing items in their sort order.
+     *
+     * This map may be empty, Sort() must be called before accessing it to
+     * ensure that it is initialized.
+     */
     mutable SortMap m_sort;
+
+    /**
+     * True if we're storing the items or false if we're extracting them.
+     */
     bool m_storing;
 };
 

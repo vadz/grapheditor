@@ -28,34 +28,88 @@ namespace tt_solutions {
  */
 namespace impl
 {
+    /**
+     * @brief Base class defining untyped factory interface.
+     *
+     * This class is never used directly, it only extracts type-independent
+     * code from Factory::Impl which is used by Factory class.
+     *
+     * It is also used to maintain a registry of existing factories and
+     * provides access to it by name or type information object.
+     */
     class FactoryBase
     {
     public:
+        /// Override to create a new object.
         virtual wxObject *New() const = 0;
+
+        /// Override to return the default factory object.
         virtual const wxObject *GetDefault() const = 0;
 
+        /// Returns the name of this factory.
         wxString GetName() const { return m_name; }
 
+        /**
+         * @brief Get factory for creating objects of the given type.
+         *
+         * May return @c NULL.
+         */
         static FactoryBase *Get(const std::type_info& type);
+
+        /**
+         * @brief Get factory for creating objects of the given class.
+         *
+         * May return @c NULL.
+         */
         static FactoryBase *Get(const wxString& name);
 
     protected:
+        /**
+         * @brief Constructor specifies the type and name of the objects
+         * created by this factory.
+         *
+         * Neither @a type nor @a name can be changed later.
+         */
         FactoryBase(const std::type_info& type, const wxString& name)
           : m_type(wxString::FromAscii(type.name())), m_name(name) { }
 
         virtual ~FactoryBase() { }
 
+        /**
+         * @brief Register this factory so that Get() could find it.
+         *
+         * This should be called from the derived class ctor.
+         */
         void Register();
+
+        /**
+         * @brief Unregister the factory to ensure that Get() doesn't return it.
+         *
+         * This should be called from the derived class dtor.
+         */
         void Unregister();
 
     private:
+        /// Unimplemented copy ctor.
         FactoryBase(const FactoryBase&) { }
 
+#ifdef DOXYGEN
+        /// Factories registry allowing fast access by string key.
+        typedef std::unordered_map<wxString, FactoryBase *> ClassMap;
+#else
         WX_DECLARE_STRING_HASH_MAP(FactoryBase*, ClassMap);
+#endif
+
+        /// Registry indexing factories by their type name from type info.
         static ClassMap *sm_typeidx;
+
+        /// Registry indexing factories by their name as specified in ctor.
         static ClassMap *sm_nameidx;
 
+        /// The type name of the objects created by this factory from type info.
         wxString m_type;
+
+        /// The name of this factory as specified in ctor.
         wxString m_name;
     };
 
@@ -94,6 +148,7 @@ namespace impl
 template <class T> class Factory
 {
 private:
+    /// Just a shorter name for impl::FactoryBase.
     typedef impl::FactoryBase FactoryBase;
 
 public:
@@ -140,6 +195,12 @@ public:
         CheckType();
     }
 
+    /**
+     * @brief Constructor, will create objects using the given factory
+     * implementation.
+     *
+     * This is only used internally.
+     */
     Factory(FactoryBase *impl) : m_impl(impl) {
         wxASSERT(impl != NULL);
     }
@@ -183,9 +244,22 @@ public:
         return m_impl->GetName();
     }
 
+    /**
+     * @brief Implementation of untyped base factory interface for this factory.
+     *
+     * The base factory interface uses untyped @c wxObject, reimplement it
+     * using the derived class @c T.
+     */
     class Impl : public FactoryBase
     {
     public:
+        /**
+         * @brief Constructor for the factory with the given name.
+         *
+         * Factories are singleton objects and are only created internally to
+         * ensure that we have a single factory per type. Attempts to create
+         * more than one will result in assert failures.
+         */
         Impl(const wxString& name)
           : FactoryBase(typeid(T), name), m_default(NULL) {
             FactoryBase::Register();
@@ -198,31 +272,76 @@ public:
             sm_this = NULL;
         }
 
+        /**
+         * @brief Implement the base class pure virtual.
+         *
+         * Factory creates objects by cloning a default one which is exactly
+         * what is done here.
+         *
+         * Notice that a covariant return type is used here.
+         */
         T *New() const {
             return new T(*GetDefault());
         }
 
+        /**
+         * @brief Implement the base class pure virtual.
+         *
+         * Notice that a covariant return type is used here.
+         */
         const T *GetDefault() const {
             if (!m_default)
                 m_default = new T;
             return m_default;
         }
 
+        /**
+         * @brief Return the unique factory for this type.
+         *
+         * May return @c NULL if no factory for this type had been created yet.
+         */
         static FactoryBase *Get() {
             return sm_this;
         }
 
     private:
+        /**
+         * @brief The default object.
+         *
+         * This object is created on demand by GetDefault(), don't access it
+         * directly.
+         */
         mutable T *m_default;
+
+        /**
+         * @brief The unique factory instance.
+         *
+         * May be @c NULL if the factory hadn't been created yet or was already
+         * destroyed.
+         */
         static FactoryBase *sm_this;
     };
 
 private:
+    /**
+     * @brief Ensure that the factory creates objects of an appropriate type.
+     *
+     * Verify that the factory creates objects which are compatible (i.e. are
+     * the same or derive from) our type T.
+     *
+     * If this is not the case, reset the factory pointer to @c NULL to avoid
+     * using an incompatible factory implementation.
+     */
     void CheckType() {
         if (m_impl && dynamic_cast<const T*>(m_impl->GetDefault()) == NULL)
             m_impl = NULL;
     }
 
+    /**
+     * @brief The real factory implementation.
+     *
+     * Only @c NULL if the factory was initialized improperly.
+     */
     FactoryBase *m_impl;
 };
 

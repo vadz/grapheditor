@@ -34,8 +34,10 @@ namespace tt_solutions {
 class GraphTreeCtrl : public wxTreeCtrl
 {
 public:
+    /// Default ctor.
     GraphTreeCtrl() { Init(); }
 
+    /// Constructor taking the same arguments as wxTreeCtrl.
     GraphTreeCtrl(wxWindow *parent, wxWindowID id = wxID_ANY,
                const wxPoint& pos = wxDefaultPosition,
                const wxSize& size = wxDefaultSize,
@@ -47,19 +49,32 @@ public:
         Init();
     }
 
+    /**
+     * @brief Override base class function to avoid auto scrolling.
+     *
+     * This interferes with drag and drop.
+     */
     bool SendAutoScrollEvents(wxScrollWinEvent&) const { return false; }
 
+    /// Event handler for begin drag event.
+
     void OnBeginDrag(wxTreeEvent& event);
+
+    /// Event handler for dragging events.
     void OnMouseMove(wxMouseEvent& event);
+
+    /// Event handler for dragging end event.
     void OnLeftButtonUp(wxMouseEvent& event);
 
+    /// Default name for GraphTreeCtrl objects.
     static const wxChar DefaultName[];
 
 private:
+    /// Common part of all ctors.
     void Init() { m_dragImg = NULL; }
 
-    wxDragImage *m_dragImg;
-    wxTreeItemId m_dragItem;
+    wxDragImage *m_dragImg;     ///< Drag image for item being dragged.
+    wxTreeItemId m_dragItem;    ///< The item being currently dragged.
 
     DECLARE_EVENT_TABLE()
     DECLARE_DYNAMIC_CLASS(GraphTreeCtrl)
@@ -126,10 +141,10 @@ public:
     wxEvent *Clone() const { return new GraphTreeEvent(*this); }
 
 private:
-    GraphCtrl *m_target;
-    wxPoint m_pos;
-    wxTreeItemId m_item;
-    wxIcon m_icon;
+    GraphCtrl *m_target;    ///< Target of the drop.
+    wxPoint m_pos;          ///< Position of the drop.
+    wxTreeItemId m_item;    ///< Item being dropped.
+    wxIcon m_icon;          ///< Icon of the item being dropped.
 
     DECLARE_DYNAMIC_CLASS(GraphTreeEvent)
 };
@@ -138,10 +153,21 @@ BEGIN_DECLARE_EVENT_TYPES()
     DECLARE_EVENT_TYPE(Evt_GraphTree_Drop, wxEVT_USER_FIRST + 1121)
 END_DECLARE_EVENT_TYPES()
 
+/**
+ * @brief Type of the handler for GraphTreeEvent events.
+ *
+ * All handlers for graph tree events must have this signature.
+ */
 typedef void (wxEvtHandler::*GraphTreeEventFunction)(GraphTreeEvent&);
 
 } // namespace tt_solutions
 
+/**
+ * @brief Helper macro for use with Connect().
+ *
+ * When using wxEvtHandler::Connect() to connect to the graph events
+ * dynamically, this macro should be applied to the event handler.
+ */
 #define GraphTreeEventHandler(func) \
     (wxObjectEventFunction)(wxEventFunction) \
         wxStaticCastEvent(tt_solutions::GraphTreeEventFunction, &func)

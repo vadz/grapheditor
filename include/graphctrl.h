@@ -35,7 +35,10 @@ class wxLineShape;
  */
 namespace tt_solutions {
 
+/// Shape representation used in the underlying graphics library.
 typedef wxShape GraphShape;
+
+/// Line representation used in the underlying graphics library.
 typedef wxLineShape GraphLineShape;
 
 class Graph;
@@ -47,13 +50,25 @@ class GraphNode;
  */
 namespace impl
 {
-    /** @cond */
     class GraphIteratorImpl;
     class GraphDiagram;
     class GraphCanvas;
 
-    enum IteratorFilter { All, Selected, InEdges, OutEdges };
+    /**
+     * @brief Conditions allowing to filter the elements being iterated on.
+     *
+     * This is not used in the public API but only by Graph::IterImpl() and
+     * related methods.
+     */
+    enum IteratorFilter
+    {
+        All,            ///< All elements are included.
+        Selected,       ///< Only selected elements are included.
+        InEdges,        ///< Only elements with incoming edges are included.
+        OutEdges        ///< Only elements with outgoing edges are included.
+    };
 
+    /** @cond */
     class GraphIteratorBase
     {
     public:
@@ -183,6 +198,7 @@ template <class T>
 class GraphIterator : public impl::GraphIteratorBase
 {
 public:
+    /** @cond */
     typedef std::bidirectional_iterator_tag iterator_category;
     typedef T value_type;
     typedef ptrdiff_t difference_type;
@@ -249,6 +265,7 @@ private:
     typedef impl::GraphIteratorBase Base;
 
     void CheckAssignable(T*) { }
+    /** @endcond */
 };
 
 /**
@@ -445,13 +462,13 @@ protected:
     virtual wxSize GetDPI() const;
 
 private:
-    impl::Initialisor m_initalise;
+    impl::Initialisor m_initalise;          ///< Initialization counter.
 
-    wxColour m_colour;
-    wxColour m_bgcolour;
+    wxColour m_colour;                      ///< Main element colour.
+    wxColour m_bgcolour;                    ///< Background element colour.
 
-    int m_style;
-    GraphShape *m_shape;
+    int m_style;                            ///< Element style. @see Style.
+    GraphShape *m_shape;                    ///< The underlying shape.
 
     DECLARE_ABSTRACT_CLASS(GraphElement)
 };
@@ -627,13 +644,24 @@ protected:
     /** @endcond */
 
 private:
+    /**
+     * @brief Return iterator for one the edge connection points.
+     *
+     * If @a end is false, returns the starting point, otherwise the end one.
+     */
     impl::GraphIteratorImpl *IterImpl(
         GraphLineShape *line, wxClassInfo *classinfo, bool end) const;
 
+    /**
+     * @brief Returns the nodes connected by this edge.
+     *
+     * The first component of the returned pair corresponds to the starting
+     * node and the second one -- to the ending one.
+     */
     template <class T> IterPair<T> Iter() const;
 
-    int m_arrowsize;
-    int m_linewidth;
+    int m_arrowsize;        ///< Size of the arrow head, if any. Default is 10.
+    int m_linewidth;        ///< Width of the line in pixels. Default is 1.
 
     DECLARE_DYNAMIC_CLASS(GraphEdge)
 };
@@ -899,21 +927,37 @@ protected:
     virtual void Layout();
 
 private:
+    /// Get the list of all underlying lines connecting to this node.
     wxList *GetLines() const;
 
+    /**
+     * @brief Return iterator for all edges connecting to this node.
+     *
+     * This is used by Iter() below.
+     */
     impl::GraphIteratorImpl *IterImpl(
         const wxList::iterator& begin,
         const wxList::iterator& end,
         wxClassInfo *classinfo,
         int which) const;
 
+    /**
+     * @brief Return a range of iterators over all edges connecting to this
+     * node.
+     *
+     * @a which here should be either impl::InEdges or impl::OutEdges (or
+     * impl::All for both).
+     *
+     * This is used to implement the public GetEdges(), GetInEdges() and
+     * GetOutEdges() methods.
+     */
     template <class T> IterPair<T> Iter(int which = impl::All) const;
 
-    wxColour m_textcolour;
-    wxString m_text;
-    wxString m_tooltip;
-    wxString m_rank;
-    wxFont m_font;
+    wxColour m_textcolour;      ///< Colour of the node text.
+    wxString m_text;            ///< Node text content.
+    wxString m_tooltip;         ///< Tooltip shown for the node.
+    wxString m_rank;            ///< Node rank for layout.
+    wxFont m_font;              ///< Font used to render the node text.
 
     DECLARE_DYNAMIC_CLASS(GraphNode)
 };
@@ -1177,7 +1221,7 @@ public:
     /**
      * @brief The delay in milliseconds before nodes' tooltips are shown.
      *
-     * Settting this to zero will disable the tooltips.
+     * Setting this to zero will disable the tooltips.
      * When the tooltip mode is @c Tip_wxToolTip the delay must be set
      * with @c wxToolTip::SetDelay().
      *
@@ -1252,23 +1296,45 @@ protected:
     /** @endcond */
 
 private:
-    void ScrollHomeEnd(bool home);
+    /**
+     * @brief Show or hide the tooltip at the given position.
+     *
+     * This function is called to update the state of the tooltip. It is done
+     * on mouse move, when we get focus and also from idle time.
+     *
+     * It may call either OpenTip() or CloseTip().
+     */
     void CheckTip(const wxPoint& pt = wxGetMousePosition());
+
+    /**
+     * @brief Do show the given tip.
+     *
+     * Called by CheckTip().
+     */
     void OpenTip(const wxString& tip);
+
+    /**
+     * @brief Remove the currently shown tip.
+     *
+     * Called by CheckTip().
+     */
     void CloseTip(const wxPoint& pt = wxDefaultPosition);
 
-    impl::Initialisor m_initalise;
-    impl::GraphCanvas *m_canvas;
-    Graph *m_graph;
+    impl::Initialisor m_initalise;  ///< Initialization counter.
+    impl::GraphCanvas *m_canvas;    ///< The associated canvas.
+    Graph *m_graph;                 ///< The associated graph object.
 
-    wxTimer m_tiptimer;
-    int m_tipmode;
-    int m_tipdelay;
-    GraphNode *m_tipnode;
-    bool m_tipopen;
+    /// @name Tooltip data.
+    //@{
+    wxTimer m_tiptimer;             ///< Timer used in Tip_Enable mode.
+    int m_tipmode;                  ///< One of ToolTipMode elements.
+    int m_tipdelay;                 ///< Tooltip delay in Tip_Enable mode.
+    GraphNode *m_tipnode;           ///< Node for which tooltip is shown.
+    bool m_tipopen;                 ///< True if a tooltip is currently shown.
+    //@}
 
-    static int sm_leftDrag;
-    static int sm_rightDrag;
+    static int sm_leftDrag;         ///< DragMode value for left mouse button.
+    static int sm_rightDrag;        ///< DragMode value for right mouse button.
 
     DECLARE_EVENT_TABLE()
     DECLARE_DYNAMIC_CLASS(GraphCtrl)
@@ -1740,31 +1806,108 @@ private:
     friend void GraphCtrl::SetGraph(Graph *graph);
     /** @endcond */
 
+    /// Set the canvas used for the graph display.
     void SetCanvas(impl::GraphCanvas *canvas);
+
+    /// Get the canvas used for the graph display. Never @c NULL.
     impl::GraphCanvas *GetCanvas() const;
+
+    /// Get the associated control.
     GraphCtrl *GetCtrl() const;
+
+    /// Get the list of all shapes in the graph.
     wxList *GetShapeList() const;
+
+    /// Delete an element from the graph.
     void DoDelete(GraphElement *element);
 
+    /**
+     * @brief Creates a new iterator over graph elements.
+     *
+     * The returned iterator starts at @a begin and goes until @a end. It will
+     * only return the elements of the given @a classinfo (i.e. skip all the
+     * rest) and also filter them by IteratorFilter enum elements.
+     */
     static impl::GraphIteratorImpl *IterImpl(
         const wxList::iterator& begin,
         const wxList::iterator& end,
         wxClassInfo *classinfo,
         int which);
 
+    /**
+     * @brief Return a pair of iterators defining a range with all elements of
+     * the given type.
+     *
+     * This method returns the begin and end iterators defining a range of all
+     * elements satisfying the given condition @a which and of the specified
+     * type @a classinfo if it is non-NULL or of type @c T by default.
+     *
+     * @see IterImpl()
+     */
     template <class T> IterPair<T>
     Iter(int which = impl::All, wxClassInfo *classinfo = NULL) const;
 
+    /**
+     * @brief Return a pair of iterators defining a range with all elements of
+     * the common base type.
+     *
+     * This method returns all elements of type @c T if @c U derives from @c T
+     * or of type @c U if @c T derives from @c U. If neither is true, an empty
+     * range is returned.
+     */
     template <class T, class U> IterPair<T>
     Iter(int which = impl::All) const;
 
-    impl::Initialisor m_initalise;
-    impl::GraphDiagram *m_diagram;
+    impl::Initialisor m_initalise;          ///< Initialization counter.
+    impl::GraphDiagram *m_diagram;          ///< Associated OGL diagram.
+
+    /**
+     * @brief Bounding box coordinates.
+     *
+     * This is computed on demand, use GetBounds() to access it and
+     * RefreshBounds() to invalidate.
+     */
     mutable wxRect m_rcBounds;
+
+    /**
+     * @brief Temporary clipping region.
+     *
+     * This is used to set the clipping region when redrawing the diagram.
+     *
+     * @see Draw().
+     */
     mutable wxRect m_rcDraw;
+
+    /**
+     * @brief Current hit testing region.
+     *
+     * Used only in HitTest() to optimize consecutive calls to it for close
+     * locations.
+     */
     mutable wxRect m_rcHit;
+
+    /**
+     * @brief Last node returned by HitTest().
+     *
+     * This is another optimization used in HitTest().
+     */
     mutable const GraphNode *m_nodeHit;
+
+    /**
+     * @brief Event handler used for generation of all the events.
+     *
+     * This event handler is used as a sink for all the events generated by
+     * this class if it is non-NULL.
+     *
+     * @see SetEventHandler(), GetEventHandler()
+     */
     wxEvtHandler *m_handler;
+
+    /**
+     * @brief Screen resolution in dots per inches.
+     *
+     * Set in ctor and used for coordinate units transformations.
+     */
     wxSize m_dpi;
 
     DECLARE_DYNAMIC_CLASS(Graph)
@@ -1904,8 +2047,8 @@ class GraphEvent : public wxNotifyEvent
 {
 public:
     /**
-     * @brief A list type used by @c #EVT_GRAPH_CONNECT and @c
-     * #EVT_GRAPH_CONNECT_FEEDBACK to provide a list of all the source nodes.
+     * @brief A list type used by @c EVT_GRAPH_CONNECT and @c
+     * EVT_GRAPH_CONNECT_FEEDBACK to provide a list of all the source nodes.
      */
     typedef std::list<GraphNode*> NodeList;
 
@@ -1918,16 +2061,16 @@ public:
     virtual wxEvent *Clone() const      { return new GraphEvent(*this); }
 
     /**
-     * @brief The node being added, deleted, clicked, etc..
+     * @brief The node being added, deleted, clicked, etc.
      */
     void SetNode(GraphNode *node)       { m_node = node; }
     /**
-     * @brief Set by @c #EVT_GRAPH_CONNECT and @c #EVT_GRAPH_CONNECT_FEEDBACK
+     * @brief Set by @c EVT_GRAPH_CONNECT and @c EVT_GRAPH_CONNECT_FEEDBACK
      * to indicate the target node.
      */
     void SetTarget(GraphNode *node)     { m_target = node; }
     /**
-     * @brief The edge being added, deleted, clicked, etc..
+     * @brief The edge being added, deleted, clicked, etc.
      */
     void SetEdge(GraphEdge *edge)       { m_edge = edge; }
 
@@ -1941,7 +2084,7 @@ public:
 
     //@{
     /**
-     * @brief The new size for @c #EVT_GRAPH_NODE_SIZE.
+     * @brief The new size for @c EVT_GRAPH_NODE_SIZE.
      */
     void SetSize(const wxSize& size)    { m_size = size; }
     wxSize GetSize() const              { return m_size; }
@@ -1949,8 +2092,8 @@ public:
 
     //@{
     /**
-     * @brief A list provided by @c #EVT_GRAPH_CONNECT and
-     * @c #EVT_GRAPH_CONNECT_FEEDBACK of all the source nodes.
+     * @brief A list provided by @c EVT_GRAPH_CONNECT and
+     * @c EVT_GRAPH_CONNECT_FEEDBACK of all the source nodes.
      */
     void SetSources(NodeList& sources)  { m_sources = &sources; }
     NodeList& GetSources() const        { return *m_sources; }
@@ -1958,14 +2101,14 @@ public:
 
     //@{
     /**
-     * @brief The new zoom percentage for @c #EVT_GRAPH_CTRL_ZOOM.
+     * @brief The new zoom percentage for @c EVT_GRAPH_CTRL_ZOOM.
      */
     void SetZoom(double percent)        { m_zoom = percent; }
     double GetZoom() const              { return m_zoom; }
     //@}
 
     /**
-     * @brief The node being added, deleted, clicked, etc..
+     * @brief The node being added, deleted, clicked, etc.
      *
      * @tparam T The type of node to return. If omitted defaults to @c
      * GraphNode.
@@ -1978,7 +2121,7 @@ public:
     /** @endcond */
 
     /**
-     * @brief Set by @c #EVT_GRAPH_CONNECT and @c #EVT_GRAPH_CONNECT_FEEDBACK
+     * @brief Set by @c EVT_GRAPH_CONNECT and @c EVT_GRAPH_CONNECT_FEEDBACK
      * to indicate the target node.
      *
      * @tparam T The type of node to return. If omitted defaults to @c
@@ -1992,7 +2135,7 @@ public:
     /** @endcond */
 
     /**
-     * @brief The edge being added, deleted, clicked, etc..
+     * @brief The edge being added, deleted, clicked, etc.
      *
      * @tparam T The type of edge to return. If omitted defaults to @c
      * GraphEdge.
@@ -2006,13 +2149,13 @@ public:
 
 
 private:
-    wxPoint m_pos;
-    wxSize m_size;
-    GraphNode *m_node;
-    GraphNode *m_target;
-    GraphEdge *m_edge;
-    NodeList *m_sources;
-    double m_zoom;
+    wxPoint m_pos;          ///< Position of the event.
+    wxSize m_size;          ///< New size for resize event.
+    GraphNode *m_node;      ///< The node associated with the event.
+    GraphNode *m_target;    ///< Target for connection events.
+    GraphEdge *m_edge;      ///< The edge being added, deleted &c.
+    NodeList *m_sources;    ///< Source nodes for connection events.
+    double m_zoom;          ///< New zoom factor for zoom events.
 
     DECLARE_DYNAMIC_CLASS(GraphEvent)
 };
@@ -2034,9 +2177,16 @@ template <class T> T *GraphEvent::GetEdge() const
     return dynamic_cast<T*>(m_edge);
 }
 
+/**
+ * @brief Type of the handler for GraphEvent events.
+ *
+ * All handlers for graph events must have this signature. As usual, the event
+ * macros will check for it.
+ */
 typedef void (wxEvtHandler::*GraphEventFunction)(GraphEvent&);
 
 BEGIN_DECLARE_EVENT_TYPES()
+    /** @cond */
 
     // Graph Events
 
@@ -2066,15 +2216,20 @@ BEGIN_DECLARE_EVENT_TYPES()
 
     DECLARE_EVENT_TYPE(Evt_Graph_Ctrl_Zoom, wxEVT_USER_FIRST + 1117)
 
+    /** @endcond */
 END_DECLARE_EVENT_TYPES()
 
-} // namespace tt_solutions
-
-/** @cond */
+/**
+ * @brief Helper macro for use with Connect().
+ *
+ * When using wxEvtHandler::Connect() to connect to the graph events
+ * dynamically, this macro should be applied to the event handler.
+ */
 #define GraphEventHandler(func) \
     (wxObjectEventFunction)(wxEventFunction) \
         wxStaticCastEvent(tt_solutions::GraphEventFunction, &func)
 
+/** @cond */
 #define DECLARE_GRAPH_EVT1(evt, id, fn) \
     DECLARE_EVENT_TABLE_ENTRY(tt_solutions::Evt_Graph_ ## evt, id, \
                               wxID_ANY, GraphEventHandler(fn), NULL),
@@ -2252,5 +2407,7 @@ END_DECLARE_EVENT_TYPES()
  * a single event handler.
  */
 #define EVT_GRAPH_ELEMENT_MENU(id, fn) EVT_GRAPH_NODE_MENU(id, fn) EVT_GRAPH_EDGE_MENU(id, fn)
+
+} // namespace tt_solutions
 
 #endif // GRAPHCTRL_H

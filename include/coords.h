@@ -25,7 +25,7 @@ namespace tt_solutions {
 /**
  * @brief Convert coordinates between pixels and points or twips.
  *
- * Defines the classes Pixels, Points and Twips.  When used to convert scaler
+ * Defines the classes Pixels, Points and Twips.  When used to convert scalar
  * values the second parameter must be the screen DPI in the corresponding
  * direction. E.g.:
  * @code
@@ -159,61 +159,145 @@ public:
     }
 
 private:
+    /**
+     * @brief Generic implementation of the coordinates transformation.
+     *
+     * This implementation is only used for floating point types.
+     */
     template <class T, bool isint>
     struct Trans0
     {
+        /// Convert an amount in @a I2 units to @a I1 units.
         static T From(T i, int I1, int I2) { return i * I1 / I2; }
+
+        /// Convert an amount in @a I1 units to @a I2 units.
         static T To(T i, int I1, int I2)   { return i * I2 / I1; }
     };
 
+    /**
+     * @brief Specialization of the transformation for the integer ratios.
+     *
+     * This specialization uses integer division when possible and ensures that
+     * the result is rounded down.
+     */
     template <class T>
     struct Trans0<T, true>
     {
+        /// Convert an amount in @a I2 units to @a I1 units.
         static T From(T i, int I1, int I2) {
             return (i * I1 - (i < 0 ? I2 - 1 : 0)) / I2;
         }
+
+        /// Convert an amount in @a I1 units to @a I2 units.
         static T To(T i, int I1, int I2) {
             return (i * I2 + (i > 0 ? I1 - 1 : 0)) / I1;
         }
     };
 
+    /**
+     * @brief Transform between two non-pixel units.
+     *
+     * See the specializations below for the pixel-specific conversions.
+     */
     template <int I1, int I2, class T> struct Trans
     {
         enum { isint = std::numeric_limits<T>::is_integer };
 
+        /// Convert an amount in @a I2 units to @a I1 units.
         static T From(T i, int)    { return Trans0<T, isint>::From(i, I1, I2); }
+
+        /// Convert an amount in @a I1 units to @a I2 units.
         static T To(T i, int)      { return Trans0<T, isint>::To(i, I1, I2); }
     };
 
+    /**
+     * @brief Transform between pixels and a non-pixel unit.
+     *
+     * This is a specialization of the above template for the first unit being
+     * 0, i.e. pixels. Notice that as the other units are expressed in tenths
+     * of an inch we need an extra factor of 10 in this case.
+     */
     template <int I2, class T> struct Trans<0, I2, T>
     {
         enum { isint = std::numeric_limits<T>::is_integer };
 
+        /// Convert an amount in @a I2 units to @a I1 units.
         static T From(T i, int I1) { return Trans0<T, isint>::From(i, I1 * 10, I2); }
+
+        /// Convert an amount in @a I1 units to @a I2 units.
         static T To(T i, int I1)   { return Trans0<T, isint>::To(i, I1 * 10, I2); }
     };
 
+    /**
+     * @brief Transform between a non-pixel unit and pixels.
+     *
+     * This is a symmetric version of the specialization above.
+     */
     template <int I1, class T> struct Trans<I1, 0, T>
     {
         enum { isint = std::numeric_limits<T>::is_integer };
 
+        /// Convert an amount in pixels to @a I1 units.
         static T From(T i, int I2) { return Trans0<T, isint>::From(i, I1, I2 * 10); }
+
+        /// Convert an amount in @a I1 units to pixels.
         static T To(T i, int I2)   { return Trans0<T, isint>::To(i, I1, I2 * 10); }
     };
 
+    /**
+     * @brief Transform between pixels and pixels.
+     *
+     * This is a trivial specialization for the identity conversion between
+     * pixels.
+     */
     template <class T> struct Trans<0, 0, T>
     {
+        /// Identical transformation from pixels to pixels.
         static T From(T i, int)     { return i; }
+
+        /// Identical transformation from pixels to pixels.
         static T To(T i, int)       { return i; }
     };
 };
 
 template <int U> const double Coords<U>::Inch = U / 10.0;
 
+/**
+ * Pixel coordinates class.
+ *
+ * The unit of pixels is, by convention, 0. This is used by Coords class and
+ * shouldn't be changed.
+ */
 typedef Coords<0> Pixels;
+
+/**
+ * Inch coordinates class.
+ *
+ * To minimize rounding errors, we use one tenth of an inch as a base factor,
+ * hence the factor for this class is 10 and not 1.
+ */
 typedef Coords<10> Inches;
+
+/**
+ * Millimetre coordinates class.
+ *
+ * One inch is 2.54cm or 25.4mm and, as we use one tenth of an inch as a base
+ * factor, this class is defined with a factor of 254.
+ */
 typedef Coords<254> MM;
+
+/**
+ * Point coordinates class.
+ *
+ * One inch is, by definition of a point, 72pp.
+ */
 typedef Coords<720> Points;
+
+/**
+ * Twip coordinate class.
+ *
+ * One twip, being "TWentieth of an Inch Point", is 1/1440 of an inch.
+ */
 typedef Coords<14400> Twips;
 
 } // namespace tt_solutions

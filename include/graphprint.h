@@ -38,17 +38,30 @@ struct MaxPages
 {
     enum { Unlimited = 0 };
 
+    /**
+     * @brief Initialize an object without any limits.
+     *
+     * This ctor creates an object which doesn't impose any limit on the number
+     * of pages.
+     */
     MaxPages(int pages = Unlimited)
       : rows(Unlimited), cols(Unlimited), pages(pages)
     { }
 
+    /**
+     * @brief Initialize an object for the given maximal number of pages.
+     *
+     * @param rows Maximal number of pages to print in vertical direction.
+     * @param cols Maximal number of pages to print in horizontal direction.
+     * @param pages Maximal total number of pages; unlimited by default.
+     */
     MaxPages(int rows, int cols, int pages = Unlimited)
       : rows(rows), cols(cols), pages(pages)
     { }
 
-    int rows;
-    int cols;
-    int pages;
+    int rows;     ///< Max number of pages in vertical direction or Unlimited.
+    int cols;     ///< Max number of pages in horizontal direction or Unlimited.
+    int pages;    ///< Max total number of pages or Unlimited.
 };
 
 /**
@@ -127,7 +140,9 @@ public:
     /** @brief The height of the header or footer in millimetres. */
     int GetHeight() const { return m_height; }
 
+    /// List of print labels.
     typedef std::list<PrintLabel> list;
+
     /**
      * @brief Allow conversion to a list of @c PrintLabels.
      *
@@ -139,12 +154,13 @@ public:
     operator list() const { return list(1, *this); }
 
 private:
-    wxString m_text;
-    int m_flags;
-    int m_height;
-    wxFont m_font;
+    wxString m_text;        ///< Text of the header or footer.
+    int m_flags;            ///< Label position flags. @see SetFlags.
+    int m_height;           ///< Height of the label in millimeters.
+    wxFont m_font;          ///< Font used to render the label.
 };
 
+/// List of print labels.
 typedef PrintLabel::list PrintLabels;
 
 //@{
@@ -262,19 +278,19 @@ protected:
                            const wxRect& rc, int page, int row, int col);
 
 private:
-    wxPrintout *m_printout;
-    Graph *m_graph;
-    double m_scale;
-    MaxPages m_max;
-    wxPageSetupDialogData m_setup;
-    wxSize m_pages;
-    wxPoint m_firstPage;
-    wxRect m_print;
-    wxRect m_header;
-    wxRect m_footer;
-    PrintLabels m_labels;
-    double m_posX;
-    double m_posY;
+    wxPrintout *m_printout;             ///< The associated printout.
+    Graph *m_graph;                     ///< The graph being printed.
+    double m_scale;                     ///< Zoom scale.
+    MaxPages m_max;                     ///< Limit on the number of pages.
+    wxPageSetupDialogData m_setup;      ///< The associated page data.
+    wxSize m_pages;                     ///< Number of pages needed.
+    wxPoint m_firstPage;                ///< Origin of the first page.
+    wxRect m_print;                     ///< Page area (excluding labels).
+    wxRect m_header;                    ///< Header area.
+    wxRect m_footer;                    ///< Footer area.
+    PrintLabels m_labels;               ///< Headers and footers.
+    double m_posX;                      ///< X page position given to ctor.
+    double m_posY;                      ///< Y pge position given to ctor.
 };
 
 /**
@@ -341,6 +357,7 @@ public:
     /** @endcond */
 
 private:
+    /// GraphPages pointer created and owned by the printout.
     GraphPages *m_graphpages;
 };
 

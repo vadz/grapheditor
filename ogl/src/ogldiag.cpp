@@ -114,7 +114,7 @@ void wxDiagram::AddShape(wxShape *object, wxShape *addAfter)
 {
   wxNode *nodeAfter = NULL;
   if (addAfter)
-    nodeAfter = m_shapeList->Member(addAfter);
+    nodeAfter = m_shapeList->Find(addAfter);
 
   if (!m_shapeList->Member(object))
   {

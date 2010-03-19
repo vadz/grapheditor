@@ -23,6 +23,11 @@
 #include "base64.h"
 #include "tie.h"
 
+/**
+ * @file
+ * @brief Implementation of the Archive class.
+ */
+
 namespace tt_solutions {
 
 namespace {
@@ -30,6 +35,11 @@ namespace {
 // ----------------------------------------------------------------------------
 // Local definitions
 // ----------------------------------------------------------------------------
+
+/**
+ * Symbolic names for the XML tags.
+ */
+//@{
 
 const wxChar *TAGARCHIVE    = _T("archive");
 const wxChar *TAGID         = _T("id");
@@ -48,6 +58,9 @@ const wxChar *TAGENCODING   = _T("encoding");
 const wxString TAGIMAGE     = _T("wxImage");
 const wxChar *TAGBASE64     = _T("base64");
 
+//@}
+
+/// Return the name of the item for the font with given description.
 wxString FontId(const wxString& desc)
 {
     return TAGFONT + _T(" ") + desc;
@@ -59,25 +72,57 @@ wxString FontId(const wxString& desc)
 
 #ifndef NO_EXPAT
 
+/**
+ * XML parser used by Archive::Load().
+ */
 class Parser
 {
 public:
+    /**
+     * Initialize a parser associated with the given archive.
+     *
+     * @a archive must be non-@c NULL and will be used by the parser to add
+     * elements read from XML to it via Archive::Put().
+     */
     Parser(Archive *archive);
 
+    /**
+     * Called when an opening tag for an element is encountered.
+     */
     void StartElement(const XML_Char *name, const XML_Char **atts);
+
+    /**
+     * Called when a closing tag for an element is encountered.
+     */
     void EndElement(const XML_Char *name);
+
+    /**
+     * Called after reading the contents of the current element.
+     */
     void CharData(const XML_Char *s, int len);
 
 protected:
+    /**
+     * Convert a narrow or wide character buffer to wxString.
+     *
+     * Used by XML callback functions.
+     */
+    //@{
     wxString FromXml(const char *str, size_t len = wxString::npos);
     wxString FromXml(const wchar_t *str, size_t len = wxString::npos);
+    //@}
 
 private:
+    /**
+     * Current depth in XML hierarchy.
+     *
+     * This is incremented by StartElement() and decremented by EndElement().
+     */
     int m_depth;
 
-    Archive *m_archive;
-    Archive::Item *m_item;
-    wxString m_value;
+    Archive *m_archive;         ///< The associated archive.
+    Archive::Item *m_item;      ///< Current item, may be @c NULL.
+    wxString m_value;           ///< Contents of the current item.
 };
 
 Parser::Parser(Archive *archive)
@@ -165,18 +210,21 @@ void Parser::CharData(const XML_Char *s, int len)
 
 extern "C" {
 
+/// Expat callback for the element start.
 void //XMLCALL
 start_element(void *userData, const XML_Char *name, const XML_Char **atts)
 {
     static_cast<Parser*>(userData)->StartElement(name, atts);
 }
 
+/// Expat callback for the element end.
 void //XMLCALL
 end_element(void *userData, const XML_Char *name)
 {
     static_cast<Parser*>(userData)->EndElement(name);
 }
 
+/// Expat callback for the element data.
 void //XMLCALL
 char_data(void *userData, const XML_Char *s, int len)
 {
@@ -191,27 +239,75 @@ char_data(void *userData, const XML_Char *s, int len)
 // XML generator
 // ----------------------------------------------------------------------------
 
+/**
+ * Helper class for outputting XML.
+ *
+ * This class is used by Archive::Save() to serialize the archive contents in
+ * XML format.
+ */
 class Generator
 {
 public:
+    /**
+     * Initialize the generator with the given stream.
+     *
+     * Items passed to the Generator will be sent to @a out.
+     */
     Generator(wxOutputStream& out);
 
+    /**
+     * Directly write the given text to the associated stream.
+     */
+    //@{
     void Write(const wxString& str);
     void Write(const char *utf, size_t len = wxString::npos);
+    //@}
 
+    /**
+     * Output the entire element including open and closing tags and contents.
+     *
+     * This is the same as using Start(), CharData() and End() in sequence
+     * except that a shorter output will be generated if @a value is empty (@c
+     * &lt;foo/&gt; instead of @c &lt;foo&gt;&lt;/foo&gt;) so calling this
+     * method is preferable.
+     */
     void Pair(const wxString& name_and_attrs, const wxString& value);
+
+    /**
+     * Output the opening tag.
+     */
     void Start(const wxString& name_and_attrs);
+
+    /**
+     * Output the closing tag.
+     *
+     * @param name Name of the closing tag, may be empty in which case nothing
+     * is actually output (this is used by Pair() in case the value is empty
+     * and the tag was already closed).
+     */
     void End(const wxString& name);
+
+    /**
+     * Output the given data.
+     *
+     * Characters having special meaning in XML, such as @c '&amp;' or @c
+     * '&lt;' will be escaped.
+     */
     void CharData(const wxString& str);
 
 protected:
+    /**
+     * Convert a narrow or wide character buffer to wxString.
+     */
+    //@{
     wxString FromXml(const char *str, size_t len = wxString::npos);
     wxString FromXml(const wchar_t *str, size_t len = wxString::npos);
+    //@}
 
 private:
-    int m_depth;
-    bool m_leaf;
-    wxOutputStream& m_stream;
+    int m_depth;                ///< Current depth in XML hierarchy.
+    bool m_leaf;                ///< True while we're writing an element.
+    wxOutputStream& m_stream;   ///< The associated stream.
 };
 
 Generator::Generator(wxOutputStream& stream)
@@ -317,6 +413,12 @@ void Generator::CharData(const wxString& str)
         Write(buf);
 }
 
+/**
+ * Return XML representation of an attribute with the given name and value.
+ *
+ * Any special characters in the attribute value @a str (bot not in its @a
+ * name) are escaped.
+ */
 wxString Attribute(const wxString& name, const wxString& str)
 {
     wxString::const_iterator it = str.begin();
@@ -663,6 +765,7 @@ Archive::Item::Item(Archive& archive,
 {
 }
 
+/** @cond */
 bool Archive::Item::Put(const wxString& name, const wxString& value)
 {
     return m_attribs.insert(make_pair(name, value)).second;
@@ -686,6 +789,7 @@ wxString Archive::Item::Get(const wxString& name) const
 {
     return Get<wxString>(name);
 }
+/** @endcond */
 
 bool Archive::Item::Has(const wxString& name) const
 {
@@ -722,12 +826,24 @@ Archive::Item::const_iterator_pair Archive::Item::GetAttribs() const
 
 namespace {
 
+/**
+ * Store a pair of integer values in the archive.
+ *
+ * Values are stored comma-separated.
+ *
+ * Use GetPair() to extract them back.
+ *
+ * The template parameter T must be a struct type with x and y members.
+ */
 template <class T>
 bool PutPair(Archive::Item& arc, const wxString& name, const T& value)
 {
     return arc.Put(name, wxString() << value.x << _T(",") << value.y);
 }
 
+/**
+ * Extract a pair of integer values stored by PutPair().
+ */
 template <class T>
 bool GetPair(const Archive::Item& arc, const wxString& name, T& value)
 {
@@ -746,26 +862,31 @@ bool GetPair(const Archive::Item& arc, const wxString& name, T& value)
 
 } // namespace
 
+/// Store a point in the archive.
 bool Insert(Archive::Item& arc, const wxString& name, const wxPoint& value)
 {
     return PutPair(arc, name, value);
 }
 
+/// Extract a point from the archive.
 bool Extract(const Archive::Item& arc, const wxString& name, wxPoint& value)
 {
     return GetPair(arc, name, value);
 }
 
+/// Store a size in the archive.
 bool Insert(Archive::Item& arc, const wxString& name, const wxSize& value)
 {
     return PutPair(arc, name, value);
 }
 
+/// Extract a size from the archive.
 bool Extract(const Archive::Item& arc, const wxString& name, wxSize& value)
 {
     return GetPair(arc, name, value);
 }
 
+/// Store a rectangle in the archive.
 bool Insert(Archive::Item& arc, const wxString& name, const wxRect& value)
 {
     wxString str;
@@ -778,6 +899,7 @@ bool Insert(Archive::Item& arc, const wxString& name, const wxRect& value)
     return arc.Put(name, str);
 }
 
+/// Extract a rectangle from the archive.
 bool Extract(const Archive::Item& arc, const wxString& name, wxRect& value)
 {
     wxString str;
@@ -792,11 +914,13 @@ bool Extract(const Archive::Item& arc, const wxString& name, wxRect& value)
     return true;
 }
 
+/// Store a colour in the archive.
 bool Insert(Archive::Item& arc, const wxString& name, const wxColour& value)
 {
     return arc.Put(name, value.GetAsString(wxC2S_HTML_SYNTAX));
 }
 
+/// Extract a colour from the archive.
 bool Extract(const Archive::Item& arc, const wxString& name, wxColour& value)
 {
     wxString str;
@@ -811,6 +935,7 @@ bool Extract(const Archive::Item& arc, const wxString& name, wxColour& value)
     return true;
 }
 
+/// Store a font in the archive.
 bool Insert(Archive::Item& arc, const wxString& name, const wxFont& value)
 {
     wxString desc = value.GetNativeFontInfoDesc();
@@ -833,6 +958,7 @@ bool Insert(Archive::Item& arc, const wxString& name, const wxFont& value)
     return true;
 }
 
+/// Extract a font from the archive.
 bool Extract(const Archive::Item& arc, const wxString& name, wxFont& value)
 {
     wxString desc;
@@ -870,6 +996,7 @@ bool Extract(const Archive::Item& arc, const wxString& name, wxFont& value)
 
 namespace {
 
+/// Store an image in the archive.
 void PutImage(Archive::Item *item, const wxImage& img, wxBitmapType type)
 {
     wxString value;
@@ -894,6 +1021,7 @@ void PutImage(Archive::Item *item, const wxImage& img, wxBitmapType type)
     item->Put(TAGBASE64, value);
 }
 
+/// Extract an image from the archive.
 wxImage GetImage(Archive::Item *item)
 {
     wxMemoryBuffer buf = wxBase64Decode(item->Get(TAGBASE64));
@@ -905,6 +1033,7 @@ wxImage GetImage(Archive::Item *item)
 
 } // namespace
 
+/// Store an icon in the archive.
 bool Insert(Archive::Item& arc,
             const wxString& name,
             const wxIcon& value,
@@ -932,6 +1061,7 @@ bool Insert(Archive::Item& arc,
     return true;
 }
 
+/// Extract an icon from the archive.
 bool Extract(const Archive::Item& arc,
              const wxString& name,
              wxIcon& value,
@@ -965,6 +1095,7 @@ bool Extract(const Archive::Item& arc,
     return true;
 }
 
+/// Store a bitmap in the archive.
 bool Insert(Archive::Item& arc,
             const wxString& name,
             const wxBitmap& value,
@@ -983,6 +1114,7 @@ bool Insert(Archive::Item& arc,
     return true;
 }
 
+/// Extract a bitmap from the archive.
 bool Extract(const Archive::Item& arc,
              const wxString& name,
              wxBitmap& value,
@@ -1011,6 +1143,7 @@ bool Extract(const Archive::Item& arc,
     return true;
 }
 
+/// Store an image in the archive.
 bool Insert(Archive::Item& arc,
             const wxString& name,
             const wxImage& value,
@@ -1029,6 +1162,7 @@ bool Insert(Archive::Item& arc,
     return true;
 }
 
+/// Extract an image from the archive.
 bool Extract(const Archive::Item& arc,
              const wxString& name,
              wxImage& value,

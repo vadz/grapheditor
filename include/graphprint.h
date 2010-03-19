@@ -349,12 +349,18 @@ public:
     /** @brief Destructor. */
     ~GraphPrintout();
 
-    /** @cond */
+    /**
+     * Override wxPrintout methods which must be implemented for printing.
+     *
+     * These methods are implemented by simply forwarding them to the
+     * corresponding methods of GraphPages.
+     */
+    //@{
     void OnPreparePrinting();
     bool HasPage(int page);
     bool OnPrintPage(int page);
     void GetPageInfo(int *minPage, int *maxPage, int *pageFrom, int *pageTo);
-    /** @endcond */
+    //@}
 
 private:
     /// GraphPages pointer created and owned by the printout.

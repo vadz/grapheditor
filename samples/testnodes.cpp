@@ -14,9 +14,19 @@
 
 #include "testnodes.h"
 
+/**
+ * @file
+ * @brief Definition of test nodes for the sample program.
+ */
+
 namespace {
 
 using tt_solutions::Factory;
+
+/**
+ * Define factory objects creating all the different kinds of nodes.
+ */
+//@{
 
 // Import
 Factory<ImportFileNode>::Impl   importfile(_T("importfile"));
@@ -49,6 +59,11 @@ Factory<MatchNode>::Impl        match(_T("match"));
 Factory<MatchTableNode>::Impl   matchtable(_T("matchtable"));
 Factory<MergeNode>::Impl        merge(_T("merge"));
 
+//@}
+
+/**
+ * Return the path of the directory containing the icons.
+ */
 wxString GetResourceDir()
 {
     wxChar sep = wxFileName::GetPathSeparator();

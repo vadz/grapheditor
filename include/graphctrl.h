@@ -64,36 +64,57 @@ namespace impl
     {
         All,            ///< All elements are included.
         Selected,       ///< Only selected elements are included.
-        InEdges,        ///< Only elements with incoming edges are included.
-        OutEdges        ///< Only elements with outgoing edges are included.
+        InEdges,        ///< Only incoming (to this node) edges are included.
+        OutEdges        ///< Only outgoing (from this node) edges are included.
     };
 
-    /** @cond */
+    /**
+     * Base class for different kinds of iterators over graph elements.
+     *
+     * This class is a standard-like iterator, in particular it provides the
+     * same member typedefs as the standard iterators.
+     *
+     * It is implemented using "pImpl" idiom so the real iteration logic is in
+     * the internal GraphIteratorImpl class.
+     */
     class GraphIteratorBase
     {
     public:
+        /// Iterator category marks this iterator as being bidirectional.
         typedef std::bidirectional_iterator_tag iterator_category;
+        /// Type of the elements being iterated over.
         typedef GraphElement value_type;
+        /// Type for the distance between two iterators.
         typedef ptrdiff_t difference_type;
+        /// Pointer to the elements being iterated over.
         typedef GraphElement* pointer;
+        /// Reference to the elements being iterated over.
         typedef GraphElement& reference;
 
+        /// Default constructor creates iterator in an invalid state.
         GraphIteratorBase() : m_impl(NULL) { }
 
+        /// Copy constructor.
         GraphIteratorBase(const GraphIteratorBase& it);
 
+        /// Constructor from the internal implementation object.
         GraphIteratorBase(GraphIteratorImpl *impl) : m_impl(impl) { }
 
         ~GraphIteratorBase();
 
+        /// Dereference an iterator. Must be valid.
         GraphElement& operator*() const;
 
+        /// Dereference an iterator. Must be valid.
         GraphElement* operator->() const {
             return &**this;
         }
 
+        /// Assignment operator from another iterator.
         GraphIteratorBase& operator=(const GraphIteratorBase& it);
 
+        /// Advance the iterator, in prefix and postfix forms.
+        //@{
         GraphIteratorBase& operator++();
 
         GraphIteratorBase operator++(int) {
@@ -101,7 +122,10 @@ namespace impl
             ++(*this);
             return it;
         }
+        //@}
 
+        /// Advance the iterator in reverse direction, prefix and postfix.
+        //@{
         GraphIteratorBase& operator--();
 
         GraphIteratorBase operator--(int) {
@@ -109,17 +133,25 @@ namespace impl
             --(*this);
             return it;
         }
+        //@}
 
+        /// Compare iterator with another one.
+        //@{
         bool operator==(const GraphIteratorBase& it) const;
 
         bool operator!=(const GraphIteratorBase& it) const {
             return !(*this == it);
         }
+        //@}
 
     private:
+        /// The implementation object owned by the iterator.
         GraphIteratorImpl *m_impl;
     };
 
+    /**
+     * Class used to initialize OGL library only once.
+     */
     class Initialisor
     {
     public:
@@ -127,11 +159,12 @@ namespace impl
         ~Initialisor();
 
     private:
-        Initialisor(const Initialisor&) { }
+        /// Forbid copy construction for a singleton class.
+        Initialisor(const Initialisor&);
+
+        /// The initialization counter.
         static int m_initalise;
     };
-
-    /** @endcond */
 
 } // namespace impl
 
@@ -198,39 +231,54 @@ template <class T>
 class GraphIterator : public impl::GraphIteratorBase
 {
 public:
-    /** @cond */
+    /// Iterator category marks this iterator as being bidirectional.
     typedef std::bidirectional_iterator_tag iterator_category;
+    /// Type of the elements being iterated over.
     typedef T value_type;
+    /// Type for the distance between two iterators.
     typedef ptrdiff_t difference_type;
+    /// Pointer to the elements being iterated over.
     typedef T* pointer;
+    /// Reference to the elements being iterated over.
     typedef T& reference;
+
+    /// Synonym for a pair of iterators.
     typedef typename std::pair<GraphIterator, GraphIterator> pair;
 
+
+    /// Default ctor.
     GraphIterator() : Base() { }
 
+    /// Template copy ctor.
     template <class U>
     GraphIterator(const GraphIterator<U>& it) : Base(it) {
         U *u = 0;
         CheckAssignable(u);
     }
 
+    /// Ctor from the internal implementation object.
     GraphIterator(impl::GraphIteratorImpl *impl) : Base(impl) { }
 
     ~GraphIterator() { }
 
+    /// Dereference an iterator. Must be valid.
     T& operator*() const {
         return static_cast<T&>(Base::operator*());
     }
 
+    /// Dereference an iterator. Must be valid.
     T* operator->() const {
         return &**this;
     }
 
+    /// Assignment operator.
     GraphIterator& operator=(const GraphIterator& it) {
         Base::operator=(it);
         return *this;
     }
 
+    /// Advance the iterator, in prefix and postfix forms.
+    //@{
     GraphIterator& operator++() {
         Base::operator++();
         return *this;
@@ -241,7 +289,10 @@ public:
         ++(*this);
         return it;
     }
+    //@}
 
+    /// Advance the iterator in reverse direction, prefix and postfix.
+    //@{
     GraphIterator& operator--() {
         Base::operator--();
         return *this;
@@ -252,7 +303,10 @@ public:
         --(*this);
         return it;
     }
+    //@}
 
+    /// Compare iterator with another one.
+    //@{
     bool operator==(const GraphIterator& it) const {
         return Base::operator==(it);
     }
@@ -260,12 +314,20 @@ public:
     bool operator!=(const GraphIterator& it) const {
         return !(*this == it);
     }
+    //@}
 
 private:
+    /// Base, non-template, iterator class.
     typedef impl::GraphIteratorBase Base;
 
+    /**
+     * Function used for compile-time type compatibility check.
+     *
+     * This function is used in the template copy ctor to ensure that the type
+     * of the iterator passed to it is compatible with the type we use: if it
+     * isn't, calling this function with an object of type @c U* would fail.
+     */
     void CheckAssignable(T*) { }
-    /** @endcond */
 };
 
 /**
@@ -275,17 +337,18 @@ private:
 template <class T>
 struct IterPair : std::pair< GraphIterator<T>, GraphIterator<T> >
 {
-    /** @cond */
+    /// Shorter name for a pair of iterators.
     typedef std::pair< GraphIterator<T>, GraphIterator<T> > Base;
 
+    /// Default ctor.
     IterPair()
     { }
 
+    /// Template copy ctor.
     template <class U>
     IterPair(const std::pair< GraphIterator<U>, GraphIterator<U> >& other)
       : Base(other)
     { }
-    /** @endcond */
 };
 
 /**
@@ -450,13 +513,38 @@ public:
     virtual wxBrush GetBrush() const    { return wxBrush(m_bgcolour); }
 
 protected:
-    /** @cond */
+    /**
+     * Select or deselect this element.
+     *
+     * Used to implement the public Select() and Unselect() functions.
+     */
     virtual void DoSelect(bool select);
+
+    /**
+     * Update the shape after the change of some of its attributes.
+     */
     virtual void UpdateShape() = 0;
+
+    /**
+     * Set the shape of this element.
+     *
+     * We take ownership of the passed in pointer.
+     */
     virtual void SetShape(GraphShape *shape);
+
+    /**
+     * Return the associated shape.
+     *
+     * @see GetShape()
+     */
     virtual GraphShape *DoGetShape() const { return m_shape; }
+
+    /**
+     * Ensure that we have the associated shape and return it.
+     *
+     * @see EnsureShape()
+     */
     virtual GraphShape *DoEnsureShape();
-    /** @endcond */
 
     /** @brief The DPI of the graph's nominal pixels. */
     virtual wxSize GetDPI() const;
@@ -638,10 +726,14 @@ public:
     wxPen GetPen() const { return wxPen(GetColour(), m_linewidth); }
 
 protected:
-    /** @cond */
-    void UpdateShape() { }
+    virtual void UpdateShape() { }
+
+    /**
+     * Move this edge to the front of the list of shapes.
+     *
+     * This is used by Serialise() when extracting from the archive.
+     */
     bool MoveFront();
-    /** @endcond */
 
 private:
     /**
@@ -904,12 +996,23 @@ public:
                                       const wxPoint& outside) const;
 
 protected:
-    /** @cond */
     virtual void DoSelect(bool select);
     virtual void UpdateShape();
+
+    /**
+     * Ensure that we use the correct text colour.
+     *
+     * Should be called after changing m_textcolour.
+     */
     virtual void UpdateShapeTextColour();
+
+    /**
+     * Implementation of SetSize().
+     *
+     * This is called only if the resizing does happen, i.e. wasn't vetoed by
+     * an event handler.
+     */
     virtual void DoSetSize(wxDC& dc, const wxSize& size);
-    /** @endcond */
 
     /**
      * @brief Overridable called from Layout().
@@ -1096,6 +1199,8 @@ public:
      * @brief Scroll to the top/bottom/left/right side of the graph.
      *
      * Affected by @c SetMargin().
+     *
+     * @param side Combination of wxLEFT or wxRIGHT and wxTOP or wxBOTTOM.
      */
     virtual void ScrollTo(int side);
     /** @brief Centre the given graph coordinate in the view. */
@@ -1271,29 +1376,75 @@ public:
      */
     virtual wxWindow *GetCanvas() const;
 
-    /** @cond */
+    /**
+     * Size event handler.
+     *
+     * Notify the canvas about the new size.
+     */
     void OnSize(wxSizeEvent& event);
+
+    /**
+     * Key press event handler.
+     *
+     * Used to implement scrolling using the cursor keys.
+     */
     void OnChar(wxKeyEvent& event);
+
+    /**
+     * Mouse wheel event handler.
+     *
+     * Used to implement scrolling using the mouse wheel.
+     */
     void OnMouseWheel(wxMouseEvent& event);
+
+    /**
+     * Mouse move event handler.
+     *
+     * Used to show tooltips and handle dragging of the graph elements.
+     */
     void OnMouseMove(wxMouseEvent& event);
+
+    /**
+     * Mouse leave event handler.
+     *
+     * Used to hide the tooltip when the mouse leaves the window.
+     */
     void OnMouseLeave(wxMouseEvent& event);
+
+    /**
+     * Timer event handler for the tooltip timer.
+     *
+     * Used to show a tooltip when the mouse remains over a node for a
+     * sufficiently long time.
+     */
     void OnTipTimer(wxTimerEvent& event);
+
+    /**
+     * Idle event handler.
+     *
+     * Used for scrollbar and cursor updating.
+     */
     void OnIdle(wxIdleEvent& event);
+
 #ifdef __WXGTK__
+    /**
+     * wxGTK-only focus event handlers.
+     *
+     * Under wxGTK we need to explicitly hide the tooltip when we lose focus
+     * and possibly show it when we gain it.
+     */
+    //@{
     void OnSetFocus(wxFocusEvent& event);
     void OnKillFocus(wxFocusEvent& event);
+    //@}
 #endif
-    /** @endcond */
 
-    /** @cond */
-    /* default value for the constructor's name parameter. */
+    /** Default value for the constructor's name parameter. */
     static const wxChar DefaultName[];
-    /** @endcond */
 
 protected:
-    /** @cond */
+    /** Returns the DPI used by the control. */
     virtual wxSize GetDPI() const;
-    /** @endcond */
 
 private:
     /**
@@ -1745,10 +1896,8 @@ public:
     virtual wxEvtHandler *GetEventHandler() const;
     //@}
 
-    /* helper to send an event to the graph's event handler. */
-    /** @cond */
+    /** Helper to send an event to the graph's event handler. */
     void SendEvent(wxEvent& event);
-    /** @endcond */
 
     /** @brief The DPI of the graph's nominal pixels. */
     wxSize GetDPI() const { return m_dpi; }
@@ -1783,23 +1932,28 @@ public:
      */
     virtual void Draw(wxDC *dc, const wxRect& clip = wxRect()) const;
 
-    /** @cond */
+    /**
+     * Return the temporary clipping region.
+     *
+     * This method is used by the implementation only.
+     *
+     * @see m_rcDraw
+     */
     wxRect GetDrawRect() const { return m_rcDraw; }
-    /** @endcond */
 
 protected:
     /**
-     * @cond
-     * Implementations of Add(). These not send events or delete the element
-     * on failure.
+     * Implementations of Add().
+     * These methods don't send events nor delete the element on failure.
      */
+    //@{
     virtual GraphNode *DoAdd(GraphNode *node,
                              wxPoint pt,
                              wxSize size);
     virtual GraphEdge *DoAdd(GraphNode& from,
                              GraphNode& to,
                              GraphEdge *edge = NULL);
-    /** @endcond */
+    //@}
 
 private:
     /** @cond */
@@ -1874,7 +2028,7 @@ private:
      *
      * This is used to set the clipping region when redrawing the diagram.
      *
-     * @see Draw().
+     * @see Draw(), GetDrawRect()
      */
     mutable wxRect m_rcDraw;
 
@@ -2187,7 +2341,6 @@ typedef void (wxEvtHandler::*GraphEventFunction)(GraphEvent&);
 
 BEGIN_DECLARE_EVENT_TYPES()
     /** @cond */
-
     // Graph Events
 
     DECLARE_EVENT_TYPE(Evt_Graph_Node_Add, wxEVT_USER_FIRST + 1101)
@@ -2215,7 +2368,6 @@ BEGIN_DECLARE_EVENT_TYPES()
     DECLARE_EVENT_TYPE(Evt_Graph_Menu, wxEVT_USER_FIRST + 1116)
 
     DECLARE_EVENT_TYPE(Evt_Graph_Ctrl_Zoom, wxEVT_USER_FIRST + 1117)
-
     /** @endcond */
 END_DECLARE_EVENT_TYPES()
 

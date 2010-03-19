@@ -55,10 +55,8 @@ public:
     /** @brief Destructor. */
     ~ProjectNode();
 
-    /** @cond */
     void SetText(const wxString& text);
     void SetFont(const wxFont& font);
-    /** @endcond */
 
     //@{
     /** @brief The node's id. */
@@ -147,20 +145,19 @@ public:
     void SetMaxAutoSize(const wxSize& size) { m_maxAutoSize = size; }
     /** @endcond */
 
-    /** @cond */
     void OnDraw(wxDC& dc);
     void OnLayout(wxDC &dc);
-    /** @endcond */
 
-    /** @cond */
     wxPoint GetPerimeterPoint(const wxPoint& inside,
                               const wxPoint& outside) const;
-    /** @endcond */
 
 protected:
-    /** @cond */
+    /**
+     * Return the spacing to use for layout.
+     *
+     * The spacing is determined by the border thickness and corner radius.
+     */
     int GetSpacing() const;
-    /** @endcond */
 
 private:
     /// Bring the Pixels coordinates type into this class scope.
@@ -209,10 +206,22 @@ public:
     /** @brief Destructor. */
     ~ProjectDesigner();
 
-    /** @cond */
+    /**
+     * Event handler for background erase event.
+     *
+     * To reduce flicker, the background is drawn here instead of drawing the
+     * default background and then overwriting it when painting the window
+     * contents.
+     */
     void OnCanvasBackground(wxEraseEvent& event);
+
+    /**
+     * Background drawing function.
+     *
+     * This function is used by OnCanvasBackground() to really draw the
+     * background.
+     */
     void DrawCanvasBackground(wxDC& dc);
-    /** @endcond */
 
     /** @brief Sets the background colour of the control. */
     bool SetBackgroundColour(const wxColour& colour);
@@ -244,9 +253,7 @@ public:
     void SetGridFactor(int factor) { m_gridFactor = factor; Refresh(); }
     //@}
 
-    /** @cond */
     static const wxChar DefaultName[];
-    /** @endcond */
 
 protected:
     /** @brief Adjust the grid factor when zoomed-in to avoid overcrowding. */
@@ -273,7 +280,6 @@ private:
     /// Grid factor. Default is 5. @see GetGridFactor().
     int m_gridFactor;
 
-    DECLARE_EVENT_TABLE()
     DECLARE_DYNAMIC_CLASS(ProjectDesigner)
     DECLARE_NO_COPY_CLASS(ProjectDesigner)
 };

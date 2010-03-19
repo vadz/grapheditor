@@ -11,6 +11,11 @@
 
 #include "factory.h"
 
+/**
+ * @file
+ * @brief Implementation of FactoryBase class.
+ */
+
 namespace tt_solutions {
 
 namespace impl {

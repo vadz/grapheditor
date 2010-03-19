@@ -12,6 +12,11 @@
 #include "graphtree.h"
 #include <wx/imaglist.h>
 
+/**
+ * @file
+ * @brief Implementation of the custom tree control class.
+ */
+
 namespace tt_solutions {
 
 DEFINE_EVENT_TYPE(Evt_GraphTree_Drop)

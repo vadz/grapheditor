@@ -9,33 +9,38 @@
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
-// Notes:
-//
-// One of the requirements of the graph control was that its interface should
-// not depend on the underlying graphics library (OGL). Therefore, the graph
-// control does not derive from a wxShapeCanvas and extend it to add a few
-// features such as graph layout, but instead it owns a wxShapeCanvas as a
-// child window. Similarly for the graph elements, they own wxShapes rather
-// than deriving from them. The wxShape objects are connected to the
-// corresponding GraphElement object using the wxShape's client data field.
-//
-// The graph elements provide two ways to customise their appearance in a way
-// independent of the underlying graphics library. Firstly, there is the
-// SetStyle method, which can select from a limited set of predefined shapes.
-// Or for more control, there is an OnDraw overridable which can be used to
-// draw the element manually.
-//
-// The abstracted API is of course more limited than that of the underlying
-// graphics library, so access to the underlying graphics library is also
-// available, though using it obviously makes makes the user code depend on
-// the particular graphics library.
-//
-// The GraphCtrl has a method GetCanvas which returns the OGL canvas, and
-// graph elements have methods SetShape/GetShape which can be used to assign
-// a wxShape. The graph control customised the behaviour of the shapes added
-// using wxShapeEvtHandler rather than by overriding wxShape methods,
-// therefore pretty much any wxShape can be used, as long as they don't use
-// the client data field for anything else.
+/**
+ * @file
+ * @brief Main implementation file.
+ *
+ * Notes:
+ *
+ * One of the requirements of the graph control was that its interface should
+ * not depend on the underlying graphics library (OGL). Therefore, the graph
+ * control does not derive from a wxShapeCanvas and extend it to add a few
+ * features such as graph layout, but instead it owns a wxShapeCanvas as a
+ * child window. Similarly for the graph elements, they own wxShapes rather
+ * than deriving from them. The wxShape objects are connected to the
+ * corresponding GraphElement object using the wxShape's client data field.
+ *
+ * The graph elements provide two ways to customise their appearance in a way
+ * independent of the underlying graphics library. Firstly, there is the
+ * SetStyle method, which can select from a limited set of predefined shapes.
+ * Or for more control, there is an OnDraw overridable which can be used to
+ * draw the element manually.
+ *
+ * The abstracted API is of course more limited than that of the underlying
+ * graphics library, so access to the underlying graphics library is also
+ * available, though using it obviously makes makes the user code depend on
+ * the particular graphics library.
+ *
+ * The GraphCtrl has a method GetCanvas which returns the OGL canvas, and
+ * graph elements have methods SetShape/GetShape which can be used to assign
+ * a wxShape. The graph control customised the behaviour of the shapes added
+ * using wxShapeEvtHandler rather than by overriding wxShape methods,
+ * therefore pretty much any wxShape can be used, as long as they don't use
+ * the client data field for anything else.
+ */
 
 #include "graphctrl.h"
 #include "tipwin.h"
@@ -49,6 +54,9 @@
 // This macro is defined in different Graphviz headers in different versions so
 // instead of choosing the right one, just define it ourselves.
 #ifndef PS2INCH
+    /**
+     * Convert PostScript points to inches.
+     */
     #define PS2INCH(ps) ((ps)/72.)
 #endif
 #endif
@@ -101,15 +109,27 @@ DEFINE_EVENT_TYPE(Evt_Graph_Ctrl_Zoom)
 
 namespace {
 
-// sort order for the elements when loading
-const wxString SORT_ELEMENT = _T("el");
-const wxString SORT_NODE    = SORT_ELEMENT + _T("1");
-const wxString SORT_EDGE    = SORT_ELEMENT + _T("2");
+/**
+ * @name Constants for sort order used for the elements when loading.
+ */
+//@{
+const wxString SORT_ELEMENT = _T("el");                 ///< Generic element.
+const wxString SORT_NODE    = SORT_ELEMENT + _T("1");   ///< Node element.
+const wxString SORT_EDGE    = SORT_ELEMENT + _T("2");   ///< Edge element.
+//@}
 
-// id for the tooltip window
+/// Id for the tooltip window.
 const int ID_TIPWIN = 99;
 
-// the wxShape's client data field points back to the GraphElement
+/**
+ * Retrieve a graph element associated with the given shape.
+ *
+ * These function return the object stored in the wxShape client data pointer
+ * but don't (and can't) check if it is of correct type so they must only be
+ * called for the shapes of correct type.
+ */
+//@{
+
 GraphElement *GetElement(wxShape *shape)
 {
     void *data = shape->GetClientData();
@@ -128,37 +148,55 @@ GraphNode *GetNode(wxShape *shape)
     return data ? wxStaticCast(data, GraphNode) : NULL;
 }
 
-// lexicographic order for positions, top to bottom, left to right.
+//@}
+
+/// Lexicographic order for positions, top to bottom, left to right.
 bool operator<(const wxPoint& pt1, const wxPoint &pt2)
 {
     return pt1.y < pt2.y || (pt1.y == pt2.y && pt1.x < pt2.x);
 }
 
-// a compare functor for elements that orders them by their screen positions
+/// A compare functor for elements that orders them by their screen positions.
 class ElementCompare
 {
 public:
+    /// Implement the comparison.
     bool operator()(const GraphElement *n, const GraphElement *m) const
     {
         return n->GetPosition() < m->GetPosition();
     }
 };
 
+/**
+ * Return a unique node name.
+ *
+ * This name is not user-readable and is only used inside dot files.
+ */
 wxString NodeName(const GraphNode& node)
 {
     return wxString::Format(_T("n%p"), &node);
 }
 
+/**
+ * Helper function returning the canvas if the shape has it or @c NULL.
+ */
 wxShapeCanvas *GetCanvas(wxShape *shape)
 {
     return shape ? shape->GetCanvas() : NULL;
 }
 
+/**
+ * Helper function to avoid warnings about passing const pointers to non-const
+ * correct GraphViz functions.
+ */
 char *unconst(const char *str)
 {
     return const_cast<char*>(str);
 }
 
+/**
+ * Create a polygon shape from the given 2D array of points.
+ */
 wxPolygonShape *CreatePolygon(int num_points, const int points[][2])
 {
     wxList *list = new wxList;
@@ -172,6 +210,14 @@ wxPolygonShape *CreatePolygon(int num_points, const int points[][2])
     return shape;
 }
 
+/**
+ * Return the value between the given limits.
+ *
+ * Return the original @a value if it is already between @a limit1 and @a
+ * limit2 or the lower/upper limit if the value is too low/high.
+ *
+ * Notice that the limits can be specified in any order.
+ */
 int between(int value, int limit1, int limit2)
 {
     int lo = min(limit1, limit2);
@@ -181,6 +227,9 @@ int between(int value, int limit1, int limit2)
     return value;
 }
 
+/**
+ * Add a line connecting the two given nodes.
+ */
 bool ShowLine(wxLineShape *line, GraphNode *from, GraphNode *to)
 {
     if (!line || !from || !to)
@@ -201,12 +250,20 @@ bool ShowLine(wxLineShape *line, GraphNode *from, GraphNode *to)
     return true;
 }
 
+/**
+ * Return the default font to use for the graph elements.
+ */
 wxFont DefaultFont()
 {
     static wxFont font(10, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Arial"));
     return font;
 }
 
+/**
+ * Return the screen DPI.
+ *
+ * This function caches the value obtained from wxScreenDC.
+ */
 wxSize GetScreenDPI()
 {
     static wxSize dpi(wxScreenDC().GetPPI());
@@ -271,9 +328,16 @@ GraphEvent::GraphEvent(const GraphEvent& event)
 
 namespace impl {
 
+/**
+ * Custom graph canvas used by GraphCtrl.
+ *
+ * This class customizes many aspects of wxShapeCanvas and completely isolates
+ * our public API from it.
+ */
 class GraphCanvas : public wxShapeCanvas
 {
 public:
+    /// Full window ctor.
     GraphCanvas(wxWindow *parent = NULL, wxWindowID id = wxID_ANY,
                  const wxPoint& pos = wxDefaultPosition,
                  const wxSize& size = wxDefaultSize,
@@ -281,84 +345,338 @@ public:
                  const wxString& name = DefaultName);
     ~GraphCanvas();
 
+    /// Default name for GraphCanvas window.
     static const wxChar DefaultName[];
 
+    /**
+     * Generate a GraphEvent of the given type.
+     *
+     * @param cmd The type of event.
+     * @param x Abscissa of the event.
+     * @param y Ordinate of the event.
+     * @returns true if event is allowed or false if it was vetoed.
+     */
     bool SendEvent(wxEventType cmd, double x, double y);
 
+    /**
+     * @name Overriden wxShapeCanvas virtual functions.
+     */
+    //@{
+
+    /**
+     * Called when left mouse button is clicked.
+     *
+     * Deselects all items and generates a Evt_Graph_Click event.
+     */
     void OnLeftClick(double x, double y, int keys);
+
+    /**
+     * Called when right mouse button is clicked.
+     *
+     * Generates a Evt_Graph_Menu event.
+     */
     void OnRightClick(double x, double y, int keys);
 
-    void OnDragLeft(bool draw, double x, double y, int keys);
+    /**
+     * Called when mouse starts to move with left button down.
+     *
+     * Sets up the variables used by OnDragLeft(): starts panning if Shift key
+     * is pressed or rubber-banding otherwise.
+     */
     void OnBeginDragLeft(double x, double y, int keys);
-    void OnEndDragLeft(double x, double y, int keys);
 
+    /**
+     * Called when mouse is moved with left button down.
+     *
+     * Implements feedback for panning and rubber-banding.
+     */
+    void OnDragLeft(bool draw, double x, double y, int keys);
+
+    /**
+     * Called when the left mouse button is released after dragging.
+     *
+     * Finalizes a panning or rubber-banding operation.
+     */
+    void OnEndDragLeft(double x, double y, int keys);
+    //@}
+
+    /**
+     * Associate the graph shown by this canvas.
+     *
+     * This is called immediately after creating the canvas or when changing
+     * the canvas used by a graph.
+     *
+     * The life time of @a graph should be greater than ours.
+     */
     void SetGraph(Graph *graph) { m_graph = graph; }
+
+    /**
+     * Return the associated graph.
+     *
+     * Normally never NULL.
+     */
     Graph *GetGraph() const { return m_graph; }
 
+    /**
+     * Override event processing to send mouse events to the parent.
+     */
     bool ProcessEvent(wxEvent& event);
 
+    /**
+     * Release mouse if we currently have the capture.
+     *
+     * @returns true if the capture was released or false if we didn't have it.
+     */
     bool ReleaseIfCaptured();
+
+    /**
+     * Change the cursor even if the mouse is captured.
+     */
     bool SetCapturedCursor(const wxCursor& cursor);
 
+    /**
+     * @name Event handlers.
+     */
+    //@{
+
+    /**
+     * Scroll event handler.
+     *
+     * Calls DoScroll() for the real work.
+     */
     void OnScroll(wxScrollWinEvent& event);
+
+    /**
+     * Paint event handler.
+     *
+     * Calls wxDiagram::Redraw() to draw the diagram after adjusting the DC
+     * with PrepareDC().
+     */
     void OnPaint(wxPaintEvent& event);
+
+    /**
+     * Size event handler.
+     *
+     * Call SetCheckBounds() to schedule a scrollbars update.
+     */
     void OnSize(wxSizeEvent& event);
+
+    /**
+     * Focus event handler passes the focus to the parent.
+     *
+     * We want to handle keyboard events in the parent window, not in this
+     * window itself, so don't let it have focus.
+     */
     void OnSetFocus(wxFocusEvent& event);
+
+    /**
+     * Left button up and down events handler.
+     *
+     * Prepare to start dragging if not already dragging using right button.
+     */
     void OnLeftButton(wxMouseEvent& event);
+
+    /**
+     * Right button up and down events handler.
+     *
+     * Ignore these events when left dragging is in progress.
+     */
     void OnRightButton(wxMouseEvent& event);
+
+    /**
+     * Mouse capture lost event handler.
+     *
+     * Cancel the dragging operation if one is in progress.
+     */
     void OnCaptureLost(wxMouseCaptureLostEvent& event);
 
+    //@}
+
+    /**
+     * @name Overridden wxScrolledWindow virtual functions.
+     *
+     * @brief
+     *
+     * We completely override wxScrolledWindow scrolling implementation as the
+     * scrollbars are sized to allow scrolling over the bounding rectangle of
+     * all the nodes currently in the graph but panning allows scrolling beyond
+     * this region, and in this case the scrollbars adjust to include the
+     * current position.
+     *
+     * Code that moves nodes or otherwise affects the scrollbars, sets the flag
+     * SetCheckBounds(). Then in the idle time the bounding rectangle of all
+     * the nodes is recalculated and the scrollbars adjusted if necessary.
+     *
+     * The reason this is done during the idle time, is that scrolling back to
+     * the origin may cause the scrollbars to disappear, and when this is done
+     * using the mouse, the mouse then stops working. Presumably because the
+     * scrollbar is destroyed without releasing the capture.
+     */
+    //@{
+
+    /**
+     * Set up the DC origin and scale for the current position and zoom level.
+     */
     void PrepareDC(wxDC& dc);
 
+    /**
+     * Override to not do any scrollbar adjustments.
+     *
+     * The scrollbars will be set from CheckBounds() called from
+     * GraphCtrl::OnIdle() instead.
+     */
     void AdjustScrollbars() { }
+    //@}
 
+    /**
+     * Schedule a scrollbar update during the idle time.
+     *
+     * CheckBounds() will be called from GraphCtrl::OnIdle().
+     */
     void SetCheckBounds() { m_checkBounds = true; }
+
+    /**
+     * Check whether the scrollbars should be updated.
+     *
+     * If this function returns true, CheckBounds() should be called.
+     */
     bool GetCheckBounds() { return m_checkBounds; }
+
+    /**
+     * Update the scrollbars.
+     *
+     * Should only be called if GetCheckBounds() returned true to avoid useless
+     * work.
+     *
+     * @returns true if the bounds changed
+     */
     bool CheckBounds();
 
+    /**
+     * Scroll the window.
+     *
+     * @param orient wxHORIZONTAL or wxVERTICAL
+     * @param type Type of the scrolling event, e.g. wxEVT_SCROLLWIN_LINEUP.
+     * @param pos New scrollbar position, doesn't need to be given if it can be
+     * computed from the current position using the event type.
+     * @param lines The number of lines to scroll, only used if @a type is
+     * wxEVT_SCROLLWIN_LINEUP or wxEVT_SCROLLWIN_LINEDOWN.
+     */
     void DoScroll(int orient, int type, int pos = 0, int lines = 1);
 
+    /**
+     * Scroll so that the given position is in the centre of the graph.
+     *
+     * Used by the public GraphCtrl::ScrollTo().
+     *
+     * @see ScrollByOffset()
+     */
     void ScrollTo(const wxPoint& ptGraph, bool draw = true);
+
+    /**
+     * Scroll to the specified side(s).
+     *
+     * @param side Combination of wxLEFT or wxRIGHT and wxTOP or wxBOTTOM.
+     * @param draw if true, redraw the window, otherwise leave it in old state.
+     *
+     * @see ScrollByOffset()
+     */
     void ScrollTo(int side, bool draw = true);
+
+    /**
+     * Scroll by the given displacement.
+     *
+     * @param x horizontal displacement, positive or negative.
+     * @param y vertical displacement, positive or negative.
+     * @param draw if true, redraw the window, otherwise leave it in old state.
+     */
     wxPoint ScrollByOffset(int x, int y, bool draw = true);
+
+    /**
+     * Scroll the given rectangle into view.
+     */
     void EnsureVisible(wxRect rc, bool draw = true);
 
+    /**
+     * Return the current scrolled position.
+     *
+     * The position is the offset of the origin due to scrolling, i.e. it's (0,
+     * 0) if the scrollbars are at their leftmost and topmost positions
+     * respectively.
+     */
     wxPoint GetScroll() const;
+
+    /**
+     * Return the centre of the view in graph coordinates.
+     *
+     * Used by the public GraphCtrl::GetScrollPosition().
+     */
     wxPoint GetScrollPosition();
 
+    /// Implementation of GraphCtrl::SetBorder().
     void SetBorder(const wxSize& size) { m_border = size; SetCheckBounds(); }
+    /// Implementation of GraphCtrl::GetBorder().
     wxSize GetBorder() const { return m_border; }
 
+    /// Implementation of GraphCtrl::SetBorderType().
     void SetBorderType(int type) { m_borderType = type; SetCheckBounds(); }
+    /// Implementation of GraphCtrl::GetBorderType().
     int GetBorderType() const { return m_borderType; }
 
+    /// Implementation of GraphCtrl::SetMargin().
     void SetMargin(const wxSize& size) { m_margin = size; SetCheckBounds(); }
+    /// Implementation of GraphCtrl::GetMargin().
     wxSize GetMargin() const { return m_margin; }
 
+    /// Implementation of GraphCtrl::ScreenToGraph().
     wxRect ScreenToGraph(const wxRect& rcScreen);
+    /// Implementation of GraphCtrl::GraphToScreen().
     wxRect GraphToScreen(const wxRect& rcGraph);
 
+    /// Return the client rectangle in screen coordinates.
     wxRect GetClientScreenRect() const;
 
+    /**
+     * Return the client size which will be available for display.
+     *
+     * Add the size which could be taken by the scrollbars but isn't to the
+     * returned size.
+     */
     inline wxSize GetScrollClientSize() const;
+
+    /**
+     * Return the size of full window client rectangle.
+     *
+     * This is the client size only if no scrollbars are needed.
+     */
     inline wxSize GetFullClientSize() const;
 
+    /**
+     * Set the fitting flags.
+     */
     void SetFits() { m_fitsX = m_fitsY = true; }
 
 private:
+    /**
+     * Return the given or dummy parent.
+     *
+     * This function is used to ensure that always create GraphCanvas with a
+     * valid parent. If @a parent is @c NULL, a dummy top level parent window
+     * is created here.
+     */
     static wxWindow *EnsureParent(wxWindow *parent);
 
-    Graph *m_graph;
-    bool m_isPanning;
-    bool m_checkBounds;
-    wxPoint m_ptDrag;
-    wxPoint m_ptOrigin;
-    wxSize m_sizeScrollbar;
-    wxSize m_border;
-    int m_borderType;
-    wxSize m_margin;
-    bool m_fitsX;
-    bool m_fitsY;
+    Graph *m_graph;             ///< The associated graph.
+    bool m_isPanning;           ///< Is panning operation in progress?
+    bool m_checkBounds;         ///< Do we need to adjust scrollbars?
+    wxPoint m_ptDrag;           ///< Point where dragging was started.
+    wxPoint m_ptOrigin;         ///< Origin of the graph.
+    wxSize m_sizeScrollbar;     ///< Size of vertical and horizontal scrollbars.
+    wxSize m_border;            ///< Border left around the graph.
+    int m_borderType;           ///< Border type, see GraphCtrl::BorderType.
+    wxSize m_margin;            ///< Margin around the graph.
+    bool m_fitsX;               ///< Do we need a horizontal scrollbar?
+    bool m_fitsY;               ///< Do we need a vertical scrollbar?
 
     DECLARE_EVENT_TABLE()
     DECLARE_DYNAMIC_CLASS(GraphCanvas)
@@ -997,15 +1315,31 @@ wxRect GraphCanvas::GetClientScreenRect() const
 
 namespace {
 
+/**
+ * Generic event handler for the shape objects.
+ *
+ * This class is used as the event handler by GraphDiagram to allow changing
+ * the behaviour of any existing shape without having to override its virtual
+ * methods.
+ *
+ * It's both a base class inherited from by ControlPointHandler,
+ * GraphNodeHandler and GraphEdgeHandler and a concrete class used directly
+ * for the other graph elements.
+ */
 class GraphHandler: public wxShapeEvtHandler
 {
 public:
+    /// Ctor taking an existing shape.
     GraphHandler(wxShapeEvtHandler *prev);
 
+    /// Overridden base class virtual method.
+    //@{
     void OnErase(wxDC& dc);
     void OnMoveLink(wxDC& dc, bool moveControlPoints);
+    //@}
 
 protected:
+    /// Return the rectangle to refresh in OnErase().
     virtual wxRect GetEraseRect() const;
 };
 
@@ -1060,15 +1394,16 @@ void GraphHandler::OnMoveLink(wxDC& dc, bool moveControlPoints)
     shape->Show(true);
 }
 
-// ----------------------------------------------------------------------------
-// Handler for control points
-// ----------------------------------------------------------------------------
-
+/**
+ * Event handler for control point shapes.
+ */
 class ControlPointHandler: public GraphHandler
 {
 public:
+    /// Ctor taking an existing shape.
     ControlPointHandler(wxShapeEvtHandler *prev);
 
+    /// Overridden base class virtual method.
     void OnErase(wxDC& dc);
 };
 
@@ -1085,29 +1420,44 @@ void ControlPointHandler::OnErase(wxDC& dc)
     GraphHandler::OnErase(dc);
 }
 
-// ----------------------------------------------------------------------------
-// Handler allow selection
-// ----------------------------------------------------------------------------
-
+/**
+ * Common base class for GraphNodeHandler and GraphEdgeHandler.
+ *
+ * This class notably implements support for selection.
+ */
 class GraphElementHandler: public GraphHandler
 {
 public:
+    /// Ctor taking an existing shape.
     GraphElementHandler(wxShapeEvtHandler *prev);
 
+    /// Overridden base class virtual method.
+    //@{
     void OnLeftClick(double x, double y, int keys, int attachment);
     void OnLeftDoubleClick(double x, double y, int keys, int attachment);
     void OnRightClick(double x, double y, int keys, int attachment);
 
     void OnDraw(wxDC& dc)       { GetElement(GetShape())->OnDraw(dc); }
     void OnDrawContents(wxDC&)  { }
+    //@}
 
 protected:
+    /// Implementation of OnLeftClick().
     void HandleClick(wxEventType cmd, double x, double y, int keys);
+    /// Implementation pf OnLeftDoubleClick().
     void HandleDClick(wxEventType cmd, double x, double y, int keys);
+    /// Implementation of OnRightClick().
     void HandleRClick(wxEventType cmd, double x, double y, int keys);
 
+    /// Send a GraphEvent of the specified type.
     bool SendEvent(wxEventType cmd, double x, double y);
 
+    /**
+     * Select or deselect the given shape.
+     *
+     * If @a keys doesn't include @c KEY_CTRL all the other currently selected
+     * shapes are deselected.
+     */
     void Select(wxShape *shape, bool select, int keys);
 };
 
@@ -1205,17 +1555,20 @@ void GraphElementHandler::Select(wxShape *shape, bool select, int keys)
         element->Unselect();
 }
 
-// ----------------------------------------------------------------------------
-// Handler to give nodes the default behaviour
-// ----------------------------------------------------------------------------
-
+/**
+ * Event handler defining the default node behaviour.
+ */
 class GraphNodeHandler: public GraphElementHandler
 {
 public:
+    /// Shorter synonym.
     typedef GraphEvent::NodeList NodeList;
 
+    /// Ctor taking an existing shape.
     GraphNodeHandler(wxShapeEvtHandler *prev);
 
+    /// Overridden base class virtual method.
+    //@{
     void OnLeftClick(double x, double y, int keys, int attachment);
     void OnLeftDoubleClick(double x, double y, int keys, int attachment);
     void OnRightClick(double x, double y, int keys, int attachment);
@@ -1239,7 +1592,9 @@ public:
 
     void OnSizingDragLeft(wxControlPoint* pt, bool draw, double x, double y, int keys, int attachment);
     void OnSizingEndDragLeft(wxControlPoint* pt, double x, double y, int keys, int attachment);
+    //@}
 
+    /// Return the associated GraphNode.
     inline GraphNode *GetNode() const;
 
     enum {
@@ -1248,9 +1603,9 @@ public:
     };
 
 private:
-    NodeList m_sources;
-    GraphNode *m_target;
-    wxPoint m_offset;
+    NodeList m_sources;     ///< The source nodes being dragged onto this one.
+    GraphNode *m_target;    ///< Target of the drag operation.
+    wxPoint m_offset;       ///< Position where the dragging started.
 };
 
 GraphNodeHandler::GraphNodeHandler(wxShapeEvtHandler *prev)
@@ -1507,18 +1862,21 @@ void GraphNodeHandler::OnSizingEndDragLeft(wxControlPoint* pt,
     node->SetSize(node->GetSize());
 }
 
-// ----------------------------------------------------------------------------
-// Handler for edges
-// ----------------------------------------------------------------------------
-
+/**
+ * Event handler for edges.
+ */
 class GraphEdgeHandler: public GraphElementHandler
 {
 public:
+    /// Ctor taking an existing shape.
     GraphEdgeHandler(wxShapeEvtHandler *prev);
 
 protected:
+    /// Overridden base class virtual method.
+    //@{
     wxRect GetEraseRect() const;
     inline wxLineShape *GetShape() const;
+    //@}
 };
 
 GraphEdgeHandler::GraphEdgeHandler(wxShapeEvtHandler *prev)
@@ -1556,9 +1914,16 @@ wxRect GraphEdgeHandler::GetEraseRect() const
 // GraphNodeShape
 // ----------------------------------------------------------------------------
 
+/**
+ *  Custom rectangle shape.
+ *
+ *  This is the same as wxRectangleShape except that it implements
+ *  GetPerimeterPoint() to account for our slightly different shape.
+ */
 class GraphNodeShape : public wxRectangleShape
 {
 public:
+    /// Overridden base class virtual method.
     bool GetPerimeterPoint(double x1, double y1,
                            double x2, double y2,
                            double *x3, double *y3);
@@ -1597,12 +1962,42 @@ bool GraphNodeShape::GetPerimeterPoint(double x1, double y1,
 
 namespace impl {
 
+/**
+ * Diagram represents a collection of shapes.
+ *
+ * This class override wxDiagram virtual methods to ensure that each shape
+ * belonging to the diagram has a custom event handler associated with it.
+ */
 class GraphDiagram : public wxDiagram
 {
 public:
+    /**
+     * Override to set up a correct handler for @a shape.
+     *
+     * Calls SetEventHandler() and the base class method.
+     */
     void AddShape(wxShape *shape, wxShape *addAfter = NULL);
+
+    /**
+     * Override to set up a correct handler for @a shape.
+     *
+     * Calls SetEventHandler() and the base class method.
+     */
     void InsertShape(wxShape *shape);
+
+    /**
+     * Associate an appropriate custom event handler with the shape.
+     *
+     * Creates a new handler depending on the exact shape type
+     * (ControlPointHandler, GraphNodeHandler, GraphEdgeHandler or GraphHandler
+     * by default) and sets it up as the @a shape event handler.
+     */
     void SetEventHandler(wxShape *shape);
+
+    /**
+     * Override Redraw since the default method displays a busy cursor which
+     * flashes on and off during panning.
+     */
     void Redraw(wxDC& dc);
 };
 
@@ -1639,9 +2034,6 @@ void GraphDiagram::InsertShape(wxShape *shape)
     wxDiagram::InsertShape(shape);
 }
 
-// Override Redraw since the default method displays a busy cursor which
-// flashes on and off during panning.
-//
 void GraphDiagram::Redraw(wxDC& dc)
 {
     if (m_shapeList) {
@@ -1657,21 +2049,31 @@ void GraphDiagram::Redraw(wxDC& dc)
 
 } // namespace impl
 
-// ----------------------------------------------------------------------------
-// iterator
-// ----------------------------------------------------------------------------
-
 namespace impl {
 
+/**
+ * Abstract interface for iterators over graph elements.
+ *
+ * This is used by GraphIteratorBase to implement its own interface.
+ */
 class GraphIteratorImpl
 {
 public:
     virtual ~GraphIteratorImpl() { }
 
+    /// Advance the iterator forward.
     virtual void inc() = 0;
+
+    /// Advance the iterator backwards.
     virtual void dec() = 0;
+
+    /// Compare two iterators.
     virtual bool eq(const GraphIteratorImpl& other) const = 0;
+
+    /// Dereference the iterator.
     virtual GraphElement *get() const = 0;
+
+    /// Create a copy of this iterator polymorphically.
     virtual GraphIteratorImpl *clone() const = 0;
 };
 
@@ -1721,9 +2123,30 @@ bool GraphIteratorBase::operator ==(const GraphIteratorBase& it) const
 
 namespace {
 
+/**
+ * A concrete iterator over lists of graph elements.
+ *
+ * This class implements the base graph iterator API defined by
+ * GraphIteratorImpl for iteration over graph elements. It supports iterating
+ * over ranges of items (and not all of them) and filtering the kind of items
+ * it returns to the items of the given type and, optionally, to just the
+ * incoming or outgoing edges.
+ */
 class ListIterImpl : public GraphIteratorImpl
 {
 public:
+    /**
+     * Constructor specifying the range to iterate over and filters to apply.
+     *
+     * @param begin The beginning of the range to iterate over.
+     * @param end The end of the range to iterate over.
+     * @param classinfo Type of elements to restrict iteration to, if @c NULL
+     * iterate over elements of any type.
+     * @param which One of IteratorFilter enum elements. By default we iterate
+     * over all elements.
+     * @param node Only used if @a which is InEdges or OutEdges and specifies
+     * the node whose incoming or outgoing edges we want to iterate over.
+     */
     ListIterImpl(const wxList::iterator& begin,
                  const wxList::iterator& end,
                  wxClassInfo *classinfo,
@@ -1739,6 +2162,11 @@ public:
             ++m_it;
     }
 
+    /**
+     * Return true if the current element should be accepted.
+     *
+     * If false is returned, the iterator ignores the current element.
+     */
     bool filter()
     {
         GraphElement *element = get();
@@ -1766,6 +2194,9 @@ public:
         return true;
     }
 
+    /**
+     * Advance the iterator skipping over unacceptable elements.
+     */
     void inc()
     {
         do {
@@ -1774,6 +2205,9 @@ public:
         while (m_it != m_end && !filter());
     }
 
+    /**
+     * Advance the iterator backwards skipping over unacceptable elements.
+     */
     void dec()
     {
         do {
@@ -1782,33 +2216,54 @@ public:
         while (!filter());
     }
 
+    /**
+     * Compare two iterators.
+     *
+     * The comparison doesn't take filter settings into account.
+     */
     bool eq(const GraphIteratorImpl& other) const
     {
         return typeid(other) == typeid(ListIterImpl) &&
                m_it == static_cast<const ListIterImpl&>(other).m_it;
     }
 
+    /// Dereference the iterator.
     GraphElement *get() const
     {
         return GetElement(wxStaticCast(*m_it, wxShape));
     }
 
+    /// Create a copy of this iterator polymorphically.
     ListIterImpl *clone() const
     {
         return new ListIterImpl(*this);
     }
 
 private:
-    wxList::iterator m_it;
-    wxList::iterator m_end;
-    wxClassInfo *m_classinfo;
-    int m_which;
-    const GraphNode *m_node;
+    wxList::iterator m_it;      ///< The current iterator position.
+    wxList::iterator m_end;     ///< One past the last valid position.
+    wxClassInfo *m_classinfo;   ///< Type of accepted elements.
+    int m_which;                ///< Kind of elements to include.
+    const GraphNode *m_node;    ///< Node for InEdges/OutEdges filter.
 };
 
+/**
+ * Iterator over edge end points.
+ *
+ * This class iterates over the nodes connected to the given edge.
+ */
 class PairIterImpl : public GraphIteratorImpl
 {
 public:
+    /**
+     * Create an iterator over nodes connected by the given line.
+     *
+     * @param line The line whose terminal nodes we want to iterate over.
+     * @param classinfo The type of the nodes to return or @c NULL if any.
+     * @param end If true, position the iterator to the end initially so that
+     * it's one past the target node. Otherwise it's positioned at the
+     * beginning, i.e. at the source node.
+     */
     PairIterImpl(wxLineShape *line, wxClassInfo *classinfo, bool end)
       : m_line(line),
         m_classinfo(classinfo == CLASSINFO(GraphElement) ? NULL : classinfo)
@@ -1821,12 +2276,20 @@ public:
         }
     }
 
+    /**
+     * Return true if the current element should be accepted.
+     *
+     * If false is returned, the iterator ignores the current element.
+     */
     bool filter()
     {
         GraphElement *element = get();
         return element && (!m_classinfo || element->IsKindOf(m_classinfo));
     }
 
+    /**
+     * Advance the iterator skipping over unacceptable elements.
+     */
     void inc()
     {
         do {
@@ -1835,6 +2298,9 @@ public:
         while (m_pos < 3 && !filter());
     }
 
+    /**
+     * Advance the iterator backwards skipping over unacceptable elements.
+     */
     void dec()
     {
         do {
@@ -1843,6 +2309,12 @@ public:
         while (m_pos > 0 && !filter());
     }
 
+    /**
+     * Compare two iterators.
+     *
+     * The comparison doesn't take filter settings (i.e. type of the elements
+     * to accept) into account.
+     */
     bool eq(const GraphIteratorImpl& other) const
     {
         if (typeid(other) != typeid(PairIterImpl))
@@ -1851,19 +2323,28 @@ public:
         return oth.m_line == m_line && oth.m_pos == m_pos;
     }
 
+    /// Dereference the iterator.
     GraphElement *get() const
     {
         return GetElement(m_pos == 1 ? m_line->GetFrom() : m_line->GetTo());
     }
 
+    /// Create a copy of this iterator polymorphically.
     PairIterImpl *clone() const
     {
         return new PairIterImpl(*this);
     }
 
 private:
-    wxLineShape *m_line;
-    wxClassInfo *m_classinfo;
+    wxLineShape *m_line;        ///< The connecting edge.
+    wxClassInfo *m_classinfo;   ///< The type of nodes to accept or @c NULL.
+
+    /**
+     * Current position of the iterator.
+     *
+     * This is 0 for the position just before the beginning, 1 for the source
+     * node, 2 for the target one and 3 for the position right after end.
+     */
     int m_pos;
 };
 
@@ -1877,28 +2358,44 @@ IMPLEMENT_DYNAMIC_CLASS(Graph, wxEvtHandler)
 
 namespace {
 
+/**
+ * Name of the corresponding object in the archive.
+ */
+//@{
 const wxChar *TAGGRAPH  = _T("graph");
 const wxChar *TAGFONT   = _T("font");
 const wxChar *TAGSNAP   = _T("snap");
 const wxChar *TAGGRID   = _T("grid");
 const wxChar *TAGBOUNDS = _T("bounds");
+//@}
 
+/**
+ * Extrinsic information associated with a serialized GraphNode.
+ *
+ * This object is used to store the global graph font (if different from
+ * default) and offset when serializing the graph in an archive and to restore
+ * it when deserialising.
+ */
 class GraphInfo : public wxObject
 {
 public:
     GraphInfo()
     { }
 
+    /// Create object storing the given font and offset.
     GraphInfo(const wxFont& font, const wxPoint& offset)
       : m_font(font), m_offset(offset)
     { }
 
+    /// Return the font stored by this object.
     wxFont  GetFont()   const { return m_font; }
+
+    /// Return the offset stored by this object.
     wxPoint GetOffset() const { return m_offset; }
 
 private:
-    wxFont m_font;
-    wxPoint m_offset;
+    wxFont m_font;          ///< Font specified in the ctor.
+    wxPoint m_offset;       ///< Offset specified in the ctor.
 };
 
 } // namespace
@@ -3155,20 +3652,6 @@ void GraphCtrl::CloseTip(const wxPoint& pt)
     }
 }
 
-// The scrollbars are sized to allow scrolling over the bounding rectangle of
-// all the nodes currently in the graph. Panning allows scrolling beyond this
-// region, and in this case the scrollbars adjust to include the current
-// position.
-//
-// Code that moves nodes or otherwise affects the scrollbars, sets the flag
-// SetCheckBounds(). Then in the idle time the bounding rectangle of all the
-// nodes is recalculated and the scrollbars adjusted if necessary.
-//
-// The reason this is done during the idle time, is that scrolling back to
-// the origin may cause the scrollbars to disappear, and when this is done
-// using the mouse, the mouse then stops working. Presumably because the
-// scrollbar is destroyed without releasing the capture.
-//
 void GraphCtrl::OnIdle(wxIdleEvent&)
 {
     wxMouseState state = wxGetMouseState();
@@ -3567,6 +4050,8 @@ bool GraphElement::Serialise(Archive::Item& arc)
 // ----------------------------------------------------------------------------
 
 IMPLEMENT_DYNAMIC_CLASS(GraphEdge, GraphElement)
+
+/// Define the factory for creating edge objects.
 Factory<GraphEdge>::Impl graphedgefactory(_T("edge"));
 
 GraphEdge::GraphEdge(const wxColour& colour,
@@ -3726,6 +4211,8 @@ GraphNode *GraphEdge::GetTo() const
 // ----------------------------------------------------------------------------
 
 IMPLEMENT_DYNAMIC_CLASS(GraphNode, GraphElement)
+
+/// Define the factory for creating node objects.
 Factory<GraphNode>::Impl graphnodefactory(_T("node"));
 
 GraphNode::GraphNode(const wxString& text,

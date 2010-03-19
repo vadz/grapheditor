@@ -17,6 +17,11 @@
 using std::min;
 using std::max;
 
+/**
+ * @file
+ * @brief Custom tooltip window class implementation.
+ */
+
 namespace tt_solutions {
 
 BEGIN_EVENT_TABLE(TipWindow, wxPopupWindow)

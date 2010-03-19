@@ -18,6 +18,13 @@
 using std::min;
 using std::max;
 
+/**
+ * @file
+ * @brief Printing support.
+ *
+ * This file implements GraphPrintout and GraphPages classes.
+ */
+
 namespace tt_solutions {
 
 // ----------------------------------------------------------------------------

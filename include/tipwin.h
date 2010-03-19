@@ -15,6 +15,11 @@
 #include <wx/wx.h>
 #include <wx/popupwin.h>
 
+/**
+ * @file
+ * @brief Custom tooltip window.
+ */
+
 namespace tt_solutions {
 
 /**

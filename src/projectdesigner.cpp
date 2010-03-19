@@ -12,6 +12,11 @@
 #include "projectdesigner.h"
 #include <cstdlib>
 
+/**
+ * @file
+ * @brief Support for laying out project graphs.
+ */
+
 namespace datactics {
 
 using namespace tt_solutions;
@@ -26,11 +31,6 @@ using std::abs;
 // ----------------------------------------------------------------------------
 // ProjectDesigner
 // ----------------------------------------------------------------------------
-
-IMPLEMENT_DYNAMIC_CLASS(ProjectDesigner, GraphCtrl)
-
-BEGIN_EVENT_TABLE(ProjectDesigner, GraphCtrl)
-END_EVENT_TABLE()
 
 const wxChar ProjectDesigner::DefaultName[] = _T("project_designer");
 
@@ -573,5 +573,7 @@ bool ProjectNode::Serialise(Archive::Item& arc)
 
     return true;
 }
+
+IMPLEMENT_DYNAMIC_CLASS(ProjectDesigner, GraphCtrl)
 
 } // namespace datactics

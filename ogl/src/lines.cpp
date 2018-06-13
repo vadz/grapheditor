@@ -218,8 +218,8 @@ void wxLineShape::FormatText(wxDC& dc, const wxString& s, int i)
   node = (wxNode*)string_list->GetFirst();
   while (node)
   {
-    wxChar *s = (wxChar *)node->GetData();
-    wxShapeTextLine *line = new wxShapeTextLine(0.0, 0.0, s);
+    wxChar *t = (wxChar *)node->GetData();
+    wxShapeTextLine *line = new wxShapeTextLine(0.0, 0.0, t);
     region->GetFormattedText().Append((wxObject *)line);
     node = node->GetNext();
   }
@@ -1077,7 +1077,7 @@ void wxLineShape::OnMoveLink(wxDC& dc, bool moveControlPoints)
 // This function can be used by e.g. line-routing routines to
 // get the actual points on the two node images where the lines will be drawn
 // to/from.
-void wxLineShape::FindLineEndPoints(double *fromX, double *fromY, double *toX, double *toY)
+void wxLineShape::FindLineEndPoints(double *fromXOut, double *fromYOut, double *toXOut, double *toYOut)
 {
   if (!m_from || !m_to)
    return;
@@ -1157,10 +1157,10 @@ void wxLineShape::FindLineEndPoints(double *fromX, double *fromY, double *toX, d
                                 fromX, fromY,
                                 &other_end_x, &other_end_y);
   }
-  *fromX = end_x;
-  *fromY = end_y;
-  *toX = other_end_x;
-  *toY = other_end_y;
+  *fromXOut = end_x;
+  *fromYOut = end_y;
+  *toXOut = other_end_x;
+  *toYOut = other_end_y;
 }
 
 void wxLineShape::OnDraw(wxDC& dc)
@@ -1744,7 +1744,6 @@ void wxLineShape::OnSizingDragLeft(wxControlPoint* pt, bool WXUNUSED(draw), doub
     const wxPen *old_pen = lineShape->GetPen();
     const wxBrush *old_brush = lineShape->GetBrush();
 
-    wxPen dottedPen(*wxBLACK, 1, wxDOT);
     lineShape->SetPen(& dottedPen);
     lineShape->SetBrush(wxTRANSPARENT_BRUSH);
 
@@ -1823,7 +1822,7 @@ void wxLineShape::OnSizingEndDragLeft(wxControlPoint* pt, double x, double y, in
   {
     m_canvas->Snap(&x, &y);
 
-    wxRealPoint pt = wxRealPoint(x, y);
+    wxRealPoint ptMid = wxRealPoint(x, y);
 
     // Move the control point back to where it was;
     // MoveControlPoint will move it to the new position
@@ -1833,7 +1832,7 @@ void wxLineShape::OnSizingEndDragLeft(wxControlPoint* pt, double x, double y, in
     lpt->m_xpos = lpt->m_originalPos.x; lpt->m_ypos = lpt->m_originalPos.y;
     lpt->m_point->x = lpt->m_originalPos.x; lpt->m_point->y = lpt->m_originalPos.y;
 
-    OnMoveMiddleControlPoint(dc, lpt, pt);
+    OnMoveMiddleControlPoint(dc, lpt, ptMid);
   }
   if (lpt->m_type == CONTROL_POINT_ENDPOINT_FROM)
   {

@@ -4370,9 +4370,9 @@ void GraphNode::SetPosition(const wxPoint& pt)
         graph->SendEvent(event);
 
         if (event.IsAllowed()) {
-            wxPoint pt = event.GetPosition();
+            wxPoint ptEv = event.GetPosition();
             shape->Erase(dc);
-            shape->Move(dc, pt.x, pt.y, false);
+            shape->Move(dc, ptEv.x, ptEv.y, false);
             shape->Erase(dc);
             OnLayout(dc);
             graph->RefreshBounds();

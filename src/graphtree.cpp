@@ -84,16 +84,16 @@ void GraphTreeCtrl::OnLeftButtonUp(wxMouseEvent& event)
 
             if (graphctrl) {
                 pt = graphctrl->ScreenToGraph(pt);
-                GraphTreeEvent event(Evt_GraphTree_Drop, GetId());
-                event.SetEventObject(this);
+                GraphTreeEvent eventGraph(Evt_GraphTree_Drop, GetId());
+                eventGraph.SetEventObject(this);
                 int image = GetItemImage(item);
                 if (image != -1)
-                    event.SetIcon(GetImageList()->GetIcon(image));
-                event.SetString(GetItemText(item));
-                event.SetTarget(graphctrl);
-                event.SetPosition(pt);
-                event.SetItem(item);
-                GetEventHandler()->ProcessEvent(event);
+                    eventGraph.SetIcon(GetImageList()->GetIcon(image));
+                eventGraph.SetString(GetItemText(item));
+                eventGraph.SetTarget(graphctrl);
+                eventGraph.SetPosition(pt);
+                eventGraph.SetItem(item);
+                GetEventHandler()->ProcessEvent(eventGraph);
                 break;
             }
         }

@@ -603,8 +603,8 @@ void wxShape::FormatText(wxDC& dc, const wxString& s, int i)
   node = (wxNode*)stringList->GetFirst();
   while (node)
   {
-    wxChar *s = (wxChar *)node->GetData();
-    wxShapeTextLine *line = new wxShapeTextLine(0.0, 0.0, s);
+    wxChar *t = (wxChar *)node->GetData();
+    wxShapeTextLine *line = new wxShapeTextLine(0.0, 0.0, t);
     region->GetFormattedText().Append((wxObject *)line);
     node = node->GetNext();
   }

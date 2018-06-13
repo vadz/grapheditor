@@ -56,7 +56,6 @@ void ProjectDesigner::Init()
 {
     wxWindow *canvas = GetCanvas();
 
-    canvas->SetBackgroundStyle(wxBG_STYLE_CUSTOM);
     canvas->Connect(wxEVT_ERASE_BACKGROUND,
                     wxEraseEventHandler(ProjectDesigner::OnCanvasBackground),
                     NULL, this);

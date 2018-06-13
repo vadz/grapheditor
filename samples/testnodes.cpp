@@ -66,15 +66,12 @@ Factory<MergeNode>::Impl        merge(_T("merge"));
  */
 wxString GetResourceDir()
 {
-    wxChar sep = wxFileName::GetPathSeparator();
-    wxString exedir = wxStandardPaths().GetExecutablePath().BeforeLast(sep);
+    wxString dir;
+    if (!wxGetEnv("WX_GRAPHTEST_DATA_DIR", &dir)) {
+        dir = wxStandardPaths::Get().GetResourcesDir();
+    }
 
-#ifdef RESOURCE_DIR
-    return exedir + sep + RESOURCE_DIR + sep;
-#else
-    return exedir.BeforeLast(sep).BeforeLast(sep) + sep +
-           _T("samples") + sep + _T("resources") + sep;
-#endif
+    return dir + wxFileName::GetPathSeparator();
 }
 
 } // namespace

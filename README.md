@@ -11,7 +11,7 @@ Prerequisites
 -------------
 
 1. wxWidgets 3.x
-1. Graphviz headers and libraries
+1. Graphviz headers and libraries: currently tested with Graphviz 2.26 only.
 
 
 Using Microsoft Visual Studio

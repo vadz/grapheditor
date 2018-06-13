@@ -3000,7 +3000,7 @@ bool Graph::Layout(const node_iterator_pair& range,
         if (fixed) {
             Agnode_t *n = agfindnode(graph, unconst(NodeName(*fixed).mb_str()));
             if (n) {
-                point pos = ND_coord_i(n);
+                pointf pos = ND_coord(n);
                 double x = PS2INCH(pos.x) * dpi.x;
                 double y = - PS2INCH(pos.y) * dpi.y;
                 wxPoint pt = fixed->GetPosition<Points>();
@@ -3011,7 +3011,7 @@ bool Graph::Layout(const node_iterator_pair& range,
 
         for (Agnode_t *n = agfstnode(graph); n; n = agnxtnode(graph, n))
         {
-            point pos = ND_coord_i(n);
+            pointf pos = ND_coord(n);
             int x = int(offsetX + PS2INCH(pos.x) * dpi.x);
             int y = int(offsetY - PS2INCH(pos.y) * dpi.y);
             GraphNode *node;

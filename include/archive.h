@@ -731,7 +731,7 @@ bool Extract(const Archive::Item& arc, const wxString& name, T& value)
     if (ss)
         value = val;
 
-    return ss != NULL;
+    return ss.good();
 }
 //@}
 

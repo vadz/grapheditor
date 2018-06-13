@@ -123,8 +123,8 @@ void TipWindow::OnPaint(wxPaintEvent&)
     wxPaintDC dc(this);
     wxRect rc = GetClientRect();
 
-    dc.SetBrush(wxBrush(GetBackgroundColour(), wxSOLID));
-    dc.SetPen(wxPen(GetForegroundColour(), 0, wxSOLID));
+    dc.SetBrush(GetBackgroundColour());
+    dc.SetPen(GetForegroundColour());
     dc.DrawRectangle(rc);
 
     rc.Deflate(m_margin);

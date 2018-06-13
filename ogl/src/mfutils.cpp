@@ -523,14 +523,14 @@ bool wxXMetaFile::ReadFile(const wxChar *file)
         /* int y = */ getshort(handle); // Y:     2 bytes
         long colorref = getint(handle); // COLORREF 4 bytes
 
-        int style;
+        wxPenStyle style;
         if (msStyle == PS_DOT)
-          style = wxDOT;
+          style = wxPENSTYLE_DOT;
         else if (msStyle == PS_DASH)
-          style = wxSHORT_DASH;
+          style = wxPENSTYLE_SHORT_DASH;
         else if (msStyle == PS_NULL)
-          style = wxTRANSPARENT;
-        else style = wxSOLID;
+          style = wxPENSTYLE_TRANSPARENT;
+        else style = wxPENSTYLE_SOLID;
 
         wxColour colour(GetRValue(colorref), GetGValue(colorref), GetBValue(colorref));
         rec->param1 = (long)wxThePenList->FindOrCreatePen(colour, x, style);
@@ -570,41 +570,39 @@ bool wxXMetaFile::ReadFile(const wxChar *file)
         // header)
         fread((void *)lfFacename, sizeof(char), (int)((2*rdSize) - 18 - 6), handle);
 
-        int family;
-        if (lfPitchAndFamily & FF_MODERN)
-          family = wxMODERN;
-        else if (lfPitchAndFamily & FF_MODERN)
-          family = wxMODERN;
-        else if (lfPitchAndFamily & FF_ROMAN)
-          family = wxROMAN;
-        else if (lfPitchAndFamily & FF_SWISS)
-          family = wxSWISS;
-        else if (lfPitchAndFamily & FF_DECORATIVE)
-          family = wxDECORATIVE;
-        else
-          family = wxDEFAULT;
-
-        int weight;
-        if (lfWeight == 300)
-          weight = wxLIGHT;
-        else if (lfWeight == 400)
-          weight = wxNORMAL;
-        else if (lfWeight == 900)
-          weight = wxBOLD;
-        else weight = wxNORMAL;
-
-        int style;
-        if (lfItalic != 0)
-          style = wxITALIC;
-        else
-          style = wxNORMAL;
-
         // About how many pixels per inch???
         int logPixelsY = 100;
         int pointSize = (int)(lfHeight*72.0/logPixelsY);
 
-        wxFont *theFont =
-          wxTheFontList->FindOrCreateFont(pointSize, family, style, weight, (lfUnderline != 0));
+        wxFontInfo info(pointSize);
+
+        wxFontFamily family;
+        if (lfPitchAndFamily & FF_MODERN)
+          family = wxFONTFAMILY_MODERN;
+        else if (lfPitchAndFamily & FF_MODERN)
+          family = wxFONTFAMILY_MODERN;
+        else if (lfPitchAndFamily & FF_ROMAN)
+          family = wxFONTFAMILY_ROMAN;
+        else if (lfPitchAndFamily & FF_SWISS)
+          family = wxFONTFAMILY_SWISS;
+        else if (lfPitchAndFamily & FF_DECORATIVE)
+          family = wxFONTFAMILY_DECORATIVE;
+        else
+          family = wxFONTFAMILY_DEFAULT;
+        info.Family(family);
+
+        if (lfWeight == 300)
+          info.Light();
+        else if (lfWeight == 900)
+          info.Bold();
+
+        if (lfItalic)
+          info.Italic();
+
+        if (lfUnderline)
+          info.Underlined();
+
+        wxFont *theFont = wxTheFontList->FindOrCreateFont(info);
 
         rec->param1 = (long) theFont;
         metaRecords.Append(rec);
@@ -620,7 +618,7 @@ bool wxXMetaFile::ReadFile(const wxChar *file)
         long colorref = getint(handle);   // COLORREF: 4 bytes
         int hatchStyle = getshort(handle); // Hatch style 2 bytes
 
-        int style;
+        wxBrushStyle style;
         switch (msStyle)
         {
           case BS_HATCHED:
@@ -628,45 +626,33 @@ bool wxXMetaFile::ReadFile(const wxChar *file)
             switch (hatchStyle)
             {
               case HS_BDIAGONAL:
-                style = wxBDIAGONAL_HATCH;
+                style = wxBRUSHSTYLE_BDIAGONAL_HATCH;
                 break;
               case HS_DIAGCROSS:
-                style = wxCROSSDIAG_HATCH;
+                style = wxBRUSHSTYLE_CROSSDIAG_HATCH;
                 break;
               case HS_FDIAGONAL:
-                style = wxFDIAGONAL_HATCH;
+                style = wxBRUSHSTYLE_FDIAGONAL_HATCH;
                 break;
               case HS_HORIZONTAL:
-                style = wxHORIZONTAL_HATCH;
+                style = wxBRUSHSTYLE_HORIZONTAL_HATCH;
                 break;
               case HS_VERTICAL:
-                style = wxVERTICAL_HATCH;
+                style = wxBRUSHSTYLE_VERTICAL_HATCH;
                 break;
               default:
               case HS_CROSS:
-                style = wxCROSS_HATCH;
+                style = wxBRUSHSTYLE_CROSS_HATCH;
                 break;
             }
             break;
           }
-#if PS_DOT != BS_HATCHED
-          /* ABX 30.12.2003                                   */
-          /* in microsoft/include/wingdi.h  both are the same */
-          /* in fact I'm not sure  why pen related PS_XXX and */
-          /* BS_XXX constants are all mixed into single style */
-          case PS_DOT:
-            style = wxDOT;
-            break;
-#endif
-          case PS_DASH:
-            style = wxSHORT_DASH;
-            break;
           case PS_NULL:
-            style = wxTRANSPARENT;
+            style = wxBRUSHSTYLE_TRANSPARENT;
             break;
           case BS_SOLID:
           default:
-            style = wxSOLID;
+            style = wxBRUSHSTYLE_SOLID;
             break;
         }
 

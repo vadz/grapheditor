@@ -1294,7 +1294,7 @@ void wxShape::OnSizingDragLeft(wxControlPoint* pt, bool WXUNUSED(draw), double x
 
   dc.SetLogicalFunction(OGLRBLF);
 
-  wxPen dottedPen(*wxBLACK, 1, wxDOT);
+  wxPen dottedPen(*wxBLACK, 1, wxPENSTYLE_DOT);
   dc.SetPen(dottedPen);
   dc.SetBrush((* wxTRANSPARENT_BRUSH));
 
@@ -1429,7 +1429,7 @@ void wxShape::OnSizingBeginDragLeft(wxControlPoint* pt, double x, double y, int 
   pt->sm_controlPointDragStartWidth = bound_x;
   pt->sm_controlPointDragStartHeight = bound_y;
 
-  wxPen dottedPen(*wxBLACK, 1, wxDOT);
+  wxPen dottedPen(*wxBLACK, 1, wxPENSTYLE_DOT);
   dc.SetPen(dottedPen);
   dc.SetBrush((* wxTRANSPARENT_BRUSH));
 
@@ -1629,7 +1629,7 @@ void wxPolygonShape::OnSizingDragLeft(wxControlPoint* pt, bool WXUNUSED(draw), d
 
   dc.SetLogicalFunction(OGLRBLF);
 
-  wxPen dottedPen(*wxBLACK, 1, wxDOT);
+  wxPen dottedPen(*wxBLACK, 1, wxPENSTYLE_DOT);
   dc.SetPen(dottedPen);
   dc.SetBrush((* wxTRANSPARENT_BRUSH));
 
@@ -1681,7 +1681,7 @@ void wxPolygonShape::OnSizingBeginDragLeft(wxControlPoint* pt, double x, double 
 
   if (ppt->m_originalDistance == 0.0) ppt->m_originalDistance = (double) 0.0001;
 
-  wxPen dottedPen(*wxBLACK, 1, wxDOT);
+  wxPen dottedPen(*wxBLACK, 1, wxPENSTYLE_DOT);
   dc.SetPen(dottedPen);
   dc.SetBrush((* wxTRANSPARENT_BRUSH));
 
@@ -1765,7 +1765,7 @@ wxShapeRegion::wxShapeRegion()
   m_regionName = wxEmptyString;
   m_textColour = wxT("BLACK");
   m_penColour = wxT("BLACK");
-  m_penStyle = wxSOLID;
+  m_penStyle = wxPENSTYLE_SOLID;
   m_actualColourObject = wxTheColourDatabase->Find(wxT("BLACK"));
   m_actualPenObject = NULL;
 }

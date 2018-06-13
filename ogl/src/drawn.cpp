@@ -444,7 +444,7 @@ void wxOpSetGDI::Do(wxDC& dc, double WXUNUSED(xoffset), double WXUNUSED(yoffset)
         // Need to construct a brush to match the outline pen's colour
         if (m_image->m_outlinePen)
         {
-          wxBrush *br = wxTheBrushList->FindOrCreateBrush(m_image->m_outlinePen->GetColour(), wxSOLID);
+          wxBrush *br = wxTheBrushList->FindOrCreateBrush(m_image->m_outlinePen->GetColour());
           if (br)
             dc.SetBrush(* br);
         }

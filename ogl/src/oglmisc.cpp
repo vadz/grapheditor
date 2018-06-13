@@ -55,14 +55,14 @@ void wxOGLInitialize()
 {
   g_oglBullseyeCursor = new wxCursor(wxCURSOR_BULLSEYE);
 
-  g_oglNormalFont = new wxFont(10, wxSWISS, wxNORMAL, wxNORMAL);
+  g_oglNormalFont = new wxFont(wxFontInfo(10).Family(wxFONTFAMILY_SWISS));
 
-  g_oglBlackPen = new wxPen(wxT("BLACK"), 1, wxSOLID);
+  g_oglBlackPen = new wxPen(wxT("BLACK"));
 
-  g_oglWhiteBackgroundPen = new wxPen(wxT("WHITE"), 1, wxSOLID);
-  g_oglTransparentPen = new wxPen(wxT("WHITE"), 1, wxTRANSPARENT);
-  g_oglWhiteBackgroundBrush = new wxBrush(wxT("WHITE"), wxSOLID);
-  g_oglBlackForegroundPen = new wxPen(wxT("BLACK"), 1, wxSOLID);
+  g_oglWhiteBackgroundPen = new wxPen(wxT("WHITE"));
+  g_oglTransparentPen = new wxPen(wxT("WHITE"), 1, wxPENSTYLE_TRANSPARENT);
+  g_oglWhiteBackgroundBrush = new wxBrush(wxT("WHITE"));
+  g_oglBlackForegroundPen = new wxPen(wxT("BLACK"));
 
   OGLInitializeConstraintTypes();
 
@@ -122,7 +122,7 @@ void wxOGLCleanUp()
 
 wxFont *oglMatchFont(int point_size)
 {
-  wxFont *font = wxTheFontList->FindOrCreateFont(point_size, wxSWISS, wxNORMAL, wxNORMAL);
+  wxFont *font = wxTheFontList->FindOrCreateFont(wxFontInfo(point_size).Family(wxFONTFAMILY_SWISS));
 #if 0
   switch (point_size)
   {

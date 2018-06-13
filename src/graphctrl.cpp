@@ -255,7 +255,7 @@ bool ShowLine(wxLineShape *line, GraphNode *from, GraphNode *to)
  */
 wxFont DefaultFont()
 {
-    static wxFont font(10, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Arial"));
+    static wxFont font(wxFontInfo(10).Family(wxFONTFAMILY_SWISS).FaceName("Arial"));
     return font;
 }
 
@@ -866,7 +866,7 @@ void GraphCanvas::OnDragLeft(bool, double x, double y, int)
         wxClientDC dc(this);
         PrepareDC(dc);
 
-        wxPen dottedPen(*wxBLACK, 1, wxDOT);
+        wxPen dottedPen(*wxBLACK, 1, wxPENSTYLE_DOT);
         dc.SetLogicalFunction(OGLRBLF);
         dc.SetPen(dottedPen);
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
@@ -1744,7 +1744,7 @@ void GraphNodeHandler::OnDrag(int mode, bool draw, double x, double y)
     wxClientDC dc(canvas);
     canvas->PrepareDC(dc);
 
-    wxPen dottedPen(*wxBLACK, 1, wxDOT);
+    wxPen dottedPen(*wxBLACK, 1, wxPENSTYLE_DOT);
     dc.SetLogicalFunction(OGLRBLF);
     dc.SetPen(dottedPen);
 

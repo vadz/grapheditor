@@ -155,8 +155,8 @@ class WXDLLIMPEXP_OGL wxShapeRegion: public wxObject
   wxColour GetActualColourObject();
   inline wxList& GetFormattedText() { return m_formattedText; }
   inline wxString GetPenColour() const { return m_penColour; }
-  inline int GetPenStyle() const { return m_penStyle; }
-  inline void SetPenStyle(int style) { m_penStyle = style; m_actualPenObject = NULL; }
+  inline wxPenStyle GetPenStyle() const { return m_penStyle; }
+  inline void SetPenStyle(wxPenStyle style) { m_penStyle = style; m_actualPenObject = NULL; }
   void SetPenColour(const wxString& col);
   wxPen *GetActualPen();
   inline double GetWidth() const { return m_width; }
@@ -187,7 +187,7 @@ public:
 
   // New members for specifying divided rectangle division colour/style 30/6/94
   wxString              m_penColour;
-  int                   m_penStyle;
+  wxPenStyle            m_penStyle;
   wxPen*                m_actualPenObject;
 
 };

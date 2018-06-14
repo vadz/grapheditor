@@ -17,10 +17,10 @@
 #include <expat.h>
 #endif
 
+#include <wx/base64.h>
 #include <wx/mstream.h>
 
 #include "archive.h"
-#include "base64.h"
 #include "tie.h"
 
 /**

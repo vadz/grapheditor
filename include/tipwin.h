@@ -33,7 +33,6 @@ class TipWindow : public wxPopupWindow
 public:
     /// Full ctor taking the same arguments as the base class one.
     TipWindow(wxWindow *parent,
-              wxWindowID winid,
               const wxString& text,
               const wxPoint& pos = wxDefaultPosition,
               const wxSize& size = wxDefaultSize,

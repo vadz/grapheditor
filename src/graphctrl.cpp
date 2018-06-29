@@ -118,9 +118,6 @@ const wxString SORT_NODE    = SORT_ELEMENT + _T("1");   ///< Node element.
 const wxString SORT_EDGE    = SORT_ELEMENT + _T("2");   ///< Edge element.
 //@}
 
-/// Id for the tooltip window.
-const int ID_TIPWIN = 99;
-
 /**
  * Retrieve a graph element associated with the given shape.
  *
@@ -3385,6 +3382,7 @@ GraphCtrl::GraphCtrl(
     m_tipmode(Tip_Enable),
     m_tipdelay(500),
     m_tipnode(NULL),
+    m_tipwin(NULL),
     m_tipopen(false)
 {
 }
@@ -3637,15 +3635,15 @@ void GraphCtrl::CloseTip(const wxPoint& pt)
 
         m_tiptimer.Stop();
 
-        wxWindow *tipwin = m_canvas->FindWindow(ID_TIPWIN);
-        if (tipwin) {
+        if (m_tipwin) {
             if (pt != wxDefaultPosition) {
                 wxPoint ptScreen = ClientToScreen(pt);
-                m_tipopen = tipwin->GetScreenRect().Contains(ptScreen) &&
+                m_tipopen = m_tipwin->GetScreenRect().Contains(ptScreen) &&
                             m_canvas->GetClientScreenRect().Contains(ptScreen);
             }
             if (!m_tipopen) {
-                tipwin->Destroy();
+                m_tipwin->Destroy();
+                m_tipwin = NULL;
                 m_tipnode = NULL;
             }
         }
@@ -3777,7 +3775,7 @@ void GraphCtrl::OnTipTimer(wxTimerEvent&)
     }
 #endif
 
-    if (m_graph && !m_canvas->FindWindow(ID_TIPWIN)) {
+    if (m_graph && !m_tipwin) {
         wxPoint ptScreen = wxGetMousePosition();
 
         if (m_canvas->GetClientScreenRect().Contains(ptScreen)) {
@@ -3788,8 +3786,8 @@ void GraphCtrl::OnTipTimer(wxTimerEvent&)
                 wxString tip = node->GetToolTip(pt);
 
                 if (!tip.empty()) {
-                    wxWindow *tipwin = new TipWindow(m_canvas, ID_TIPWIN, tip);
-                    tipwin->Show();
+                    m_tipwin = new TipWindow(m_canvas, tip);
+                    m_tipwin->Show();
                 }
             }
         }

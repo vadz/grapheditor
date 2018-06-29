@@ -44,6 +44,7 @@ typedef wxLineShape GraphLineShape;
 class Graph;
 class GraphElement;
 class GraphNode;
+class TipWindow;
 
 /*
  * Implementation classes
@@ -1475,13 +1476,19 @@ private:
     impl::GraphCanvas *m_canvas;    ///< The associated canvas.
     Graph *m_graph;                 ///< The associated graph object.
 
-    /// @name Tooltip data.
+    /**
+        @name Tooltip data.
+
+        Note that m_tipopen can be true even when m_tipwin is still null, as
+        the tip window is shown after a delay.
+     */
     //@{
     wxTimer m_tiptimer;             ///< Timer used in Tip_Enable mode.
     int m_tipmode;                  ///< One of ToolTipMode elements.
     int m_tipdelay;                 ///< Tooltip delay in Tip_Enable mode.
     GraphNode *m_tipnode;           ///< Node for which tooltip is shown.
-    bool m_tipopen;                 ///< True if a tooltip is currently shown.
+    TipWindow *m_tipwin;            ///< Tooltip window or NULL.
+    bool m_tipopen;                 ///< True if a tooltip is currently shown,
     //@}
 
     static int sm_leftDrag;         ///< DragMode value for left mouse button.

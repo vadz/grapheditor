@@ -31,7 +31,6 @@ END_EVENT_TABLE()
 const wxChar TipWindow::DefaultName[] = _T("tip_window");
 
 TipWindow::TipWindow(wxWindow *parent,
-                     wxWindowID winid,
                      const wxString& text,
                      const wxPoint& pos,
                      const wxSize& size,
@@ -41,7 +40,6 @@ TipWindow::TipWindow(wxWindow *parent,
     m_text(text),
     m_margin(3, 3)
 {
-    SetId(winid);
     SetName(name);
 
     SetExtraStyle(wxWS_EX_TRANSIENT | GetExtraStyle());

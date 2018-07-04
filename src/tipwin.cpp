@@ -11,11 +11,7 @@
 
 #include "tipwin.h"
 
-#undef max
-#undef min
-
-using std::min;
-using std::max;
+#include <wx/display.h>
 
 /**
  * @file
@@ -80,9 +76,22 @@ void TipWindow::DoSetSize(int x, int y, int width, int height, int sizeFlags)
     if (y == -1 && !(sizeFlags & wxSIZE_ALLOW_MINUS_ONE))
         y = pt.y;
 
-    wxRect rcDesktop = wxGetClientDisplayRect();
-    x = max(min(x, rcDesktop.GetRight() + 1 - width), 0);
-    y = max(min(y, rcDesktop.GetBottom() + 1 - height), 0);
+    // Ensure that the tip is shown on the same display as the object it is
+    // attached to.
+    int dpy = wxDisplay::GetFromWindow(GetParent());
+    if (dpy == wxNOT_FOUND)
+        dpy = 0;
+
+    const wxRect rcDesktop = wxDisplay(dpy).GetClientArea();
+    if (x < rcDesktop.GetLeft())
+        x = rcDesktop.GetLeft();
+    if (x + width > rcDesktop.GetRight())
+        x = rcDesktop.GetRight() - width;
+
+    if (y < rcDesktop.GetTop())
+        y = rcDesktop.GetTop();
+    if (y + height > rcDesktop.GetBottom())
+        y = rcDesktop.GetBottom() - height;
 
     wxPopupWindow::DoSetSize(x, y, width, height, sizeFlags);
 }

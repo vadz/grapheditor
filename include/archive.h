@@ -24,6 +24,47 @@
 
 namespace tt_solutions {
 
+inline bool ShouldInsert(const wxFont& value, const wxFont& def)
+{
+    return !value.IsSameAs(def);
+}
+
+inline bool ShouldInsert(const wxIcon& value, const wxIcon& def)
+{
+    return !value.IsSameAs(def);
+}
+
+inline bool ShouldInsert(const wxBitmap& value, const wxBitmap& def)
+{
+    return !value.IsSameAs(def);
+}
+
+inline bool ShouldInsert(const wxImage& value, const wxImage& def)
+{
+    return !value.IsSameAs(def);
+}
+
+/**
+ * @brief Compare function for @c Archive::Item::Exch.
+ *
+ * @c %ShouldInsert() is called by @c Archive::Item::Exch() when storing a
+ * value, the value is only stored if it returns true.
+ *
+ * The default implementation returns true if the @c value parameter compares
+ * unequal to the @c def parameter using the operator @c !=. This gives @c
+ * @c Exch() its usual behaviour of only storing attributes that are different
+ * to their default values.
+ *
+ * You would not normally call this function directly, however you might
+ * implement an overload if you were adding @c Insert() and @c Extract()
+ * overloads to handle a new type that cannot be tested for inequality with
+ * the @c != operator.
+ */
+template <class T> bool ShouldInsert(const T& value, const T& def)
+{
+    return value != def;
+}
+
 /**
  * @brief Serialisation archive.
  *
@@ -635,26 +676,6 @@ bool Extract(const Archive::Item& arc,
 
 inline const wxChar *c_str(const wxString& str) { return str; }
 
-inline bool ShouldInsert(const wxFont& value, const wxFont& def)
-{
-    return !value.IsSameAs(def);
-}
-
-inline bool ShouldInsert(const wxIcon& value, const wxIcon& def)
-{
-    return !value.IsSameAs(def);
-}
-
-inline bool ShouldInsert(const wxBitmap& value, const wxBitmap& def)
-{
-    return !value.IsSameAs(def);
-}
-
-inline bool ShouldInsert(const wxImage& value, const wxImage& def)
-{
-    return !value.IsSameAs(def);
-}
-
 /** @endcond */
 
 //@{
@@ -734,27 +755,6 @@ bool Extract(const Archive::Item& arc, const wxString& name, T& value)
     return ss.good();
 }
 //@}
-
-/**
- * @brief Compare function for @c Archive::Item::Exch.
- *
- * @c %ShouldInsert() is called by @c Archive::Item::Exch() when storing a
- * value, the value is only stored if it returns true.
- *
- * The default implementation returns true if the @c value parameter compares
- * unequal to the @c def parameter using the operator @c !=. This gives @c
- * @c Exch() its usual behaviour of only storing attributes that are different
- * to their default values.
- *
- * You would not normally call this function directly, however you might
- * implement an overload if you were adding @c Insert() and @c Extract()
- * overloads to handle a new type that cannot be tested for inequality with
- * the @c != operator.
- */
-template <class T> bool ShouldInsert(const T& value, const T& def)
-{
-    return value != def;
-}
 
 } // namespace tt_solutions
 

@@ -2413,22 +2413,22 @@ void wxLabelShape::OnDraw(wxDC& dc)
   if (m_lineShape && !m_lineShape->GetDrawHandles())
     return;
 
-    double x1 = (double)(m_xpos - m_width/2.0);
-    double y1 = (double)(m_ypos - m_height/2.0);
+  double x1 = (double)(m_xpos - m_width/2.0);
+  double y1 = (double)(m_ypos - m_height/2.0);
 
-    if (m_pen)
-    {
-      if (m_pen->GetWidth() == 0)
-        dc.SetPen(* g_oglTransparentPen);
-      else
-        dc.SetPen(* m_pen);
-    }
-    dc.SetBrush(* wxTRANSPARENT_BRUSH);
-
-    if (m_cornerRadius > 0.0)
-      dc.DrawRoundedRectangle(WXROUND(x1), WXROUND(y1), WXROUND(m_width), WXROUND(m_height), m_cornerRadius);
+  if (m_pen)
+  {
+    if (m_pen->GetWidth() == 0)
+      dc.SetPen(* g_oglTransparentPen);
     else
-      dc.DrawRectangle(WXROUND(x1), WXROUND(y1), WXROUND(m_width), WXROUND(m_height));
+      dc.SetPen(* m_pen);
+  }
+  dc.SetBrush(* wxTRANSPARENT_BRUSH);
+
+  if (m_cornerRadius > 0.0)
+    dc.DrawRoundedRectangle(WXROUND(x1), WXROUND(y1), WXROUND(m_width), WXROUND(m_height), m_cornerRadius);
+  else
+    dc.DrawRectangle(WXROUND(x1), WXROUND(y1), WXROUND(m_width), WXROUND(m_height));
 }
 
 void wxLabelShape::OnDrawContents(wxDC& WXUNUSED(dc))

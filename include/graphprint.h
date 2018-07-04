@@ -209,7 +209,7 @@ inline PrintLabels Header(
     const wxString& text = _("Page %PAGE% of %PAGES%"),
     int align = wxALIGN_CENTRE,
     int height = 10,
-    const wxFont& font = wxFont(12, wxSWISS, wxNORMAL, wxNORMAL))
+    const wxFont& font = wxFontInfo(12).Family(wxFONTFAMILY_SWISS))
 {
     return PrintLabel(text, align | wxALIGN_TOP | wxTOP, height, font);
 }

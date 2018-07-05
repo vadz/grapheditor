@@ -1300,7 +1300,8 @@ public:
      */
     enum ToolTipMode {
         Tip_Disable,        /**< Disable tooltips. */
-        Tip_Enable,         /**< Enable tooltips. */
+        Tip_Enable,         /**< Enable tooltips using custom implementation. */
+        Tip_wxRichToolTip,  /**< Enable using wxRichToolTip. */
         Tip_wxToolTip       /**< Enable using wxToolTip. */
     };
 
@@ -1461,9 +1462,10 @@ private:
     /**
      * @brief Do show the given tip.
      *
-     * Called by CheckTip().
+     * Called by CheckTip() only when really needed, i.e. if @a node is under
+     * mouse and has a non-empty tooltip.
      */
-    void OpenTip(const wxString& tip);
+    void OpenTip(const GraphNode& node);
 
     /**
      * @brief Remove the currently shown tip.

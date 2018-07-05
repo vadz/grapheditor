@@ -1751,6 +1751,7 @@ void MyFrame::OnSetToolTipMode(wxCommandEvent&)
     static wxString choices[] = {
         _T("Disable"),
         _T("Enable"),
+        _T("Use wxRichToolTip"),
         _T("Use wxToolTip")
     };
 

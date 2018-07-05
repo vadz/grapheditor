@@ -44,6 +44,7 @@
 
 #include "graphctrl.h"
 #include "tipwin.h"
+#include <wx/richtooltip.h>
 #include <wx/tooltip.h>
 #include <wx/ogl/ogl.h>
 #include <bitset>
@@ -3613,7 +3614,7 @@ void GraphCtrl::CheckTip(const wxPoint& pt)
             node = NULL;
 
         if (node)
-            OpenTip(tip);
+            OpenTip(*node);
         else
             CloseTip();
 
@@ -3621,7 +3622,7 @@ void GraphCtrl::CheckTip(const wxPoint& pt)
     }
 }
 
-void GraphCtrl::OpenTip(const wxString& tip)
+void GraphCtrl::OpenTip(const GraphNode& node)
 {
     bool tipopen = m_tipopen;
 
@@ -3636,8 +3637,35 @@ void GraphCtrl::OpenTip(const wxString& tip)
             m_tiptimer.StartOnce(tipopen ? 1 : m_tipdelay);
             break;
 
+        case Tip_wxRichToolTip:
+            {
+                // Use the first line of the tooltip as the title and rest of
+                // the message.
+                const wxString& tip = node.GetToolTip();
+                wxString message;
+                const wxString& title = tip.BeforeFirst('\n', &message);
+                wxRichToolTip tooltip(title, message);
+
+                // Show the tooltip after the configured delay and never hide
+                // it automatically.
+                tooltip.SetTimeout(0, m_tipdelay);
+
+                // Associate it with the given boundary. This makes the tooltip
+                // point to the centre of this rectangle, perhaps we should
+                // make it point towards the lower right bottom instead?
+                const wxRect
+                    screenBounds = m_canvas->GraphToScreen(node.GetBounds());
+                const wxRect
+                    bounds(
+                        m_canvas->ScreenToClient(screenBounds.GetPosition()),
+                        screenBounds.GetSize()
+                    );
+                tooltip.ShowFor(m_canvas, &bounds);
+            }
+            break;
+
         case Tip_wxToolTip:
-            m_canvas->SetToolTip(tip);
+            m_canvas->SetToolTip(node.GetToolTip());
             break;
     }
 

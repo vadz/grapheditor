@@ -20,18 +20,8 @@
 #include "wx/wx.h"
 #endif
 
-#if wxUSE_PROLOGIO
-#include "wx/deprecated/wxexpr.h"
-#endif
-
 #include "wx/ogl/ogl.h"
 
-
-#if wxUSE_PROLOGIO
-// Sometimes, objects need to access the whole database to
-// construct themselves.
-wxExprDatabase *GlobalwxExprDatabase = NULL;
-#endif
 
 /*
  * Division control point
@@ -593,156 +583,6 @@ bool wxCompositeShape::Constrain()
   return changed;
 }
 
-#if wxUSE_PROLOGIO
-void wxCompositeShape::WriteAttributes(wxExpr *clause)
-{
-  wxRectangleShape::WriteAttributes(clause);
-
-//  clause->AddAttributeValue("selectable", (long)selectable);
-
-  // Output constraints as constraint1 = (...), constraint2 = (...), etc.
-  int constraintNo = 1;
-  wxChar m_constraintNameBuf[20];
-  wxNode *node = m_constraints.GetFirst();
-  while (node)
-  {
-    wxOGLConstraint *constraint = (wxOGLConstraint *)node->GetData();
-    wxSprintf(m_constraintNameBuf, _T("constraint%d"), constraintNo);
-
-    // Each constraint is stored in the form
-    // (type name id xspacing yspacing m_constrainingObjectId constrainedObjectIdList)
-    wxExpr *constraintExpr = new wxExpr(wxExprList);
-    constraintExpr->Append(new wxExpr((long)constraint->m_constraintType));
-    constraintExpr->Append(new wxExpr(wxExprString, constraint->m_constraintName));
-    constraintExpr->Append(new wxExpr(constraint->m_constraintId));
-    constraintExpr->Append(new wxExpr(constraint->m_xSpacing));
-    constraintExpr->Append(new wxExpr(constraint->m_ySpacing));
-    constraintExpr->Append(new wxExpr(constraint->m_constrainingObject->GetId()));
-
-    wxExpr *objectList = new wxExpr(wxExprList);
-    wxNode *node1 = constraint->m_constrainedObjects.GetFirst();
-    while (node1)
-    {
-      wxShape *obj = (wxShape *)node1->GetData();
-      objectList->Append(new wxExpr(obj->GetId()));
-      node1 = node1->GetNext();
-    }
-    constraintExpr->Append(objectList);
-
-    clause->AddAttributeValue(m_constraintNameBuf, constraintExpr);
-
-    node = node->GetNext();
-    constraintNo ++;
-  }
-
-  // Write the ids of all the child images
-  wxExpr *childrenExpr = new wxExpr(wxExprList);
-  node = m_children.GetFirst();
-  while (node)
-  {
-    wxShape *child = (wxShape *)node->GetData();
-    childrenExpr->Append(new wxExpr(child->GetId()));
-    node = node->GetNext();
-  }
-  clause->AddAttributeValue(_T("children"), childrenExpr);
-
-  // Write the ids of all the division images
-  if (m_divisions.GetCount() > 0)
-  {
-    wxExpr *divisionsExpr = new wxExpr(wxExprList);
-    node = m_divisions.GetFirst();
-    while (node)
-    {
-      wxShape *child = (wxShape *)node->GetData();
-      divisionsExpr->Append(new wxExpr(child->GetId()));
-      node = node->GetNext();
-    }
-    clause->AddAttributeValue(_T("divisions"), divisionsExpr);
-  }
-}
-
-// Problem. Child images are always written AFTER the parent
-// so as to be able to link up to parent. So we may not be able
-// to find the constraint participants until we've read everything
-// in. Need to have another pass for composites.
-void wxCompositeShape::ReadAttributes(wxExpr *clause)
-{
-  wxRectangleShape::ReadAttributes(clause);
-
-//  clause->GetAttributeValue("selectable", selectable);
-}
-
-void wxCompositeShape::ReadConstraints(wxExpr *clause, wxExprDatabase *database)
-{
-  // Constraints are output as constraint1 = (...), constraint2 = (...), etc.
-  int constraintNo = 1;
-  wxChar m_constraintNameBuf[20];
-  bool haveConstraints = true;
-
-  while (haveConstraints)
-  {
-    wxSprintf(m_constraintNameBuf, _T("constraint%d"), constraintNo);
-    wxExpr *constraintExpr = NULL;
-    clause->GetAttributeValue(m_constraintNameBuf, &constraintExpr);
-    if (!constraintExpr)
-    {
-      haveConstraints = false;
-      break;
-    }
-    wxString cName = wxEmptyString;
-    wxShape *m_constrainingObject = NULL;
-    wxList m_constrainedObjects;
-
-    // Each constraint is stored in the form
-    // (type name id xspacing yspacing m_constrainingObjectId constrainedObjectIdList)
-
-    wxExpr *typeExpr = constraintExpr->Nth(0);
-    wxExpr *nameExpr = constraintExpr->Nth(1);
-    wxExpr *idExpr = constraintExpr->Nth(2);
-    wxExpr *xExpr = constraintExpr->Nth(3);
-    wxExpr *yExpr = constraintExpr->Nth(4);
-    wxExpr *constrainingExpr = constraintExpr->Nth(5);
-    wxExpr *constrainedExpr = constraintExpr->Nth(6);
-
-    int cType = (int)typeExpr->IntegerValue();
-    double cXSpacing = xExpr->RealValue();
-    double cYSpacing = yExpr->RealValue();
-    cName = nameExpr->StringValue();
-    long cId = idExpr->IntegerValue();
-
-    wxExpr *objExpr1 = database->HashFind(_T("node_image"), constrainingExpr->IntegerValue());
-    if (objExpr1 && objExpr1->GetClientData())
-      m_constrainingObject = (wxShape *)objExpr1->GetClientData();
-    else
-      wxLogFatalError(wxT("Object graphics error: Couldn't find constraining image of composite."));
-
-    int i = 0;
-    wxExpr *currentIdExpr = constrainedExpr->Nth(i);
-    while (currentIdExpr)
-    {
-      long currentId = currentIdExpr->IntegerValue();
-      wxExpr *objExpr2 = database->HashFind(_T("node_image"), currentId);
-      if (objExpr2 && objExpr2->GetClientData())
-      {
-        m_constrainedObjects.Append((wxShape *)objExpr2->GetClientData());
-      }
-      else
-      {
-        wxLogFatalError(wxT("Object graphics error: Couldn't find constrained image of composite."));
-      }
-
-      i ++;
-      currentIdExpr = constrainedExpr->Nth(i);
-    }
-    wxOGLConstraint *newConstraint = AddConstraint(cType, m_constrainingObject, m_constrainedObjects);
-    newConstraint->SetSpacing(cXSpacing, cYSpacing);
-    newConstraint->m_constraintId = cId;
-    newConstraint->m_constraintName = cName;
-    constraintNo ++;
-  }
-}
-#endif
-
 // Make this composite into a container by creating one wxDivisionShape
 void wxCompositeShape::MakeContainer()
 {
@@ -974,39 +814,6 @@ void wxDivisionShape::Copy(wxShape& copy)
 
   // Division geometry copying is handled at the wxCompositeShape level.
 }
-
-#if wxUSE_PROLOGIO
-void wxDivisionShape::WriteAttributes(wxExpr *clause)
-{
-  wxCompositeShape::WriteAttributes(clause);
-
-  if (m_leftSide)
-    clause->AddAttributeValue(_T("left_side"), (long)m_leftSide->GetId());
-  if (m_topSide)
-    clause->AddAttributeValue(_T("top_side"), (long)m_topSide->GetId());
-  if (m_rightSide)
-    clause->AddAttributeValue(_T("right_side"), (long)m_rightSide->GetId());
-  if (m_bottomSide)
-    clause->AddAttributeValue(_T("bottom_side"), (long)m_bottomSide->GetId());
-
-  clause->AddAttributeValue(_T("handle_side"), (long)m_handleSide);
-  clause->AddAttributeValueString(_T("left_colour"), m_leftSideColour);
-  clause->AddAttributeValueString(_T("top_colour"), m_topSideColour);
-  clause->AddAttributeValueString(_T("left_style"), m_leftSideStyle);
-  clause->AddAttributeValueString(_T("top_style"), m_topSideStyle);
-}
-
-void wxDivisionShape::ReadAttributes(wxExpr *clause)
-{
-  wxCompositeShape::ReadAttributes(clause);
-
-  clause->GetAttributeValue(_T("handle_side"), m_handleSide);
-  clause->GetAttributeValue(_T("left_colour"), m_leftSideColour);
-  clause->GetAttributeValue(_T("top_colour"), m_topSideColour);
-  clause->GetAttributeValue(_T("left_style"), m_leftSideStyle);
-  clause->GetAttributeValue(_T("top_style"), m_topSideStyle);
-}
-#endif
 
 // Experimental
 void wxDivisionShape::OnRightClick(double x, double y, int keys, int attachment)

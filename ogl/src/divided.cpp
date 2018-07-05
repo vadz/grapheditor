@@ -20,10 +20,6 @@
 #include "wx/wx.h"
 #endif
 
-#if wxUSE_PROLOGIO
-#include "wx/deprecated/wxexpr.h"
-#endif
-
 #include "wx/ogl/ogl.h"
 
 
@@ -398,18 +394,6 @@ void wxDividedShape::ResetMandatoryControlPoints()
     node = node->GetNext();
   }
 }
-
-#if wxUSE_PROLOGIO
-void wxDividedShape::WriteAttributes(wxExpr *clause)
-{
-  wxRectangleShape::WriteAttributes(clause);
-}
-
-void wxDividedShape::ReadAttributes(wxExpr *clause)
-{
-  wxRectangleShape::ReadAttributes(clause);
-}
-#endif
 
 /*
  * Edit the division colour/style

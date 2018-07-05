@@ -74,12 +74,6 @@ public:
   // Calculates size and position of composite object based on children
   void CalculateSize();
 
-#if wxUSE_PROLOGIO
-  void WriteAttributes(wxExpr *clause);
-  void ReadAttributes(wxExpr *clause);
-  // In case the object has constraints it needs to read in in a different pass
-  void ReadConstraints(wxExpr *clause, wxExprDatabase *database);
-#endif
   // Does the copying for this object
   void Copy(wxShape& copy);
 
@@ -149,10 +143,6 @@ class WXDLLIMPEXP_OGL wxDivisionShape: public wxCompositeShape
   void MakeMandatoryControlPoints();
   void ResetMandatoryControlPoints();
 
-#if wxUSE_PROLOGIO
-  void WriteAttributes(wxExpr *clause);
-  void ReadAttributes(wxExpr *clause);
-#endif
   // Does the copying for this object
   void Copy(wxShape& copy);
 

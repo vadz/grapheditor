@@ -20,10 +20,6 @@
 #include "wx/wx.h"
 #endif
 
-#if wxUSE_PROLOGIO
-#include "wx/deprecated/wxexpr.h"
-#endif
-
 #ifdef new
 #undef new
 #endif
@@ -568,161 +564,6 @@ void wxPolygonShape::ResetControlPoints()
 }
 
 
-#if wxUSE_PROLOGIO
-void wxPolygonShape::WriteAttributes(wxExpr *clause)
-{
-  wxShape::WriteAttributes(clause);
-
-  clause->AddAttributeValue(wxT("x"), m_xpos);
-  clause->AddAttributeValue(wxT("y"), m_ypos);
-
-  // Make a list of lists for the coordinates
-  wxExpr *list = new wxExpr(wxExprList);
-  wxObjectList::compatibility_iterator node = m_points->GetFirst();
-  while (node)
-  {
-    wxRealPoint *point = (wxRealPoint *)node->GetData();
-    wxExpr *point_list = new wxExpr(wxExprList);
-    wxExpr *x_expr = new wxExpr((double)point->x);
-    wxExpr *y_expr = new wxExpr((double)point->y);
-
-    point_list->Append(x_expr);
-    point_list->Append(y_expr);
-    list->Append(point_list);
-
-    node = node->GetNext();
-  }
-  clause->AddAttributeValue(wxT("points"), list);
-
-  // Save the original (unscaled) points
-  list = new wxExpr(wxExprList);
-  node = m_originalPoints->GetFirst();
-  while (node)
-  {
-    wxRealPoint *point = (wxRealPoint *)node->GetData();
-    wxExpr *point_list = new wxExpr(wxExprList);
-    wxExpr *x_expr = new wxExpr((double) point->x);
-    wxExpr *y_expr = new wxExpr((double) point->y);
-    point_list->Append(x_expr);
-    point_list->Append(y_expr);
-    list->Append(point_list);
-
-    node = node->GetNext();
-  }
-  clause->AddAttributeValue(wxT("m_originalPoints"), list);
-}
-
-void wxPolygonShape::ReadAttributes(wxExpr *clause)
-{
-  wxShape::ReadAttributes(clause);
-
-  // Read a list of lists
-  m_points = new wxList;
-  m_originalPoints = new wxList;
-
-  wxExpr *points_list = NULL;
-  clause->AssignAttributeValue(wxT("points"), &points_list);
-
-  // If no points_list, don't crash!! Assume a diamond instead.
-  double the_height = 100.0;
-  double the_width = 100.0;
-  if (!points_list)
-  {
-    wxRealPoint *point = new wxRealPoint(0.0, (-the_height/2));
-    m_points->Append((wxObject*) point);
-
-    point = new wxRealPoint((the_width/2), 0.0);
-    m_points->Append((wxObject*) point);
-
-    point = new wxRealPoint(0.0, (the_height/2));
-    m_points->Append((wxObject*) point);
-
-    point = new wxRealPoint((-the_width/2), 0.0);
-    m_points->Append((wxObject*) point);
-
-    point = new wxRealPoint(0.0, (-the_height/2));
-    m_points->Append((wxObject*) point);
-  }
-  else
-  {
-    wxExpr *node = points_list->value.first;
-
-    while (node)
-    {
-      wxExpr *xexpr = node->value.first;
-      long x = xexpr->IntegerValue();
-
-      wxExpr *yexpr = xexpr->next;
-      long y = yexpr->IntegerValue();
-
-      wxRealPoint *point = new wxRealPoint((double)x, (double)y);
-      m_points->Append((wxObject*) point);
-
-      node = node->next;
-    }
-  }
-
-  points_list = NULL;
-  clause->AssignAttributeValue(wxT("m_originalPoints"), &points_list);
-
-  // If no points_list, don't crash!! Assume a diamond instead.
-  if (!points_list)
-  {
-    wxRealPoint *point = new wxRealPoint(0.0, (-the_height/2));
-    m_originalPoints->Append((wxObject*) point);
-
-    point = new wxRealPoint((the_width/2), 0.0);
-    m_originalPoints->Append((wxObject*) point);
-
-    point = new wxRealPoint(0.0, (the_height/2));
-    m_originalPoints->Append((wxObject*) point);
-
-    point = new wxRealPoint((-the_width/2), 0.0);
-    m_originalPoints->Append((wxObject*) point);
-
-    point = new wxRealPoint(0.0, (-the_height/2));
-    m_originalPoints->Append((wxObject*) point);
-
-    m_originalWidth = the_width;
-    m_originalHeight = the_height;
-  }
-  else
-  {
-    wxExpr *node = points_list->value.first;
-    double min_x = 1000;
-    double min_y = 1000;
-    double max_x = -1000;
-    double max_y = -1000;
-    while (node)
-    {
-      wxExpr *xexpr = node->value.first;
-      long x = xexpr->IntegerValue();
-
-      wxExpr *yexpr = xexpr->next;
-      long y = yexpr->IntegerValue();
-
-      wxRealPoint *point = new wxRealPoint((double)x, (double)y);
-      m_originalPoints->Append((wxObject*) point);
-
-      if (x < min_x)
-        min_x = (double)x;
-      if (y < min_y)
-        min_y = (double)y;
-      if (x > max_x)
-        max_x = (double)x;
-      if (y > max_y)
-        max_y = (double)y;
-
-      node = node->next;
-    }
-    m_originalWidth = max_x - min_x;
-    m_originalHeight = max_y - min_y;
-  }
-
-  CalculateBoundingBox();
-}
-#endif
-
 void wxPolygonShape::Copy(wxShape& copy)
 {
   wxShape::Copy(copy);
@@ -927,35 +768,6 @@ bool wxRectangleShape::GetPerimeterPoint(double WXUNUSED(x1), double WXUNUSED(y1
   return true;
 }
 
-#if wxUSE_PROLOGIO
-void wxRectangleShape::WriteAttributes(wxExpr *clause)
-{
-  wxShape::WriteAttributes(clause);
-  clause->AddAttributeValue(wxT("x"), m_xpos);
-  clause->AddAttributeValue(wxT("y"), m_ypos);
-
-  clause->AddAttributeValue(wxT("width"), m_width);
-  clause->AddAttributeValue(wxT("height"), m_height);
-  if (m_cornerRadius != 0.0)
-    clause->AddAttributeValue(wxT("corner"), m_cornerRadius);
-}
-
-void wxRectangleShape::ReadAttributes(wxExpr *clause)
-{
-  wxShape::ReadAttributes(clause);
-  clause->AssignAttributeValue(wxT("width"), &m_width);
-  clause->AssignAttributeValue(wxT("height"), &m_height);
-  clause->AssignAttributeValue(wxT("corner"), &m_cornerRadius);
-
-  // In case we're reading an old file, set the region's size
-  if (m_regions.GetCount() == 1)
-  {
-    wxShapeRegion *region = (wxShapeRegion *)m_regions.GetFirst()->GetData();
-    region->SetSize(m_width, m_height);
-  }
-}
-#endif
-
 void wxRectangleShape::Copy(wxShape& copy)
 {
   wxShape::Copy(copy);
@@ -999,13 +811,6 @@ void wxTextShape::Copy(wxShape& copy)
 {
   wxRectangleShape::Copy(copy);
 }
-
-#if wxUSE_PROLOGIO
-void wxTextShape::WriteAttributes(wxExpr *clause)
-{
-  wxRectangleShape::WriteAttributes(clause);
-}
-#endif
 
 // Ellipse object
 
@@ -1066,32 +871,6 @@ void wxEllipseShape::SetSize(double x, double y, bool WXUNUSED(recursive))
   m_height = y;
   SetDefaultRegionSize();
 }
-
-#if wxUSE_PROLOGIO
-void wxEllipseShape::WriteAttributes(wxExpr *clause)
-{
-  wxShape::WriteAttributes(clause);
-  clause->AddAttributeValue(wxT("x"), m_xpos);
-  clause->AddAttributeValue(wxT("y"), m_ypos);
-
-  clause->AddAttributeValue(wxT("width"), m_width);
-  clause->AddAttributeValue(wxT("height"), m_height);
-}
-
-void wxEllipseShape::ReadAttributes(wxExpr *clause)
-{
-  wxShape::ReadAttributes(clause);
-  clause->AssignAttributeValue(wxT("width"), &m_width);
-  clause->AssignAttributeValue(wxT("height"), &m_height);
-
-  // In case we're reading an old file, set the region's size
-  if (m_regions.GetCount() == 1)
-  {
-    wxShapeRegion *region = (wxShapeRegion *)m_regions.GetFirst()->GetData();
-    region->SetSize(m_width, m_height);
-  }
-}
-#endif
 
 void wxEllipseShape::Copy(wxShape& copy)
 {

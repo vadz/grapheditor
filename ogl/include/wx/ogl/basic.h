@@ -12,10 +12,6 @@
 #ifndef _OGL_BASIC_H_
 #define _OGL_BASIC_H_
 
-#ifndef wxUSE_PROLOGIO
-    #define wxUSE_PROLOGIO 0
-#endif
-
 #define OGL_VERSION     2.0
 
 #ifndef DEFAULT_MOUSE_TOLERANCE
@@ -104,11 +100,6 @@ class wxLineShape;
 class wxControlPoint;
 class wxShapeRegion;
 class wxShape;
-
-#if wxUSE_PROLOGIO
-class WXDLLEXPORT wxExpr;
-class WXDLLEXPORT wxExprDatabase;
-#endif
 
 // Round up
 #define WXROUND(x) ( (long) (x + 0.5) )
@@ -376,17 +367,6 @@ class WXDLLIMPEXP_OGL wxShape: public wxShapeEvtHandler
   virtual void ClearText(int regionId = 0);
   void RemoveLine(wxLineShape *line);
 
-#if wxUSE_PROLOGIO
-  // I/O
-  virtual void WriteAttributes(wxExpr *clause);
-  virtual void ReadAttributes(wxExpr *clause);
-
-  // In case the object has constraints it needs to read in in a different pass
-  inline virtual void ReadConstraints(wxExpr *WXUNUSED(clause), wxExprDatabase *WXUNUSED(database)) { };
-  virtual void WriteRegions(wxExpr *clause);
-  virtual void ReadRegions(wxExpr *clause);
-#endif
-
   // Attachment code
   virtual bool GetAttachmentPosition(int attachment, double *x, double *y,
                                      int nth = 0, int no_arcs = 1, wxLineShape *line = NULL);
@@ -610,11 +590,6 @@ class WXDLLIMPEXP_OGL wxPolygonShape: public wxShape
   // Recalculates the centre of the polygon
   virtual void CalculatePolygonCentre();
 
-#if wxUSE_PROLOGIO
-  void WriteAttributes(wxExpr *clause);
-  void ReadAttributes(wxExpr *clause);
-#endif
-
   int GetNumberOfAttachments() const;
   bool GetAttachmentPosition(int attachment, double *x, double *y,
                                      int nth = 0, int no_arcs = 1, wxLineShape *line = NULL);
@@ -657,11 +632,6 @@ class WXDLLIMPEXP_OGL wxRectangleShape: public wxShape
   void SetCornerRadius(double rad); // If > 0, rounded corners
   double GetCornerRadius() const { return m_cornerRadius; }
 
-#if wxUSE_PROLOGIO
-  void WriteAttributes(wxExpr *clause);
-  void ReadAttributes(wxExpr *clause);
-#endif
-
   int GetNumberOfAttachments() const;
   bool GetAttachmentPosition(int attachment, double *x, double *y,
                                      int nth = 0, int no_arcs = 1, wxLineShape *line = NULL);
@@ -687,10 +657,6 @@ class WXDLLIMPEXP_OGL wxTextShape: public wxRectangleShape
 
   void OnDraw(wxDC& dc);
 
-#if wxUSE_PROLOGIO
-    void WriteAttributes(wxExpr *clause);
-#endif
-
   // Does the copying for this object
   void Copy(wxShape& copy);
 };
@@ -708,11 +674,6 @@ class WXDLLIMPEXP_OGL wxEllipseShape: public wxShape
 
   void OnDraw(wxDC& dc);
   void SetSize(double x, double y, bool recursive = true);
-
-#if wxUSE_PROLOGIO
-  void WriteAttributes(wxExpr *clause);
-  void ReadAttributes(wxExpr *clause);
-#endif
 
   int GetNumberOfAttachments() const;
   bool GetAttachmentPosition(int attachment, double *x, double *y,

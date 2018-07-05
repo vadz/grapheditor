@@ -43,11 +43,6 @@ class WXDLLIMPEXP_OGL wxDividedShape: public wxRectangleShape
   void MakeMandatoryControlPoints();
   void ResetMandatoryControlPoints();
 
-#if wxUSE_PROLOGIO
-  void WriteAttributes(wxExpr *clause);
-  void ReadAttributes(wxExpr *clause);
-#endif
-
   void Copy(wxShape &copy);
 
   // Set all region sizes according to proportions and

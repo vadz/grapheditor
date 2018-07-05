@@ -22,12 +22,6 @@ class WXDLLIMPEXP_OGL wxBitmapShape: public wxRectangleShape
 
   void OnDraw(wxDC& dc);
 
-#if wxUSE_PROLOGIO
-  // I/O
-  void WriteAttributes(wxExpr *clause);
-  void ReadAttributes(wxExpr *clause);
-#endif
-
   // Does the copying for this object
   void Copy(wxShape& copy);
 

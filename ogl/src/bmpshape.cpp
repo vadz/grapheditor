@@ -20,10 +20,6 @@
 #include "wx/wx.h"
 #endif
 
-#if wxUSE_PROLOGIO
-#include "wx/deprecated/wxexpr.h"
-#endif
-
 #include "wx/ogl/ogl.h"
 
 
@@ -68,22 +64,6 @@ void wxBitmapShape::SetSize(double w, double h, bool WXUNUSED(recursive))
   m_height = h;
   SetDefaultRegionSize();
 }
-
-#if wxUSE_PROLOGIO
-void wxBitmapShape::WriteAttributes(wxExpr *clause)
-{
-  // Can't really save the bitmap; so instantiate the bitmap
-  // at a higher level in the application, from a symbol library.
-  wxRectangleShape::WriteAttributes(clause);
-  clause->AddAttributeValueString(_T("filename"), m_filename);
-}
-
-void wxBitmapShape::ReadAttributes(wxExpr *clause)
-{
-  wxRectangleShape::ReadAttributes(clause);
-  clause->GetAttributeValue(_T("filename"), m_filename);
-}
-#endif
 
 // Does the copying for this object
 void wxBitmapShape::Copy(wxShape& copy)

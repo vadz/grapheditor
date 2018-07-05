@@ -20,10 +20,6 @@
 #include "wx/wx.h"
 #endif
 
-#if wxUSE_PROLOGIO
-#include "wx/deprecated/wxexpr.h"
-#endif
-
 #include "wx/ogl/ogl.h"
 
 

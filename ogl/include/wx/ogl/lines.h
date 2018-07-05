@@ -185,12 +185,6 @@ class WXDLLIMPEXP_OGL wxLineShape: public wxShape
 
   bool HitTest(double x, double y, int *attachment, double *distance);
 
-#if wxUSE_PROLOGIO
-  // I/O
-  virtual void WriteAttributes(wxExpr *clause);
-  virtual void ReadAttributes(wxExpr *clause);
-#endif
-
   virtual void FindNth(wxShape *image, int *nth, int *no_arcs, bool incoming);
 
   // Find which position we're talking about at this (x, y).

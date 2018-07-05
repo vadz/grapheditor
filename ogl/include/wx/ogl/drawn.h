@@ -28,11 +28,6 @@ class WXDLLIMPEXP_OGL wxPseudoMetaFile: public wxObject
 
   void Draw(wxDC& dc, double xoffset, double yoffset);
 
-#if wxUSE_PROLOGIO
-  void WriteAttributes(wxExpr *clause, int whichAngle);
-  void ReadAttributes(wxExpr *clause, int whichAngle);
-#endif
-
   void Clear();
 
   void Copy(wxPseudoMetaFile& copy);
@@ -132,12 +127,6 @@ class WXDLLIMPEXP_OGL wxDrawnShape: public wxRectangleShape
   ~wxDrawnShape();
 
   void OnDraw(wxDC& dc);
-
-#if wxUSE_PROLOGIO
-  // I/O
-  void WriteAttributes(wxExpr *clause);
-  void ReadAttributes(wxExpr *clause);
-#endif
 
   // Does the copying for this object
   void Copy(wxShape& copy);

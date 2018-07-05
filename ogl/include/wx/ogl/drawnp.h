@@ -60,10 +60,6 @@ public:
   inline virtual void Rotate(double WXUNUSED(x), double WXUNUSED(y), double WXUNUSED(theta), double WXUNUSED(sinTheta), double WXUNUSED(cosTheta)) {};
   virtual void Do(wxDC& dc, double xoffset, double yoffset) = 0;
   virtual wxDrawOp *Copy(wxPseudoMetaFile *newImage) = 0;
-#if wxUSE_PROLOGIO
-  virtual wxExpr *WriteExpr(wxPseudoMetaFile *image) = 0;
-  virtual void ReadExpr(wxPseudoMetaFile *image, wxExpr *expr) = 0;
-#endif
   inline int GetOp() const { return m_op; }
 
   // Draw an outline using the current operation. By default, return false (not drawn)
@@ -94,10 +90,6 @@ class WXDLLIMPEXP_OGL wxOpSetGDI: public wxDrawOp
   wxOpSetGDI(int theOp, wxPseudoMetaFile *theImage, int theGdiIndex, int theMode = 0);
   void Do(wxDC& dc, double xoffset, double yoffset);
   wxDrawOp *Copy(wxPseudoMetaFile *newImage);
-#if wxUSE_PROLOGIO
-  wxExpr *WriteExpr(wxPseudoMetaFile *image);
-  void ReadExpr(wxPseudoMetaFile *image, wxExpr *expr);
-#endif
 
 public:
   int               m_mode;
@@ -121,10 +113,6 @@ public:
   void Scale(double xScale, double yScale);
   void Translate(double x, double y);
   wxDrawOp *Copy(wxPseudoMetaFile *newImage);
-#if wxUSE_PROLOGIO
-  wxExpr *WriteExpr(wxPseudoMetaFile *image);
-  void ReadExpr(wxPseudoMetaFile *image, wxExpr *expr);
-#endif
 
 public:
   double     m_x1;
@@ -149,10 +137,6 @@ class WXDLLIMPEXP_OGL wxOpDraw: public wxDrawOp
   void Translate(double x, double y);
   void Rotate(double x, double y, double theta, double sinTheta, double cosTheta);
   wxDrawOp *Copy(wxPseudoMetaFile *newImage);
-#if wxUSE_PROLOGIO
-  wxExpr *WriteExpr(wxPseudoMetaFile *image);
-  void ReadExpr(wxPseudoMetaFile *image, wxExpr *expr);
-#endif
 
 public:
   double     m_x1;
@@ -181,10 +165,6 @@ public:
   void Translate(double x, double y);
   void Rotate(double x, double y, double theta, double sinTheta, double cosTheta);
   wxDrawOp *Copy(wxPseudoMetaFile *newImage);
-#if wxUSE_PROLOGIO
-  wxExpr *WriteExpr(wxPseudoMetaFile *image);
-  void ReadExpr(wxPseudoMetaFile *image, wxExpr *expr);
-#endif
 
   // Draw an outline using the current operation.
   virtual bool OnDrawOutline(wxDC& dc, double x, double y, double w, double h,

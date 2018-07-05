@@ -12,6 +12,7 @@
 #ifndef _OGL_DRAWN_H_
 #define _OGL_DRAWN_H_
 
+#include <vector>
 
 #define oglMETAFLAGS_OUTLINE         1
 #define oglMETAFLAGS_ATTACHMENTS     2
@@ -50,8 +51,6 @@ class WXDLLIMPEXP_OGL wxPseudoMetaFile: public wxObject
   // Calculate size from current operations
   void CalculateSize(wxDrawnShape* shape);
 
-  inline wxList& GetOutlineColours() const { return (wxList&) m_outlineColours; }
-  inline wxList& GetFillColours() const { return (wxList&) m_fillColours; }
   inline void SetRotateable(bool rot) { m_rotateable = rot; }
   inline bool GetRotateable() const { return m_rotateable; }
 
@@ -115,9 +114,9 @@ public:
   // to override operations.
   const wxPen*      m_outlinePen;
   const wxBrush*    m_fillBrush;
-  wxList            m_outlineColours; // List of the GDI operations that comprise the outline
-  wxList            m_fillColours; // List of the GDI operations that fill the shape
-  double             m_currentRotation;
+  std::vector<int>  m_outlineColours; // All the GDI operations that comprise the outline
+  std::vector<int>  m_fillColours; // All of the GDI operations that fill the shape
+  double            m_currentRotation;
 };
 
 #define oglDRAWN_ANGLE_0        0

@@ -37,6 +37,17 @@ extern wxChar *oglBuffer;
 #define gyTYPE_BRUSH 41
 #define gyTYPE_FONT  42
 
+// Helper function for checking whether a vector contains the given element:
+namespace
+{
+
+inline bool Contains(const std::vector<int>& vec, int value)
+{
+    return find(vec.begin(), vec.end(), value) != vec.end();
+}
+
+} // anonymous namespace
+
 /*
  * Drawn object
  *
@@ -418,7 +429,7 @@ void wxOpSetGDI::Do(wxDC& dc, double WXUNUSED(xoffset), double WXUNUSED(yoffset)
     {
       // Check for overriding this operation for outline
       // colour
-      if (m_image->m_outlineColours.Member((wxObject *)m_gdiIndex))
+      if (Contains(m_image->m_outlineColours, m_gdiIndex))
       {
         if (m_image->m_outlinePen)
           dc.SetPen(* m_image->m_outlinePen);
@@ -439,7 +450,7 @@ void wxOpSetGDI::Do(wxDC& dc, double WXUNUSED(xoffset), double WXUNUSED(yoffset)
     {
       // Check for overriding this operation for outline or fill
       // colour
-      if (m_image->m_outlineColours.Member((wxObject *)m_gdiIndex))
+      if (Contains(m_image->m_outlineColours, m_gdiIndex))
       {
         // Need to construct a brush to match the outline pen's colour
         if (m_image->m_outlinePen)
@@ -449,7 +460,7 @@ void wxOpSetGDI::Do(wxDC& dc, double WXUNUSED(xoffset), double WXUNUSED(yoffset)
             dc.SetBrush(* br);
         }
       }
-      else if (m_image->m_fillColours.Member((wxObject *)m_gdiIndex))
+      else if (Contains(m_image->m_fillColours, m_gdiIndex))
       {
         if (m_image->m_fillBrush)
         {
@@ -1384,8 +1395,8 @@ void wxPseudoMetaFile::Clear()
   }
   m_ops.Clear();
   m_gdiObjects.Clear();
-  m_outlineColours.Clear();
-  m_fillColours.Clear();
+  m_outlineColours.clear();
+  m_fillColours.clear();
   m_outlineOp = -1;
 }
 
@@ -1538,28 +1549,26 @@ void wxPseudoMetaFile::WriteAttributes(wxExpr *clause, int whichAngle)
   }
 
   // Write outline and fill GDI op lists (if any)
-  if (m_outlineColours.GetCount() > 0)
+  if (!m_outlineColours.empty())
   {
     wxExpr *outlineExpr = new wxExpr(wxExprList);
-    node = m_outlineColours.GetFirst();
-    while (node)
+
+    for (size_t n = 0; n < m_outlineColours.size(); ++n)
     {
-      outlineExpr->Append(new wxExpr((long)node->GetData()));
-      node = node->GetNext();
+      outlineExpr->Append(new wxExpr(m_outlineColours[n]));
     }
+
     wxString outlineObjectsStr;
     outlineObjectsStr.Printf(wxT("outline_objects%d"), whichAngle);
 
     clause->AddAttributeValue(outlineObjectsStr, outlineExpr);
   }
-  if (m_fillColours.GetCount() > 0)
+  if (!m_fillColours.empty())
   {
     wxExpr *fillExpr = new wxExpr(wxExprList);
-    node = m_fillColours.GetFirst();
-    while (node)
+    for (size_t n = 0; n < m_fillColours.size(); ++n)
     {
-      fillExpr->Append(new wxExpr((long)node->GetData()));
-      node = node->GetNext();
+      fillExpr->Append(new wxExpr(m_fillColours[n]));
     }
     wxString fillObjectsStr;
     fillObjectsStr.Printf(wxT("fill_objects%d"), whichAngle);
@@ -1737,7 +1746,7 @@ void wxPseudoMetaFile::ReadAttributes(wxExpr *clause, int whichAngle)
     wxExpr *eachExpr = expr1->GetFirst();
     while (eachExpr)
     {
-      m_outlineColours.Append((wxObject *)eachExpr->IntegerValue());
+      m_outlineColours.push_back(eachExpr->IntegerValue());
       eachExpr = eachExpr->GetNext();
     }
   }
@@ -1751,7 +1760,7 @@ void wxPseudoMetaFile::ReadAttributes(wxExpr *clause, int whichAngle)
     wxExpr *eachExpr = expr1->GetFirst();
     while (eachExpr)
     {
-      m_fillColours.Append((wxObject *)eachExpr->IntegerValue());
+      m_fillColours.push_back(eachExpr->IntegerValue());
       eachExpr = eachExpr->GetNext();
     }
   }
@@ -1790,18 +1799,8 @@ void wxPseudoMetaFile::Copy(wxPseudoMetaFile& copy)
   }
 
   // Copy the outline/fill operations
-  node = m_outlineColours.GetFirst();
-  while (node)
-  {
-    copy.m_outlineColours.Append((wxObject *)node->GetData());
-    node = node->GetNext();
-  }
-  node = m_fillColours.GetFirst();
-  while (node)
-  {
-    copy.m_fillColours.Append((wxObject *)node->GetData());
-    node = node->GetNext();
-  }
+  copy.m_outlineColours = m_outlineColours;
+  copy.m_fillColours = m_fillColours;
 }
 
 /*
@@ -2428,7 +2427,7 @@ void wxPseudoMetaFile::SetPen(const wxPen* pen, bool isOutline)
 
     if (isOutline)
     {
-        m_outlineColours.Append((wxObject*) (n - 1));
+        m_outlineColours.push_back(n - 1);
     }
 }
 
@@ -2443,7 +2442,7 @@ void wxPseudoMetaFile::SetBrush(const wxBrush* brush, bool isFill)
 
     if (isFill)
     {
-        m_fillColours.Append((wxObject*) (n - 1));
+        m_fillColours.push_back(n - 1);
     }
 }
 

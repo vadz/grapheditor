@@ -712,7 +712,7 @@ public:
      *
      * Invalidates any iterators pointing to this element.
      */
-    virtual void SetShape(GraphLineShape *shape);
+    void SetEdgeShape(GraphLineShape *shape);
 
     /**
      * @brief This is called by methods that affect the appearance of the

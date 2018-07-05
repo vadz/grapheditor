@@ -4070,7 +4070,7 @@ GraphEdge::~GraphEdge()
 {
 }
 
-void GraphEdge::SetShape(wxLineShape *line)
+void GraphEdge::SetEdgeShape(wxLineShape *line)
 {
     wxLineShape *old = GetShape();
 
@@ -4079,7 +4079,7 @@ void GraphEdge::SetShape(wxLineShape *line)
         old->Unlink();
     }
 
-    GraphElement::SetShape(line);
+    SetShape(line);
 }
 
 wxLineShape *GraphEdge::GetShape() const
@@ -4102,7 +4102,7 @@ void GraphEdge::SetStyle(int style)
     if (style == Style_Arrow)
         line->AddArrow(ARROW_ARROW, ARROW_POSITION_END, m_arrowsize);
 
-    SetShape(line);
+    SetEdgeShape(line);
     GraphElement::SetStyle(style);
 }
 

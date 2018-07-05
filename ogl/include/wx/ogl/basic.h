@@ -12,14 +12,6 @@
 #ifndef _OGL_BASIC_H_
 #define _OGL_BASIC_H_
 
-#ifndef wxUSE_DEPRECATED
-#define wxUSE_DEPRECATED 0
-#endif
-
-#if wxUSE_DEPRECATED
-    #include "wx/deprecated/setup.h"
-#endif
-
 #ifndef wxUSE_PROLOGIO
     #define wxUSE_PROLOGIO 0
 #endif

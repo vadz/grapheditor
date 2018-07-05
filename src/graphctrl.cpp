@@ -50,7 +50,18 @@
 #include <set>
 
 #ifndef NO_GRAPHVIZ
+
+// Suppress warnings inside Graphviz headers that we don't care about.
+#ifdef __VISUALC__
+    #pragma warning(push, 1)
+#endif
+
 #include <gvc.h>
+
+#ifdef __VISUALC__
+    #pragma warning(pop)
+#endif
+
 // This macro is defined in different Graphviz headers in different versions so
 // instead of choosing the right one, just define it ourselves.
 #ifndef PS2INCH

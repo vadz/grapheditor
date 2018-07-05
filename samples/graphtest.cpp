@@ -1747,6 +1747,7 @@ void MyFrame::OnSetGridFactor(wxCommandEvent&)
 
 void MyFrame::OnSetToolTipMode(wxCommandEvent&)
 {
+    // These strings must correspond to GraphCtrl::ToolTipMode enum elements.
     static wxString choices[] = {
         _T("Disable"),
         _T("Enable"),
@@ -1757,7 +1758,7 @@ void MyFrame::OnSetToolTipMode(wxCommandEvent&)
                                       WXSIZEOF(choices), choices, this);
 
     if (mode >= 0)
-        m_graphctrl->EnableToolTips(mode);
+        m_graphctrl->EnableToolTips(static_cast<GraphCtrl::ToolTipMode>(mode));
 }
 
 /** @endcond */

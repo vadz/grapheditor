@@ -1319,7 +1319,7 @@ public:
      * delay to zero (see @c SetToolTipDelay()) or by calling @c
      * wxToolTip::Enable(false) (in the case of @c Tip_wxToolTip).
      */
-    void EnableToolTips(int mode = Tip_Enable) { m_tipmode = mode; }
+    void EnableToolTips(ToolTipMode mode) { m_tipmode = mode; }
     int ToolTipsEnabled() const { return m_tipmode; }
     //@}
 
@@ -1484,7 +1484,7 @@ private:
      */
     //@{
     wxTimer m_tiptimer;             ///< Timer used in Tip_Enable mode.
-    int m_tipmode;                  ///< One of ToolTipMode elements.
+    ToolTipMode m_tipmode;          ///< See ToolTipMode elements.
     int m_tipdelay;                 ///< Tooltip delay in Tip_Enable mode.
     GraphNode *m_tipnode;           ///< Node for which tooltip is shown.
     TipWindow *m_tipwin;            ///< Tooltip window or NULL.

@@ -439,7 +439,7 @@ public:
     /**
      * Scroll event handler.
      *
-     * Calls DoScroll() for the real work.
+     * Calls ScrollGraph() for the real work.
      */
     void OnScroll(wxScrollWinEvent& event);
 
@@ -559,7 +559,7 @@ public:
      * @param lines The number of lines to scroll, only used if @a type is
      * wxEVT_SCROLLWIN_LINEUP or wxEVT_SCROLLWIN_LINEDOWN.
      */
-    void DoScroll(int orient, int type, int pos = 0, int lines = 1);
+    void ScrollGraph(int orient, int type, int pos = 0, int lines = 1);
 
     /**
      * Scroll so that the given position is in the centre of the graph.
@@ -973,7 +973,7 @@ void GraphCanvas::OnCaptureLost(wxMouseCaptureLostEvent&)
     m_draggedShape = NULL;
 }
 
-void GraphCanvas::DoScroll(int orient, int type, int pos, int lines)
+void GraphCanvas::ScrollGraph(int orient, int type, int pos, int lines)
 {
     bool horz = orient == wxHORIZONTAL;
     int scroll = horz ? m_xScrollPosition : m_yScrollPosition;
@@ -1013,7 +1013,7 @@ void GraphCanvas::OnScroll(wxScrollWinEvent& event)
     int type = event.GetEventType();
     int pos = event.GetPosition();
 
-    DoScroll(orient, type, pos);
+    ScrollGraph(orient, type, pos);
 }
 
 bool GraphCanvas::CheckBounds()
@@ -3689,22 +3689,22 @@ void GraphCtrl::OnChar(wxKeyEvent& event)
 
         switch (key) {
             case WXK_UP:
-                m_canvas->DoScroll(wxVERTICAL, wxEVT_SCROLLWIN_LINEUP);
+                m_canvas->ScrollGraph(wxVERTICAL, wxEVT_SCROLLWIN_LINEUP);
                 break;
             case WXK_DOWN:
-                m_canvas->DoScroll(wxVERTICAL, wxEVT_SCROLLWIN_LINEDOWN);
+                m_canvas->ScrollGraph(wxVERTICAL, wxEVT_SCROLLWIN_LINEDOWN);
                 break;
             case WXK_LEFT:
-                m_canvas->DoScroll(wxHORIZONTAL, wxEVT_SCROLLWIN_LINEUP);
+                m_canvas->ScrollGraph(wxHORIZONTAL, wxEVT_SCROLLWIN_LINEUP);
                 break;
             case WXK_RIGHT:
-                m_canvas->DoScroll(wxHORIZONTAL, wxEVT_SCROLLWIN_LINEDOWN);
+                m_canvas->ScrollGraph(wxHORIZONTAL, wxEVT_SCROLLWIN_LINEDOWN);
                 break;
             case WXK_PAGEUP:
-                m_canvas->DoScroll(wxVERTICAL, wxEVT_SCROLLWIN_PAGEUP);
+                m_canvas->ScrollGraph(wxVERTICAL, wxEVT_SCROLLWIN_PAGEUP);
                 break;
             case WXK_PAGEDOWN:
-                m_canvas->DoScroll(wxVERTICAL, wxEVT_SCROLLWIN_PAGEDOWN);
+                m_canvas->ScrollGraph(wxVERTICAL, wxEVT_SCROLLWIN_PAGEDOWN);
                 break;
             case WXK_HOME:
                 m_canvas->ScrollTo(wxTOP);
@@ -3729,7 +3729,7 @@ void GraphCtrl::OnMouseWheel(wxMouseEvent& event)
     }
     else {
         int orient = event.ShiftDown() ? wxHORIZONTAL : wxVERTICAL;
-        m_canvas->DoScroll(orient, wxEVT_SCROLLWIN_LINEUP, 0, lines);
+        m_canvas->ScrollGraph(orient, wxEVT_SCROLLWIN_LINEUP, 0, lines);
     }
 
     event.Skip();

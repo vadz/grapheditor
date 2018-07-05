@@ -3011,8 +3011,13 @@ bool Graph::Layout(const node_iterator_pair& range,
             pointf pos = ND_coord(n);
             int x = int(offsetX + PS2INCH(pos.x) * dpi.x);
             int y = int(offsetY - PS2INCH(pos.y) * dpi.y);
+#ifdef WITH_CGRAPH
+            const char* const name = agnameof(n);
+#else // old Graphviz (< 2.30) without cgraph
+            const char* const name = n->name;
+#endif
             GraphNode *node;
-            if (sscanf(n->name, "n%p", &node) == 1)
+            if (sscanf(name, "n%p", &node) == 1)
                 node->SetPosition<Points>(wxPoint(x, y));
         }
 

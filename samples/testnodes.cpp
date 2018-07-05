@@ -94,7 +94,7 @@ TestNode::TestNode(const wxColour& colour,
 
 void TestNode::OnLayout(wxDC& dc)
 {
-#if FIXED_NODE_SIZE
+#ifdef FIXED_NODE_SIZE
     static wxSize defSize(3 * GetDPI().x / 2, GetDPI().y);
 
     if (GetSize() != defSize)

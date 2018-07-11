@@ -602,7 +602,15 @@ bool wxXMetaFile::ReadFile(const wxChar *file)
         if (lfUnderline)
           info.Underlined();
 
-        wxFont *theFont = wxTheFontList->FindOrCreateFont(info);
+        // TODO-WX32: Pass "info" to FindOrCreateFont() directly.
+        wxFont *theFont = wxTheFontList->FindOrCreateFont
+                                         (
+                                          info.GetPointSize(),
+                                          info.GetFamily(),
+                                          info.GetStyle(),
+                                          info.GetWeight(),
+                                          info.IsUnderlined()
+                                         );
 
         rec->param1 = (long) theFont;
         metaRecords.Append(rec);

@@ -22,6 +22,8 @@
 
 #include "wx/ogl/ogl.h"
 
+#include <algorithm>
+
 extern wxChar *oglBuffer;
 
 #define gyTYPE_PEN   40

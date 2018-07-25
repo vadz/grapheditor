@@ -165,7 +165,7 @@ $(GRAPHTEST_BIN): $(GRAPHTEST_OBJECTS) $(GRAPHEDITOR_LIB) $(OGL_LIB)
 	$(CXX) -o $@ $(GRAPHTEST_OBJECTS) $(OPT_AND_DEBUG_FLAGS) \
 	    $(GRAPHVIZ_LDFLAGS) $(EXPAT_LDFLAGS) $(LDFLAGS) \
 	    $(GRAPHEDITOR_LIB) $(OGL_LIB) \
-	    $(shell $(WX_CONFIG) $(WX_CONFIG_FLAGS) --libs html,core,base)
+	    $(shell $(WX_CONFIG) $(WX_CONFIG_FLAGS) --libs html,adv,core,base)
 
 $(GRAPHEDITOR_OBJECTS): $(GRAPHEDITOR_BUILDDIR)/%.o: ../src/%.cpp $(call if_not_exists,$(GRAPHEDITOR_BUILDDIR))
 	$(CXX) -c -o $@ $(GRAPHEDITOR_CXXFLAGS) $(CPPDEPS) $<

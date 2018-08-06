@@ -119,6 +119,11 @@ if_not_exists = $(filter-out $(wildcard $1),$1)
 
 ### Variables: ###
 
+# It's important to use absolute paths everywhere so that the paths in the
+# generated auto-generated files are absolute too because relative paths
+# wouldn't work there if builddir is not the current directory.
+top_srcdir := $(abspath ..)
+
 CPPDEPS = -MD -MP
 WX_VERSION_MAJOR := $(shell echo $(WX_VERSION) | cut -c1,1)
 WX_VERSION_MINOR := $(shell echo $(WX_VERSION) | cut -c2,2)
@@ -126,21 +131,21 @@ WX_CONFIG_FLAGS := $(WX_CONFIG_UNICODE_FLAG) $(WX_CONFIG_SHARED_FLAG) \
 	--toolkit=$(WX_PORT) --version=$(WX_VERSION_MAJOR).$(WX_VERSION_MINOR)
 
 GRAPHEDITOR_CXXFLAGS := $(OPT_AND_DEBUG_FLAGS) -W -Wall \
-	-I../include -I../ogl/include $(GRAPHVIZ_CPPFLAGS) $(EXPAT_CPPFLAGS) \
+	-I$(top_srcdir)/include -I$(top_srcdir)/ogl/include $(GRAPHVIZ_CPPFLAGS) $(EXPAT_CPPFLAGS) \
 	$(WX_CXXFLAGS) $(CPPFLAGS) $(CXXFLAGS)
 GRAPHEDITOR_BUILDDIR := $(builddir)/grapheditor
 GRAPHEDITOR_OBJECTS := $(addprefix $(GRAPHEDITOR_BUILDDIR)/,$(GRAPHEDITOR_SRC:.cpp=.o))
 GRAPHEDITOR_LIB := $(builddir)/libgrapheditor.a
 
-OGL_CXXFLAGS := $(OPT_AND_DEBUG_FLAGS) -W -Wall -I../include \
-	-I../ogl/include $(GRAPHVIZ_CPPFLAGS) $(EXPAT_CPPFLAGS) \
+OGL_CXXFLAGS := $(OPT_AND_DEBUG_FLAGS) -W -Wall -I$(top_srcdir)/include \
+	-I$(top_srcdir)/ogl/include $(GRAPHVIZ_CPPFLAGS) $(EXPAT_CPPFLAGS) \
 	$(WX_CXXFLAGS) $(CPPFLAGS) $(CXXFLAGS)
 OGL_BUILDDIR := $(builddir)/ogl
 OGL_OBJECTS :=  $(addprefix $(OGL_BUILDDIR)/,$(OGL_SRC:.cpp=.o))
 OGL_LIB := $(builddir)/libogl.a
 
 GRAPHTEST_CXXFLAGS := $(OPT_AND_DEBUG_FLAGS) -W -Wall \
-	-I../include -I../ogl/include $(GRAPHVIZ_CPPFLAGS) $(EXPAT_CPPFLAGS) \
+	-I$(top_srcdir)/include -I$(top_srcdir)/ogl/include $(GRAPHVIZ_CPPFLAGS) $(EXPAT_CPPFLAGS) \
 	$(WX_CXXFLAGS) $(CPPFLAGS) $(CXXFLAGS)
 GRAPHTEST_BUILDDIR := $(builddir)/test
 GRAPHTEST_OBJECTS := $(addprefix $(GRAPHTEST_BUILDDIR)/,$(GRAPHTEST_SRC:.cpp=.o))
@@ -167,13 +172,13 @@ $(GRAPHTEST_BIN): $(GRAPHTEST_OBJECTS) $(GRAPHEDITOR_LIB) $(OGL_LIB)
 	    $(GRAPHEDITOR_LIB) $(OGL_LIB) \
 	    $(shell $(WX_CONFIG) $(WX_CONFIG_FLAGS) --libs html,adv,core,base)
 
-$(GRAPHEDITOR_OBJECTS): $(GRAPHEDITOR_BUILDDIR)/%.o: ../src/%.cpp $(call if_not_exists,$(GRAPHEDITOR_BUILDDIR))
+$(GRAPHEDITOR_OBJECTS): $(GRAPHEDITOR_BUILDDIR)/%.o: $(top_srcdir)/src/%.cpp $(call if_not_exists,$(GRAPHEDITOR_BUILDDIR))
 	$(CXX) -c -o $@ $(GRAPHEDITOR_CXXFLAGS) $(CPPDEPS) $<
 
-$(OGL_OBJECTS): $(OGL_BUILDDIR)/%.o: ../ogl/src/%.cpp $(call if_not_exists,$(OGL_BUILDDIR))
+$(OGL_OBJECTS): $(OGL_BUILDDIR)/%.o: $(top_srcdir)/ogl/src/%.cpp $(call if_not_exists,$(OGL_BUILDDIR))
 	$(CXX) -c -o $@ $(OGL_CXXFLAGS) $(CPPDEPS) $<
 
-$(GRAPHTEST_OBJECTS): $(GRAPHTEST_BUILDDIR)/%.o: ../samples/%.cpp $(call if_not_exists,$(GRAPHTEST_BUILDDIR))
+$(GRAPHTEST_OBJECTS): $(GRAPHTEST_BUILDDIR)/%.o: $(top_srcdir)/samples/%.cpp $(call if_not_exists,$(GRAPHTEST_BUILDDIR))
 	$(CXX) -c -o $@ $(GRAPHTEST_CXXFLAGS) $(CPPDEPS) $<
 
 clean:

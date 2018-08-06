@@ -105,11 +105,6 @@ class wxShape;
 #define WXROUND(x) ( (long) (x + 0.5) )
 
 
-// logical function to use when drawing rubberband boxes, etc.
-#define OGLRBLF         wxINVERT
-
-
-
 class WXDLLIMPEXP_OGL wxShapeEvtHandler: public wxObject, public wxClientDataContainer
 {
  DECLARE_DYNAMIC_CLASS(wxShapeEvtHandler)

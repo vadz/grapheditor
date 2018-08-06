@@ -140,7 +140,7 @@ void wxCompositeShape::OnErase(wxDC& dc)
 static double objectStartX = 0.0;
 static double objectStartY = 0.0;
 
-void wxCompositeShape::OnDragLeft(bool WXUNUSED(draw), double x, double y, int WXUNUSED(keys), int WXUNUSED(attachment))
+void wxCompositeShape::OnDragLeft(bool draw, double x, double y, int WXUNUSED(keys), int WXUNUSED(attachment))
 {
   double xx = x;
   double yy = y;
@@ -148,10 +148,14 @@ void wxCompositeShape::OnDragLeft(bool WXUNUSED(draw), double x, double y, int W
   double offsetX = xx - objectStartX;
   double offsetY = yy - objectStartY;
 
-  wxClientDC dc(GetCanvas());
-  GetCanvas()->PrepareDC(dc);
+  wxShapeCanvasOverlay overlay(GetCanvas());
+  if (!draw)
+  {
+    // We just needed to erase the overlay drawing.
+    return;
+  }
 
-  dc.SetLogicalFunction(OGLRBLF);
+  wxDC& dc = overlay.GetDC();
   wxPen dottedPen(*wxBLACK, 1, wxPENSTYLE_DOT);
   dc.SetPen(dottedPen);
   dc.SetBrush((* wxTRANSPARENT_BRUSH));
@@ -165,12 +169,11 @@ void wxCompositeShape::OnBeginDragLeft(double x, double y, int WXUNUSED(keys), i
   objectStartX = x;
   objectStartY = y;
 
-  wxClientDC dc(GetCanvas());
-  GetCanvas()->PrepareDC(dc);
+  wxShapeCanvasOverlay overlay(GetCanvas());
+
+  wxDC& dc = overlay.GetDC();
 
   Erase(dc);
-
-  dc.SetLogicalFunction(OGLRBLF);
 
   wxPen dottedPen(*wxBLACK, 1, wxPENSTYLE_DOT);
   dc.SetPen(dottedPen);

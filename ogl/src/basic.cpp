@@ -1299,11 +1299,14 @@ void wxShape::OnDragLeft(bool draw, double x, double y, int keys, int attachment
     return;
   }
 
-  wxClientDC dc(GetCanvas());
-  GetCanvas()->PrepareDC(dc);
+  wxShapeCanvasOverlay overlay(GetCanvas());
+  if (!draw)
+  {
+    overlay.Reset();
+    return;
+  }
 
-  dc.SetLogicalFunction(OGLRBLF);
-
+  wxDC& dc = overlay.GetDC();
   wxPen dottedPen(*wxBLACK, 1, wxPENSTYLE_DOT);
   dc.SetPen(dottedPen);
   dc.SetBrush(* wxTRANSPARENT_BRUSH);
@@ -1336,8 +1339,8 @@ void wxShape::OnBeginDragLeft(double x, double y, int keys, int attachment)
   DragOffsetX = m_xpos - x;
   DragOffsetY = m_ypos - y;
 
-  wxClientDC dc(GetCanvas());
-  GetCanvas()->PrepareDC(dc);
+  wxShapeCanvasOverlay overlay(GetCanvas());
+  wxDC& dc = overlay.GetDC();
 
   // New policy: don't erase shape until end of drag.
 //  Erase(dc);
@@ -1347,7 +1350,6 @@ void wxShape::OnBeginDragLeft(double x, double y, int keys, int attachment)
   yy = y + DragOffsetY;
   m_canvas->Snap(&xx, &yy);
 //  m_xpos = xx; m_ypos = yy;
-  dc.SetLogicalFunction(OGLRBLF);
 
   wxPen dottedPen(*wxBLACK, 1, wxPENSTYLE_DOT);
   dc.SetPen(dottedPen);

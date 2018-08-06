@@ -1062,16 +1062,20 @@ bool wxControlPoint::GetAttachmentPosition(int WXUNUSED(attachment), double *x, 
 
 // Control points ('handles') redirect control to the actual shape, to make it easier
 // to override sizing behaviour.
-void wxShape::OnSizingDragLeft(wxControlPoint* pt, bool WXUNUSED(draw), double x, double y, int keys, int WXUNUSED(attachment))
+void wxShape::OnSizingDragLeft(wxControlPoint* pt, bool draw, double x, double y, int keys, int WXUNUSED(attachment))
 {
+  wxShapeCanvasOverlay overlay(GetCanvas());
+  if (!draw)
+  {
+    // We just needed to erase the overlay drawing.
+    return;
+  }
+
+  wxDC& dc = overlay.GetDC();
+
   double bound_x;
   double bound_y;
   this->GetBoundingBoxMin(&bound_x, &bound_y);
-
-  wxClientDC dc(GetCanvas());
-  GetCanvas()->PrepareDC(dc);
-
-  dc.SetLogicalFunction(OGLRBLF);
 
   wxPen dottedPen(*wxBLACK, 1, wxPENSTYLE_DOT);
   dc.SetPen(dottedPen);
@@ -1173,14 +1177,12 @@ void wxShape::OnSizingBeginDragLeft(wxControlPoint* pt, double x, double y, int 
 {
   m_canvas->CaptureMouse();
 
-  wxClientDC dc(GetCanvas());
-  GetCanvas()->PrepareDC(dc);
+  wxShapeCanvasOverlay overlay(GetCanvas());
+  wxDC& dc = overlay.GetDC();
 /*
   if (pt->m_eraseObject)
     this->Erase(dc);
 */
-
-  dc.SetLogicalFunction(OGLRBLF);
 
   double bound_x;
   double bound_y;
@@ -1399,14 +1401,18 @@ void wxPolygonControlPoint::OnEndDragLeft(double x, double y, int keys, int atta
 
 // Control points ('handles') redirect control to the actual shape, to make it easier
 // to override sizing behaviour.
-void wxPolygonShape::OnSizingDragLeft(wxControlPoint* pt, bool WXUNUSED(draw), double x, double y, int WXUNUSED(keys), int WXUNUSED(attachment))
+void wxPolygonShape::OnSizingDragLeft(wxControlPoint* pt, bool draw, double x, double y, int WXUNUSED(keys), int WXUNUSED(attachment))
 {
   wxPolygonControlPoint* ppt = (wxPolygonControlPoint*) pt;
 
-  wxClientDC dc(GetCanvas());
-  GetCanvas()->PrepareDC(dc);
+  wxShapeCanvasOverlay overlay(GetCanvas());
+  if (!draw)
+  {
+    // We just needed to erase the overlay drawing.
+    return;
+  }
 
-  dc.SetLogicalFunction(OGLRBLF);
+  wxDC& dc = overlay.GetDC();
 
   wxPen dottedPen(*wxBLACK, 1, wxPENSTYLE_DOT);
   dc.SetPen(dottedPen);
@@ -1441,12 +1447,10 @@ void wxPolygonShape::OnSizingBeginDragLeft(wxControlPoint* pt, double x, double 
 {
   wxPolygonControlPoint* ppt = (wxPolygonControlPoint*) pt;
 
-  wxClientDC dc(GetCanvas());
-  GetCanvas()->PrepareDC(dc);
+  wxShapeCanvasOverlay overlay(GetCanvas());
 
+  wxDC& dc = overlay.GetDC();
   this->Erase(dc);
-
-  dc.SetLogicalFunction(OGLRBLF);
 
   double bound_x;
   double bound_y;

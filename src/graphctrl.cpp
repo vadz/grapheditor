@@ -847,7 +847,7 @@ void GraphCanvas::OnBeginDragLeft(double x, double y, int keys)
     CaptureMouse();
 }
 
-void GraphCanvas::OnDragLeft(bool, double x, double y, int)
+void GraphCanvas::OnDragLeft(bool draw, double x, double y, int)
 {
     if (m_isPanning) {
         // The mouse event that lead here may have been in queue before the
@@ -872,11 +872,15 @@ void GraphCanvas::OnDragLeft(bool, double x, double y, int)
     }
     else {
         // rubber banding
-        wxClientDC dc(this);
-        PrepareDC(dc);
 
+        wxShapeCanvasOverlay overlay(this);
+        if (!draw) {
+            overlay.Reset();
+            return;
+        }
+
+        wxDC& dc = overlay.GetDC();
         wxPen dottedPen(*wxBLACK, 1, wxPENSTYLE_DOT);
-        dc.SetLogicalFunction(OGLRBLF);
         dc.SetPen(dottedPen);
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
 
@@ -1750,11 +1754,15 @@ void GraphNodeHandler::OnDrag(int mode, bool draw, double x, double y)
         m_target = target;
     }
 
-    wxClientDC dc(canvas);
-    canvas->PrepareDC(dc);
+    wxShapeCanvasOverlay overlay(canvas);
+    if (!draw) {
+        // We just needed to erase the overlay drawing.
+        overlay.Reset();
+        return;
+    }
 
+    wxDC& dc = overlay.GetDC();
     wxPen dottedPen(*wxBLACK, 1, wxPENSTYLE_DOT);
-    dc.SetLogicalFunction(OGLRBLF);
     dc.SetPen(dottedPen);
 
     bool needNoEntry = m_target && m_sources.empty();

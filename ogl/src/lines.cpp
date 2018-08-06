@@ -1500,14 +1500,18 @@ void wxLineControlPoint::OnEndDragLeft(double x, double y, int keys, int attachm
 
 // Control points ('handles') redirect control to the actual shape, to make it easier
 // to override sizing behaviour.
-void wxLineShape::OnSizingDragLeft(wxControlPoint* pt, bool WXUNUSED(draw), double x, double y, int WXUNUSED(keys), int WXUNUSED(attachment))
+void wxLineShape::OnSizingDragLeft(wxControlPoint* pt, bool draw, double x, double y, int WXUNUSED(keys), int WXUNUSED(attachment))
 {
+  wxShapeCanvasOverlay overlay(GetCanvas());
+  if (!draw)
+  {
+    // We just needed to erase the overlay drawing.
+    return;
+  }
+
   wxLineControlPoint* lpt = (wxLineControlPoint*) pt;
 
-  wxClientDC dc(GetCanvas());
-  GetCanvas()->PrepareDC(dc);
-
-  dc.SetLogicalFunction(OGLRBLF);
+  wxDC& dc = overlay.GetDC();
 
   wxPen dottedPen(*wxBLACK, 1, wxPENSTYLE_DOT);
   dc.SetPen(dottedPen);
@@ -1545,8 +1549,9 @@ void wxLineShape::OnSizingBeginDragLeft(wxControlPoint* pt, double x, double y, 
 {
   wxLineControlPoint* lpt = (wxLineControlPoint*) pt;
 
-  wxClientDC dc(GetCanvas());
-  GetCanvas()->PrepareDC(dc);
+  wxShapeCanvasOverlay overlay(GetCanvas());
+
+  wxDC& dc = overlay.GetDC();
 
   wxLineShape *lineShape = (wxLineShape *)this;
   if (lpt->m_type == CONTROL_POINT_LINE)
@@ -1564,7 +1569,6 @@ void wxLineShape::OnSizingBeginDragLeft(wxControlPoint* pt, double x, double y, 
     lineShape->GetTo()->OnDrawContents(dc);
 
     this->SetDisableLabel(true);
-    dc.SetLogicalFunction(OGLRBLF);
 
     lpt->m_xpos = x; lpt->m_ypos = y;
     lpt->m_point->x = x; lpt->m_point->y = y;

@@ -559,12 +559,17 @@ wxDividedShapeControlPoint::~wxDividedShapeControlPoint()
 }
 
 // Implement resizing of divided object division
-void wxDividedShapeControlPoint::OnDragLeft(bool WXUNUSED(draw), double WXUNUSED(x), double y, int WXUNUSED(keys), int WXUNUSED(attachment))
+void wxDividedShapeControlPoint::OnDragLeft(bool draw, double WXUNUSED(x), double y, int WXUNUSED(keys), int WXUNUSED(attachment))
 {
-    wxClientDC dc(GetCanvas());
-    GetCanvas()->PrepareDC(dc);
+    wxShapeCanvasOverlay overlay(GetCanvas());
+    if (!draw)
+    {
+        // We just needed to erase the overlay drawing.
+        return;
+    }
 
-    dc.SetLogicalFunction(OGLRBLF);
+    wxDC& dc = overlay.GetDC();
+
     wxPen dottedPen(*wxBLACK, 1, wxPENSTYLE_DOT);
     dc.SetPen(dottedPen);
     dc.SetBrush((* wxTRANSPARENT_BRUSH));
@@ -579,11 +584,12 @@ void wxDividedShapeControlPoint::OnDragLeft(bool WXUNUSED(draw), double WXUNUSED
 
 void wxDividedShapeControlPoint::OnBeginDragLeft(double WXUNUSED(x), double y, int WXUNUSED(keys), int WXUNUSED(attachment))
 {
-    wxClientDC dc(GetCanvas());
-    GetCanvas()->PrepareDC(dc);
+    wxShapeCanvasOverlay overlay(GetCanvas());
+
+    wxDC& dc = overlay.GetDC();
 
     wxDividedShape *dividedObject = (wxDividedShape *)m_shape;
-    dc.SetLogicalFunction(OGLRBLF);
+
     wxPen dottedPen(*wxBLACK, 1, wxPENSTYLE_DOT);
     dc.SetPen(dottedPen);
     dc.SetBrush((* wxTRANSPARENT_BRUSH));

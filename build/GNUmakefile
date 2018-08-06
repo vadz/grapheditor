@@ -189,4 +189,4 @@ clean:
 .PHONY: all clean
 
 # Dependencies tracking:
--include $(GRAPHTEST_BUILDDIR)/*.d $(OGL_BUILDDIR)/*.d $(GRAPHTEST_BUILDDIR)/*.d
+-include $(GRAPHTEST_BUILDDIR)/*.d $(OGL_BUILDDIR)/*.d $(GRAPHEDITOR_BUILDDIR)/*.d

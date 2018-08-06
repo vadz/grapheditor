@@ -1510,20 +1510,6 @@ void wxShape::Draw(wxDC& dc)
   }
 }
 
-void wxShape::Flash()
-{
-    if (GetCanvas())
-    {
-        wxClientDC dc(GetCanvas());
-        GetCanvas()->PrepareDC(dc);
-
-        dc.SetLogicalFunction(OGLRBLF);
-        Draw(dc);
-        dc.SetLogicalFunction(wxCOPY);
-        Draw(dc);
-    }
-}
-
 void wxShape::Show(bool show)
 {
   m_visible = show;

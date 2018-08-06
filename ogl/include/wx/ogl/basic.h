@@ -292,7 +292,6 @@ class WXDLLIMPEXP_OGL wxShape: public wxShapeEvtHandler
   virtual void Erase(wxDC& dc);
   virtual void EraseContents(wxDC& dc);
   virtual void Draw(wxDC& dc);
-  virtual void Flash();
   virtual void MoveLinks(wxDC& dc);
   virtual void DrawContents(wxDC& dc);  // E.g. for drawing text label
   virtual void SetSize(double x, double y, bool recursive = true);

@@ -4476,7 +4476,8 @@ void GraphNode::UpdateShape()
 
     if (shape) {
         shape->AddText(m_text);
-        shape->SetFont(&m_font);
+        if (m_font.IsOk())
+            shape->SetFont(&m_font);
         UpdateShapeTextColour();
         Layout();
         Refresh();

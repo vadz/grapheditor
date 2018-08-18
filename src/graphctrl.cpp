@@ -3713,6 +3713,14 @@ void GraphCtrl::CloseTip(const wxPoint& pt)
 
 void GraphCtrl::OnIdle(wxIdleEvent&)
 {
+#if defined __WXGTK__
+    // Don't do anything until the window is realized: there is no need anyhow,
+    // and calling CheckTip() below results in debug warnings from wxGTK saying
+    // that ScreenToClient() can't work for non-realized windows.
+    if (!GTKGetDrawingWindow())
+        return;
+#endif // __WXGTK__
+
     wxMouseState state = wxGetMouseState();
 
 #if wxCHECK_VERSION(2, 9, 0)

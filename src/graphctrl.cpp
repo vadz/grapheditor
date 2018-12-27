@@ -3707,6 +3707,11 @@ void GraphCtrl::OnIdle(wxIdleEvent&)
         return;
 #endif // __WXGTK__
 
+    // Don't do anything while we're dragging the mouse, tips shouldn't be
+    // shown during dragging and the cursor is set explicitly from OnDrag().
+    if (m_canvas->HasCapture())
+        return;
+
     wxMouseState state = wxGetMouseState();
 
 #if wxCHECK_VERSION(2, 9, 0)

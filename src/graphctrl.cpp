@@ -439,11 +439,6 @@ public:
     bool ReleaseIfCaptured();
 
     /**
-     * Change the cursor even if the mouse is captured.
-     */
-    bool SetCapturedCursor(const wxCursor& cursor);
-
-    /**
      * @name Event handlers.
      */
     //@{
@@ -751,15 +746,6 @@ bool GraphCanvas::ReleaseIfCaptured()
         return false;
     ReleaseMouse();
     return true;
-}
-
-bool GraphCanvas::SetCapturedCursor(const wxCursor& cursor)
-{
-    bool hascap = ReleaseIfCaptured();
-    bool isset = SetCursor(cursor);
-    if (hascap)
-        CaptureMouse();
-    return isset;
 }
 
 void GraphCanvas::OnSetFocus(wxFocusEvent&)
@@ -1768,9 +1754,9 @@ void GraphNodeHandler::OnDrag(int mode, bool draw, double x, double y)
     bool needNoEntry = m_target && m_sources.empty();
 
     if (needNoEntry && !hasNoEntry)
-        canvas->SetCapturedCursor(wxCURSOR_NO_ENTRY);
+        canvas->SetCursor(wxCURSOR_NO_ENTRY);
     else if (!needNoEntry && hasNoEntry)
-        canvas->SetCapturedCursor(wxCURSOR_DEFAULT);
+        canvas->SetCursor(wxCURSOR_DEFAULT);
 
     if ((mode & Drag_Connect) != 0 && m_target) {
         NodeList::iterator it;

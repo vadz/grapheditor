@@ -275,7 +275,20 @@ wxFont DefaultFont()
  */
 wxSize GetScreenDPI()
 {
-    static wxSize dpi(wxScreenDC().GetPPI());
+    static wxSize dpi;
+    if (dpi == wxSize()) {
+        dpi = wxScreenDC().GetPPI();
+
+        // We need the DPI in logical pixels, not physical ones, as we want the
+        // various diagram elements to have the same physical size on the
+        // screen independently of the display resolution and this means we
+        // need twice as many physical pixels when using high DPI display,
+        // compared to the standard resolution one. Hence we have to scale by
+        // the content resolution factor -- which we currently suppose to be
+        // the same for all windows (which is, of course, not true in general).
+        dpi /= wxTheApp->GetTopWindow()->GetContentScaleFactor();
+    }
+
     return dpi;
 }
 

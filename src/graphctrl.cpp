@@ -844,13 +844,7 @@ void GraphCanvas::OnDragLeft(bool draw, double x, double y, int)
         // instead.
         wxMouseState mouse = wxGetMouseState();
 
-#if wxCHECK_VERSION(2, 9, 0)
-        bool leftdown = mouse.LeftIsDown();
-#else
-        bool leftdown = mouse.LeftDown();
-#endif
-
-        if (leftdown) {
+        if (mouse.LeftIsDown()) {
             m_ptDrag -= ScrollByOffset(m_ptDrag.x - mouse.GetX(),
                                        m_ptDrag.y - mouse.GetY());
             Update();
@@ -3673,11 +3667,6 @@ void GraphCtrl::CloseTip(const wxPoint& pt)
 
         if (m_canvas->GetToolTip() != NULL) {
             m_canvas->SetToolTip(NULL);
-#if defined __WXGTK__ && !wxCHECK_VERSION(2, 9, 0)
-            // removing the tooltip isn't working on wxGTK 2.8.x
-            wxToolTip::Apply(m_canvas->GetConnectWidget(), "");
-            wxToolTip::Apply(m_canvas->GetConnectWidget(), wxCharBuffer());
-#endif
         }
 
         m_tiptimer.Stop();
@@ -3714,13 +3703,7 @@ void GraphCtrl::OnIdle(wxIdleEvent&)
 
     wxMouseState state = wxGetMouseState();
 
-#if wxCHECK_VERSION(2, 9, 0)
-    bool leftdown = state.LeftIsDown();
-#else
-    bool leftdown = state.LeftDown();
-#endif
-
-    if (m_canvas->GetCheckBounds() && !leftdown) {
+    if (m_canvas->GetCheckBounds() && !state.LeftIsDown()) {
         m_canvas->CheckBounds();
         CheckTip(wxPoint(state.GetX(), state.GetY()));
     }

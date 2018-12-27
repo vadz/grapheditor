@@ -487,22 +487,6 @@ wxString FromXml(const wxString& str)
 
 #endif
 
-#if wxCHECK_VERSION(2, 9, 0)
-
-bool GetAttribute(const wxXmlNode *node, const wxString& name, wxString *value)
-{
-    return node->GetAttribute(name, value);
-}
-
-#else
-
-bool GetAttribute(const wxXmlNode *node, const wxString& name, wxString *value)
-{
-    return node->GetPropVal(name, value);
-}
-
-#endif
-
 } // namespace
 
 bool Archive::Load(wxInputStream& stream)
@@ -528,9 +512,9 @@ bool Archive::Load(wxInputStream& stream)
         wxString name = node->GetName();
         wxString id;
 
-        if (GetAttribute(node, TAGID, &id)) {
+        if (node->GetAttribute(TAGID, &id)) {
             wxString sortkey;
-            GetAttribute(node, TAGSORT, &sortkey);
+            node->GetAttribute(TAGSORT, &sortkey);
             Item *item = Put(name, id, sortkey);
 
             if (item) {

@@ -874,7 +874,9 @@ ProjectNode *MyFrame::NewNode(const wxTreeItemId& id, const wxPoint& pt)
 void MyFrame::OnGraphTreeDrop(GraphTreeEvent& event)
 {
     wxTreeItemId id = event.GetItem();
-    NewNode(id, event.GetPosition());
+    if (ProjectNode* node = NewNode(id, event.GetPosition())) {
+        node->SetToolTip(node->GetText() + "\n" + node->GetResult());
+    }
 }
 
 // Tree item double clicked. Insert a node, searching for clear space to put

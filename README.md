@@ -17,7 +17,7 @@ Prerequisites
 Using Microsoft Visual Studio
 -----------------------------
 
-The solution file uses MSVS 2017 format, but previous MSVS 201x versions should
+The solution file uses MSVS 2019 format, but previous MSVS 201x versions should
 probably work as well -- they haven't been tested however.
 
 1. Edit `build/graphviz.props` file and change GraphvizDir directory value to

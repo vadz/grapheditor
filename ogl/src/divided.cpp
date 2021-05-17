@@ -615,8 +615,6 @@ void wxDividedShapeControlPoint::OnEndDragLeft(double WXUNUSED(x), double y, int
     wxShapeRegion *thisRegion = (wxShapeRegion *)node->GetData();
     wxShapeRegion *nextRegion = NULL; // Region below this one
 
-    dc.SetLogicalFunction(wxCOPY);
-
     m_canvas->ReleaseMouse();
 
     // Find the old top and bottom of this region,

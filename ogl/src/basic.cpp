@@ -1381,8 +1381,6 @@ void wxShape::OnEndDragLeft(double x, double y, int keys, int attachment)
   wxClientDC dc(GetCanvas());
   GetCanvas()->PrepareDC(dc);
 
-  dc.SetLogicalFunction(wxCOPY);
-
   double xx = x + DragOffsetX;
   double yy = y + DragOffsetY;
   m_canvas->Snap(&xx, &yy);

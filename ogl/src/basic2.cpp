@@ -1310,7 +1310,6 @@ void wxShape::OnSizingEndDragLeft(wxControlPoint* pt, double WXUNUSED(x), double
   GetCanvas()->PrepareDC(dc);
 
   m_canvas->ReleaseMouse();
-  dc.SetLogicalFunction(wxCOPY);
   this->Recompute();
   this->ResetControlPoints();
 
@@ -1503,7 +1502,6 @@ void wxPolygonShape::OnSizingEndDragLeft(wxControlPoint* pt, double WXUNUSED(x),
   GetCanvas()->PrepareDC(dc);
 
   m_canvas->ReleaseMouse();
-  dc.SetLogicalFunction(wxCOPY);
 
   // If we're changing shape, must reset the original points
   if (keys & KEY_CTRL)

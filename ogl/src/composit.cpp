@@ -206,7 +206,6 @@ void wxCompositeShape::OnEndDragLeft(double x, double y, int keys, int WXUNUSED(
     return;
   }
 
-  dc.SetLogicalFunction(wxCOPY);
   double xx = x;
   double yy = y;
   m_canvas->Snap(&xx, &yy);
@@ -773,8 +772,6 @@ void wxDivisionShape::OnEndDragLeft(double x, double y, int keys, int attachment
 
   wxClientDC dc(GetCanvas());
   GetCanvas()->PrepareDC(dc);
-
-  dc.SetLogicalFunction(wxCOPY);
 
   m_canvas->Snap(&m_xpos, &m_ypos);
   GetEventHandler()->OnMovePre(dc, x, y, m_oldX, m_oldY);

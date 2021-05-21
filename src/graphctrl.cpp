@@ -859,7 +859,7 @@ void GraphCanvas::OnDragLeft(bool draw, double x, double y, int)
 
         wxShapeCanvasOverlay overlay(this);
         if (!draw) {
-            overlay.Reset();
+            // We just needed to erase the overlay drawing.
             return;
         }
 
@@ -1732,7 +1732,6 @@ void GraphNodeHandler::OnDrag(int mode, bool draw, double x, double y)
     wxShapeCanvasOverlay overlay(canvas);
     if (!draw) {
         // We just needed to erase the overlay drawing.
-        overlay.Reset();
         return;
     }
 

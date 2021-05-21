@@ -90,15 +90,14 @@ DECLARE_EVENT_TABLE()
 // Helper class for temporary drawing over the shape canvas.
 //
 // To draw something over the canvas, call GetDC() to retrieve the DC and draw
-// on it as usual. To erase everything previously drawn over the canvas, do not
-// call GetDC() and call Reset() instead.
+// on it as usual. Just creating this object erases everything previously drawn
+// on the overlay.
 class wxShapeCanvasOverlay
 {
 public:
   explicit wxShapeCanvasOverlay(wxShapeCanvas* canvas)
     : m_dc(canvas),
       m_overlay(canvas->m_overlay),
-      m_overlayReset(m_overlay),
       m_dcOverlay(m_overlay, &m_dc)
   {
     // Start by clearing the previously drawn contents in any case.
@@ -109,14 +108,6 @@ public:
   wxDC& GetDC()
   {
     return m_dc;
-  }
-
-  void Reset()
-  {
-    // We can't call Reset() from here as it can't be done for as long as
-    // m_dcOverlay exists, so just set a flag and actually do it later, in
-    // m_overlayReset dtor, after m_dcOverlay is destroyed.
-    m_overlayReset.Do();
   }
 
 private:
@@ -136,36 +127,6 @@ private:
 
   wxOverlay& m_overlay;
 
-  // Another helper class used to conditionally call wxOverlay::Reset().
-  class OverlayReset
-  {
-  public:
-    explicit OverlayReset(wxOverlay& overlay)
-      : m_overlay(overlay),
-        m_reset(false)
-    {
-    }
-
-    void Do()
-    {
-      m_reset = true;
-    }
-
-    ~OverlayReset()
-    {
-      if (m_reset)
-        m_overlay.Reset();
-    }
-
-  private:
-    wxOverlay& m_overlay;
-    bool m_reset;
-  };
-
-  OverlayReset m_overlayReset;
-
-  // Note that order of declarations here is important: m_dcOverlay must come
-  // after m_overlayReset, so that it is destroyed first.
   wxDCOverlay m_dcOverlay;
 
   wxDECLARE_NO_COPY_CLASS(wxShapeCanvasOverlay);

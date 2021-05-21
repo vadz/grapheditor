@@ -1300,7 +1300,8 @@ void wxShape::OnDragLeft(bool draw, double x, double y, int keys, int attachment
   wxShapeCanvasOverlay overlay(GetCanvas());
   if (!draw)
   {
-    overlay.Reset();
+    // We just needed to erase the overlay drawing, which is done when
+    // wxShapeCanvasOverlay is instantiated, so now we can simply return.
     return;
   }
 

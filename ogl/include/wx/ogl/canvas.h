@@ -62,7 +62,6 @@ class WXDLLIMPEXP_OGL wxShapeCanvas: public wxScrolledWindow
   virtual void AddShape(wxShape *object, wxShape *addAfter = NULL);
   virtual void InsertShape(wxShape *object);
   virtual void RemoveShape(wxShape *object);
-  virtual bool GetQuickEditMode();
   virtual void Redraw(wxDC& dc);
   void Snap(double *x, double *y);
 

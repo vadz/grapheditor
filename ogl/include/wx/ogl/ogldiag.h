@@ -48,9 +48,6 @@ public:
   inline bool GetSnapToGrid() const { return m_snapToGrid; }
   void Snap(double *x, double *y);
 
-  inline void SetQuickEditMode(bool qem) { m_quickEditMode = qem; }
-  inline bool GetQuickEditMode() const { return m_quickEditMode; }
-
   virtual void RemoveShape(wxShape *object);
   virtual void RemoveAllShapes();
   virtual void DeleteAllShapes();
@@ -69,7 +66,6 @@ public:
 
 protected:
   wxShapeCanvas*        m_diagramCanvas;
-  bool                  m_quickEditMode;
   bool                  m_snapToGrid;
   double                m_gridSpacing;
   double                m_gridSpacingAspect;

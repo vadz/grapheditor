@@ -1760,7 +1760,6 @@ void wxLineControlPoint::OnEndDragRight(double x, double y, int keys, int attach
     if (((wxRealPoint *)(lineShape->GetLineControlPoints()->Item(i)->GetData())) == m_point)
       break;
   lineShape->OnMoveControlPoint(i+1, x, y);
-  if (!m_canvas->GetQuickEditMode()) m_canvas->Redraw(dc);
 }
 #endif
 

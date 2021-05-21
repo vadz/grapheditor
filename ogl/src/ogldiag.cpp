@@ -37,7 +37,6 @@ IMPLEMENT_DYNAMIC_CLASS(wxDiagram, wxObject)
 wxDiagram::wxDiagram()
 {
   m_diagramCanvas = NULL;
-  m_quickEditMode = false;
   m_snapToGrid = true;
   m_gridSpacing = 5.0;
   m_gridSpacingAspect = 1.0;

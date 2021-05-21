@@ -1314,10 +1314,6 @@ void wxShape::OnSizingEndDragLeft(wxControlPoint* pt, double WXUNUSED(x), double
   this->ResetControlPoints();
 
   this->Erase(dc);
-/*
-  if (!pt->m_eraseObject)
-    this->Show(false);
-*/
 
   this->SetSize(pt->sm_controlPointDragEndWidth, pt->sm_controlPointDragEndHeight);
 
@@ -1325,18 +1321,11 @@ void wxShape::OnSizingEndDragLeft(wxControlPoint* pt, double WXUNUSED(x), double
   // via formatting the text), so save all values we're going to use, or
   // we'll be accessing garbage.
   wxShape *theObject = this;
-  wxShapeCanvas *theCanvas = m_canvas;
-  bool eraseIt = pt->m_eraseObject;
 
   if (theObject->GetCentreResize())
     theObject->Move(dc, theObject->GetX(), theObject->GetY());
   else
     theObject->Move(dc, pt->sm_controlPointDragPosX, pt->sm_controlPointDragPosY);
-
-/*
-  if (!eraseIt)
-    theObject->Show(true);
-*/
 
   // Recursively redraw links if we have a composite.
   if (theObject->GetChildren().GetCount() > 0)
@@ -1345,8 +1334,6 @@ void wxShape::OnSizingEndDragLeft(wxControlPoint* pt, double WXUNUSED(x), double
   double width, height;
   theObject->GetBoundingBoxMax(&width, &height);
   theObject->GetEventHandler()->OnEndSize(width, height);
-
-  if (!theCanvas->GetQuickEditMode() && eraseIt) theCanvas->Redraw(dc);
 }
 
 
@@ -1520,7 +1507,6 @@ void wxPolygonShape::OnSizingEndDragLeft(wxControlPoint* pt, double WXUNUSED(x),
   this->Recompute();
   this->ResetControlPoints();
   this->Move(dc, this->GetX(), this->GetY());
-  if (!m_canvas->GetQuickEditMode()) m_canvas->Redraw(dc);
 }
 
 /*

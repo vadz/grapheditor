@@ -495,8 +495,6 @@ void wxShapeCanvas::InsertShape(wxShape *object)
  { GetDiagram()->InsertShape(object); }
 void wxShapeCanvas::RemoveShape(wxShape *object)
  { GetDiagram()->RemoveShape(object); }
-bool wxShapeCanvas::GetQuickEditMode()
- { return GetDiagram()->GetQuickEditMode(); }
 void wxShapeCanvas::Redraw(wxDC& dc)
  { GetDiagram()->Redraw(dc); }
 void wxShapeCanvas::Snap(double *x, double *y)

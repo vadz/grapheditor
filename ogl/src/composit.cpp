@@ -213,8 +213,6 @@ void wxCompositeShape::OnEndDragLeft(double x, double y, int keys, int WXUNUSED(
   double offsetY = yy - objectStartY;
 
   Move(dc, GetX() + offsetX, GetY() + offsetY);
-
-  if (m_canvas && !m_canvas->GetQuickEditMode()) m_canvas->Redraw(dc);
 }
 
 void wxCompositeShape::OnRightClick(double x, double y, int keys, int WXUNUSED(attachment))
@@ -780,8 +778,6 @@ void wxDivisionShape::OnEndDragLeft(double x, double y, int keys, int attachment
   Draw(dc);
   MoveLinks(dc);
   GetEventHandler()->OnDrawControlPoints(dc);
-
-  if (m_canvas && !m_canvas->GetQuickEditMode()) m_canvas->Redraw(dc);
 }
 
 void wxDivisionShape::SetSize(double w, double h, bool recursive)

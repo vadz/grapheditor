@@ -1158,8 +1158,6 @@ void wxShape::OnChangeAttachment(int attachment, wxLineShape* line, wxList& orde
     GetCanvas()->PrepareDC(dc);
 
     MoveLinks(dc);
-
-    if (!GetCanvas()->GetQuickEditMode()) GetCanvas()->Redraw(dc);
 }
 
 // Reorders the lines according to the given list.
@@ -1390,7 +1388,6 @@ void wxShape::OnEndDragLeft(double x, double y, int keys, int attachment)
   Erase(dc);
 
   Move(dc, xx, yy);
-  if (m_canvas && !m_canvas->GetQuickEditMode()) m_canvas->Redraw(dc);
 }
 
 void wxShape::OnDragRight(bool draw, double x, double y, int keys, int attachment)

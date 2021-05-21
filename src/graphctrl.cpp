@@ -1862,13 +1862,10 @@ void GraphNodeHandler::OnSizingEndDragLeft(wxControlPoint* pt,
 {
     GraphNode *node = GetNode();
     wxShape *shape = GetShape();
-    wxDiagram *diagram = shape->GetCanvas()->GetDiagram();
     node->Refresh();
     shape->Show(false);
-    diagram->SetQuickEditMode(true);
     GraphElementHandler::OnSizingEndDragLeft(pt, x, y, keys, attachment);
     shape->Show(true);
-    diagram->SetQuickEditMode(false);
     node->SetSize(node->GetSize());
 }
 

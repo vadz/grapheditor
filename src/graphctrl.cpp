@@ -464,14 +464,6 @@ public:
     void OnScroll(wxScrollWinEvent& event);
 
     /**
-     * Paint event handler.
-     *
-     * Calls wxDiagram::Redraw() to draw the diagram after adjusting the DC
-     * with PrepareDC().
-     */
-    void OnPaint(wxPaintEvent& event);
-
-    /**
      * Size event handler.
      *
      * Call SetCheckBounds() to schedule a scrollbars update.
@@ -706,7 +698,6 @@ IMPLEMENT_DYNAMIC_CLASS(GraphCanvas, wxShapeCanvas)
 
 BEGIN_EVENT_TABLE(GraphCanvas, wxShapeCanvas)
     EVT_SCROLLWIN(GraphCanvas::OnScroll)
-    EVT_PAINT(GraphCanvas::OnPaint)
     EVT_SIZE(GraphCanvas::OnSize)
     EVT_LEFT_DOWN(GraphCanvas::OnLeftButton)
     EVT_LEFT_UP(GraphCanvas::OnLeftButton)
@@ -1143,15 +1134,6 @@ wxSize GraphCanvas::GetScrollClientSize() const
 wxSize GraphCanvas::GetFullClientSize() const
 {
     return GetClientSize() + m_sizeScrollbar;
-}
-
-void GraphCanvas::OnPaint(wxPaintEvent&)
-{
-    wxPaintDC dc(this);
-    PrepareDC(dc);
-
-    if (GetDiagram())
-        GetDiagram()->Redraw(dc);
 }
 
 void GraphCanvas::OnSize(wxSizeEvent& event)

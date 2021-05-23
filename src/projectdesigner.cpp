@@ -131,59 +131,27 @@ void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
 
     canvas->PrepareDC(dc);
 
-    wxRect rc;
-    rc.x = dc.DeviceToLogicalX(rcClip.x);
-    rc.y = dc.DeviceToLogicalY(rcClip.y);
-    rc.SetRight(dc.DeviceToLogicalX(rcClip.GetRight()));
-    rc.SetBottom(dc.DeviceToLogicalY(rcClip.GetBottom()));
-    rcClip = rc;
+    rcClip.x = dc.DeviceToLogicalX(rcClip.x);
+    rcClip.y = dc.DeviceToLogicalY(rcClip.y);
+    rcClip.SetRight(dc.DeviceToLogicalX(rcClip.GetRight()));
+    rcClip.SetBottom(dc.DeviceToLogicalY(rcClip.GetBottom()));
 
-    wxSize spacing = GetGraph()->GetGridSpacing();
-    int factor;
-
-    if (IsGridShown()) {
-        factor = AdjustedGridFactor();
-        spacing *= factor;
-    }
-    else {
-        factor = 1;
-    }
-
-    rc.x -= rc.x % spacing.x;
-    if (rcClip.x < 0)
-        rc.x -= spacing.x;
-    rc.width = spacing.x + 1;
-
-    int lastred = -1, lastgreen = -1, lastblue = -1;
-    int red0 = m_background[0].Red();
-    int green0 = m_background[0].Green();
-    int blue0 = m_background[0].Blue();
-    int red1 = m_background[1].Red();
-    int green1 = m_background[1].Green();
-    int blue1 = m_background[1].Blue();
-
-    dc.SetPen(*wxTRANSPARENT_PEN);
-
-    while (rc.x < rcClip.GetRight())
-    {
-        int i = min(abs(rc.x / spacing.x) * factor, 255);
-
-        int red = red0 + (red1 - red0) * i / 255;
-        int green = green0 + (green1 - green0) * i / 255;
-        int blue = blue0 + (blue1 - blue0) * i / 255;
-
-        if (red != lastred || green != lastgreen || blue != lastblue) {
-            dc.SetBrush(wxColour(red, green, blue));
-            lastred = red;
-            lastgreen = green;
-            lastblue = blue;
-        }
-
-        dc.DrawRectangle(rc);
-        rc.x += spacing.x;
+    if (m_background[0] == m_background[1]) {
+        dc.SetBackground(m_background[0]);
+        dc.Clear();
+    } else {
+        // In order to use the correct, and same, colours, independently of
+        // whether this is a full or a partial repaint, always draw the entire
+        // horizontal window span, not just the area we're repainting.
+        wxRect rc = rcClip;
+        rc.x = dc.DeviceToLogicalX(0);
+        rc.SetRight(dc.DeviceToLogicalX(canvas->GetClientSize().x));
+        dc.GradientFillLinear(rc, m_background[0], m_background[1]);
     }
 
     if (IsGridShown()) {
+        const wxSize spacing = GetGraph()->GetGridSpacing() * AdjustedGridFactor();
+
         dc.SetPen(GetForegroundColour());
         wxCoord x1, y1, x2, y2;
 

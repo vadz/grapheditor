@@ -111,15 +111,13 @@ void ProjectDesigner::OnCanvasBackground(wxEraseEvent& event)
 
         if (pdc) {
             DrawCanvasBackground(*pdc);
-        }
-        else {
-            wxClientDC dc(GetCanvas());
-            DrawCanvasBackground(dc);
+
+            // Skip the call to event.Skip() below.
+            return;
         }
     }
-    else {
-        event.Skip();
-    }
+
+    event.Skip();
 }
 
 void ProjectDesigner::DrawCanvasBackground(wxDC& dc)

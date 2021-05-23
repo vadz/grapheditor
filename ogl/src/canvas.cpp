@@ -68,6 +68,8 @@ wxShapeCanvas::wxShapeCanvas(wxWindow *parent, wxWindowID id,
   m_firstDragX = 0;
   m_firstDragY = 0;
   m_checkTolerance = true;
+
+  SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_LISTBOX));
 }
 
 wxShapeCanvas::~wxShapeCanvas()

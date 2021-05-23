@@ -56,9 +56,8 @@ void ProjectDesigner::Init()
 {
     wxWindow *canvas = GetCanvas();
 
-    canvas->Connect(wxEVT_ERASE_BACKGROUND,
-                    wxEraseEventHandler(ProjectDesigner::OnCanvasBackground),
-                    NULL, this);
+    canvas->Bind(wxEVT_ERASE_BACKGROUND,
+                 &ProjectDesigner::OnCanvasBackground, this);
 
     m_background[0] = m_background[1] = GetBackgroundColour();
     m_showGrid = true;

@@ -122,6 +122,9 @@ void ProjectDesigner::OnCanvasBackground(wxEraseEvent& event)
 
 void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
 {
+    // Start by clearing the background in any case.
+    dc.Clear();
+
     wxASSERT(GetGraph());
     wxWindow *canvas = GetCanvas();
 

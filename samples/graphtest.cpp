@@ -450,6 +450,7 @@ public:
     void OnSetGrid(wxCommandEvent&);
     void OnSetGridFactor(wxCommandEvent&);
     void OnSetToolTipMode(wxCommandEvent&);
+    void OnSetGradientBackground(wxCommandEvent&);
 
     // help menu
     void OnHelp(wxCommandEvent&);
@@ -521,6 +522,7 @@ enum {
     ID_SETGRID,
     ID_SETGRIDFACTOR,
     ID_SETTOOLTIPMODE,
+    ID_GRADIENTBG,
     ID_ZOOM,
     ID_ZOOM_NORM,
     ID_FIT,
@@ -587,6 +589,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(ID_SETGRID, MyFrame::OnSetGrid)
     EVT_MENU(ID_SETGRIDFACTOR, MyFrame::OnSetGridFactor)
     EVT_MENU(ID_SETTOOLTIPMODE, MyFrame::OnSetToolTipMode)
+    EVT_MENU(ID_GRADIENTBG, MyFrame::OnSetGradientBackground)
 
     EVT_MENU(ID_LAYOUT, MyFrame::OnLayout)
     EVT_MENU(ID_SETSIZE, MyFrame::OnSetSize)
@@ -740,6 +743,7 @@ MyFrame::MyFrame(const wxString& title)
     testMenu->Append(ID_MARGIN, _T("Scroll &Margin\tCtrl+M"));
     testMenu->AppendSeparator();
     testMenu->Append(ID_SETTOOLTIPMODE, _T("Set Toolt&ip Mode...\tCtrl+I"));
+    testMenu->Append(ID_GRADIENTBG, _T("Gradient &background\tCtrl+Shift+B"));
 
     // help menu
     wxMenu *helpMenu = new wxMenu;
@@ -1762,6 +1766,17 @@ void MyFrame::OnSetToolTipMode(wxCommandEvent&)
 
     if (mode >= 0)
         m_graphctrl->EnableToolTips(static_cast<GraphCtrl::ToolTipMode>(mode));
+}
+
+void MyFrame::OnSetGradientBackground(wxCommandEvent& event)
+{
+    if (event.IsChecked()) {
+        m_graphctrl->SetBackgroundGradient("light blue", "light steel blue");
+    } else {
+        m_graphctrl->SetBackgroundColour(*wxWHITE);
+    }
+
+    m_graphctrl->Refresh();
 }
 
 /** @endcond */

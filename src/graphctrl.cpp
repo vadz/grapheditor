@@ -1772,7 +1772,7 @@ void GraphNodeHandler::OnDrag(int mode, bool draw, double x, double y)
             sh->OnDrawOutline(dc, xx, yy, w, h);
         }
     }
-    else if ((mode && Drag_Connect) != 0) {
+    else if ((mode & Drag_Connect) != 0) {
         Graph::node_iterator it, end;
 
         for (tie(it, end) = graph->GetSelectionNodes(); it != end; ++it) {

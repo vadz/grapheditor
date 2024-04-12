@@ -181,6 +181,9 @@ $(OGL_OBJECTS): $(OGL_BUILDDIR)/%.o: $(top_srcdir)/ogl/src/%.cpp $(call if_not_e
 $(GRAPHTEST_OBJECTS): $(GRAPHTEST_BUILDDIR)/%.o: $(top_srcdir)/samples/%.cpp $(call if_not_exists,$(GRAPHTEST_BUILDDIR))
 	$(CXX) -c -o $@ $(GRAPHTEST_CXXFLAGS) $(CPPDEPS) $<
 
+.PHONY: ogl
+ogl: $(OGL_LIB)
+
 clean:
 	$(RM) $(GRAPHEDITOR_BUILDDIR)/*.[od] $(GRAPHEDITOR_LIB) \
 	    $(OGL_BUILDDIR)/*.[od] $(OGL_LIB) \

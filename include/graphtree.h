@@ -169,8 +169,7 @@ typedef void (wxEvtHandler::*GraphTreeEventFunction)(GraphTreeEvent&);
  * dynamically, this macro should be applied to the event handler.
  */
 #define GraphTreeEventHandler(func) \
-    (wxObjectEventFunction)(wxEventFunction) \
-        wxStaticCastEvent(tt_solutions::GraphTreeEventFunction, &func)
+    wxEVENT_HANDLER_CAST(tt_solutions::GraphTreeEventFunction, func)
 
 /**
  * @brief Event that fires when an item from the GraphTreeCtrl is dropped

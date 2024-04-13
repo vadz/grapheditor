@@ -2390,8 +2390,7 @@ END_DECLARE_EVENT_TYPES()
  * dynamically, this macro should be applied to the event handler.
  */
 #define GraphEventHandler(func) \
-    (wxObjectEventFunction)(wxEventFunction) \
-        wxStaticCastEvent(tt_solutions::GraphEventFunction, &func)
+    wxEVENT_HANDLER_CAST(tt_solutions::GraphEventFunction, func)
 
 /** @cond */
 #define DECLARE_GRAPH_EVT1(evt, id, fn) \

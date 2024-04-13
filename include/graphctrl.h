@@ -250,6 +250,9 @@ public:
     /// Default ctor.
     GraphIterator() : Base() { }
 
+    /// Copy ctor.
+    GraphIterator(const GraphIterator& it) : Base(it) { }
+
     /// Template copy ctor.
     template <class U>
     GraphIterator(const GraphIterator<U>& it) : Base(it) {

@@ -108,8 +108,11 @@ protected:
      * Used by XML callback functions.
      */
     //@{
-    wxString FromXml(const char *str, size_t len = wxString::npos);
+#ifdef XML_UNICODE
     wxString FromXml(const wchar_t *str, size_t len = wxString::npos);
+#else
+    wxString FromXml(const char *str, size_t len = wxString::npos);
+#endif
     //@}
 
 private:
@@ -132,17 +135,17 @@ Parser::Parser(Archive *archive)
 {
 }
 
+#ifdef XML_UNICODE
 wxString Parser::FromXml(const wchar_t *str, size_t len)
 {
-    return wxString(str, *wxConvUI, len);
+    return wxString(str, len);
 }
-
+#else
 wxString Parser::FromXml(const char *str, size_t len)
 {
-    size_t wlen;
-    wxWCharBuffer wbuf = wxConvUTF8.cMB2WC(str, len, &wlen);
-    return FromXml(wbuf, wlen);
+    return wxString::FromUTF8(str, len);
 }
+#endif
 
 void Parser::StartElement(const XML_Char *name, const XML_Char **atts)
 {
@@ -326,15 +329,8 @@ void Generator::Write(const char *utf, size_t len)
 
 void Generator::Write(const wxString& str)
 {
-#if wxUSE_UNICODE
-    size_t clen;
-    wxCharBuffer cbuf = wxConvUTF8.cWC2MB(str, str.length(), &clen);
-#else
-    size_t wlen, clen;
-    wxWCharBuffer wbuf = wxConvUI->cMB2WC(str, str.length(), &wlen);
-    wxCharBuffer cbuf = wxConvUTF8.cWC2MB(wbuf, wlen, &clen);
-#endif
-    Write(cbuf, clen);
+    wxCharBuffer cbuf = str.utf8_str();
+    Write(cbuf, cbuf.length());
 }
 
 void Generator::Pair(const wxString& name_and_attrs, const wxString& value)
@@ -474,18 +470,7 @@ void Archive::Clear()
 
 namespace {
 
-#if wxUSE_UNICODE
-
 wxString FromXml(const wxString& str)  { return str; }
-
-#else
-
-wxString FromXml(const wxString& str)
-{
-    return wxConvUI->cWC2MB(wxConvUTF8.cMB2WC(str));
-}
-
-#endif
 
 } // namespace
 

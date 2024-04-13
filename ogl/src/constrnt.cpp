@@ -22,8 +22,16 @@
 
 #include "wx/ogl/ogl.h"
 
+#include <memory>
+#include <vector>
 
-wxList *wxOGLConstraintTypes = NULL;
+namespace
+{
+
+using wxOGLConstraintTypesVector = std::vector<std::unique_ptr<wxOGLConstraintType>>;
+wxOGLConstraintTypesVector* wxOGLConstraintTypes = nullptr;
+
+} // anonymous namespace
 
 /*
  * Constraint type
@@ -45,56 +53,56 @@ wxOGLConstraintType::~wxOGLConstraintType()
 
 void OGLInitializeConstraintTypes()
 {
-    if (!wxOGLConstraintTypes)
+    if (wxOGLConstraintTypes)
         return;
 
-    wxOGLConstraintTypes = new wxList(wxKEY_INTEGER);
+    wxOGLConstraintTypes = new wxOGLConstraintTypesVector();
 
-    wxOGLConstraintTypes->Append(gyCONSTRAINT_CENTRED_VERTICALLY,
+    wxOGLConstraintTypes->emplace_back(
         new wxOGLConstraintType(gyCONSTRAINT_CENTRED_VERTICALLY, wxT("Centre vertically"), wxT("centred vertically w.r.t.")));
 
-    wxOGLConstraintTypes->Append(gyCONSTRAINT_CENTRED_HORIZONTALLY,
+    wxOGLConstraintTypes->emplace_back(
         new wxOGLConstraintType(gyCONSTRAINT_CENTRED_HORIZONTALLY, wxT("Centre horizontally"), wxT("centred horizontally w.r.t.")));
 
-    wxOGLConstraintTypes->Append(gyCONSTRAINT_CENTRED_BOTH,
+    wxOGLConstraintTypes->emplace_back(
         new wxOGLConstraintType(gyCONSTRAINT_CENTRED_BOTH, wxT("Centre"), wxT("centred w.r.t.")));
 
-    wxOGLConstraintTypes->Append(gyCONSTRAINT_LEFT_OF,
+    wxOGLConstraintTypes->emplace_back(
         new wxOGLConstraintType(gyCONSTRAINT_LEFT_OF, wxT("Left of"), wxT("left of")));
 
-    wxOGLConstraintTypes->Append(gyCONSTRAINT_RIGHT_OF,
+    wxOGLConstraintTypes->emplace_back(
         new wxOGLConstraintType(gyCONSTRAINT_RIGHT_OF, wxT("Right of"), wxT("right of")));
 
-    wxOGLConstraintTypes->Append(gyCONSTRAINT_ABOVE,
+    wxOGLConstraintTypes->emplace_back(
         new wxOGLConstraintType(gyCONSTRAINT_ABOVE, wxT("Above"), wxT("above")));
 
-    wxOGLConstraintTypes->Append(gyCONSTRAINT_BELOW,
+    wxOGLConstraintTypes->emplace_back(
         new wxOGLConstraintType(gyCONSTRAINT_BELOW, wxT("Below"), wxT("below")));
 
     // Alignment
-    wxOGLConstraintTypes->Append(gyCONSTRAINT_ALIGNED_TOP,
+    wxOGLConstraintTypes->emplace_back(
         new wxOGLConstraintType(gyCONSTRAINT_ALIGNED_TOP, wxT("Top-aligned"), wxT("aligned to the top of")));
 
-    wxOGLConstraintTypes->Append(gyCONSTRAINT_ALIGNED_BOTTOM,
+    wxOGLConstraintTypes->emplace_back(
         new wxOGLConstraintType(gyCONSTRAINT_ALIGNED_BOTTOM, wxT("Bottom-aligned"), wxT("aligned to the bottom of")));
 
-    wxOGLConstraintTypes->Append(gyCONSTRAINT_ALIGNED_LEFT,
+    wxOGLConstraintTypes->emplace_back(
         new wxOGLConstraintType(gyCONSTRAINT_ALIGNED_LEFT, wxT("Left-aligned"), wxT("aligned to the left of")));
 
-    wxOGLConstraintTypes->Append(gyCONSTRAINT_ALIGNED_RIGHT,
+    wxOGLConstraintTypes->emplace_back(
         new wxOGLConstraintType(gyCONSTRAINT_ALIGNED_RIGHT, wxT("Right-aligned"), wxT("aligned to the right of")));
 
     // Mid-alignment
-    wxOGLConstraintTypes->Append(gyCONSTRAINT_MIDALIGNED_TOP,
+    wxOGLConstraintTypes->emplace_back(
         new wxOGLConstraintType(gyCONSTRAINT_MIDALIGNED_TOP, wxT("Top-midaligned"), wxT("centred on the top of")));
 
-    wxOGLConstraintTypes->Append(gyCONSTRAINT_MIDALIGNED_BOTTOM,
+    wxOGLConstraintTypes->emplace_back(
         new wxOGLConstraintType(gyCONSTRAINT_MIDALIGNED_BOTTOM, wxT("Bottom-midaligned"), wxT("centred on the bottom of")));
 
-    wxOGLConstraintTypes->Append(gyCONSTRAINT_MIDALIGNED_LEFT,
+    wxOGLConstraintTypes->emplace_back(
         new wxOGLConstraintType(gyCONSTRAINT_MIDALIGNED_LEFT, wxT("Left-midaligned"), wxT("centred on the left of")));
 
-    wxOGLConstraintTypes->Append(gyCONSTRAINT_MIDALIGNED_RIGHT,
+    wxOGLConstraintTypes->emplace_back(
         new wxOGLConstraintType(gyCONSTRAINT_MIDALIGNED_RIGHT, wxT("Right-midaligned"), wxT("centred on the right of")));
 }
 
@@ -103,13 +111,6 @@ void OGLCleanUpConstraintTypes()
     if (!wxOGLConstraintTypes)
         return;
 
-    wxNode* node = wxOGLConstraintTypes->GetFirst();
-    while (node)
-    {
-        wxOGLConstraintType* ct = (wxOGLConstraintType*) node->GetData();
-        delete ct;
-        node = node->GetNext();
-    }
     delete wxOGLConstraintTypes;
     wxOGLConstraintTypes = NULL;
 }

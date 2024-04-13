@@ -33,8 +33,6 @@ public:
 
 };
 
-extern wxList* wxOGLConstraintTypes;
-
 #define gyCONSTRAINT_CENTRED_VERTICALLY   1
 #define gyCONSTRAINT_CENTRED_HORIZONTALLY 2
 #define gyCONSTRAINT_CENTRED_BOTH         3

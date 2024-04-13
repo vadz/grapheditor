@@ -364,7 +364,7 @@ class WXDLLIMPEXP_OGL wxMetaRecord: public wxObject
 {
   public:
   int metaFunction;
-  long param1;
+  wxUIntPtr param1;
   long param2;
   long param3;
   long param4;

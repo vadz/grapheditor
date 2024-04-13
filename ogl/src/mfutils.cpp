@@ -404,8 +404,9 @@ bool wxXMetaFile::ReadFile(const wxChar *file)
       {
         wxMetaRecord *rec = new wxMetaRecord(META_POLYGON);
         rec->param1 = getshort(handle);
-        rec->points = new wxRealPoint[(int)rec->param1];
-        for (int i = 0; i < rec->param1; i++)
+        const int numPoints = (int)rec->param1;
+        rec->points = new wxRealPoint[numPoints];
+        for (int i = 0; i < numPoints; i++)
         {
           rec->points[i].x = getshort(handle);
           rec->points[i].y = getshort(handle);
@@ -418,8 +419,9 @@ bool wxXMetaFile::ReadFile(const wxChar *file)
       {
         wxMetaRecord *rec = new wxMetaRecord(META_POLYLINE);
         rec->param1 = (long)getshort(handle);
-        rec->points = new wxRealPoint[(int)rec->param1];
-        for (int i = 0; i < rec->param1; i++)
+        const int numPoints = (int)rec->param1;
+        rec->points = new wxRealPoint[numPoints];
+        for (int i = 0; i < numPoints; i++)
         {
           rec->points[i].x = getshort(handle);
           rec->points[i].y = getshort(handle);
@@ -533,7 +535,7 @@ bool wxXMetaFile::ReadFile(const wxChar *file)
         else style = wxPENSTYLE_SOLID;
 
         wxColour colour(GetRValue(colorref), GetGValue(colorref), GetBValue(colorref));
-        rec->param1 = (long)wxThePenList->FindOrCreatePen(colour, x, style);
+        rec->param1 = (wxUIntPtr)wxThePenList->FindOrCreatePen(colour, x, style);
         metaRecords.Append(rec);
         gdiObjects.Append(rec);
 
@@ -612,7 +614,7 @@ bool wxXMetaFile::ReadFile(const wxChar *file)
                                           info.IsUnderlined()
                                          );
 
-        rec->param1 = (long) theFont;
+        rec->param1 = (wxUIntPtr) theFont;
         metaRecords.Append(rec);
         gdiObjects.Append(rec);
         AddMetaRecordHandle(rec);
@@ -665,7 +667,7 @@ bool wxXMetaFile::ReadFile(const wxChar *file)
         }
 
         wxColour colour(GetRValue(colorref), GetGValue(colorref), GetBValue(colorref));
-        rec->param1 = (long)wxTheBrushList->FindOrCreateBrush(colour, style);
+        rec->param1 = (wxUIntPtr)wxTheBrushList->FindOrCreateBrush(colour, style);
         metaRecords.Append(rec);
         gdiObjects.Append(rec);
         AddMetaRecordHandle(rec);

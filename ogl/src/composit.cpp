@@ -22,6 +22,39 @@
 
 #include "wx/ogl/ogl.h"
 
+#include <unordered_map>
+
+namespace
+{
+
+// This map stores the mapping between the original objects and their copies
+// which have the same type as the original ones, which is why we provide a
+// different lookup function below returning wxDivisionShape when the original
+// was wxDivisionShape.
+std::unordered_map<wxShape*, wxShape*> oglObjectCopyMapping;
+
+void oglAddCopyMapping(wxShape* original, wxShape* copy)
+{
+    oglObjectCopyMapping[original] = copy;
+}
+
+wxShape* oglFindCopyMapping(wxShape* original)
+{
+    const auto it = oglObjectCopyMapping.find(original);
+    return it == oglObjectCopyMapping.end() ? nullptr : it->second;
+}
+
+wxDivisionShape* oglFindDivisionCopyMapping(wxDivisionShape* original)
+{
+    return wxStaticCast(oglFindCopyMapping(original), wxDivisionShape);
+}
+
+} // anonymous namespace
+
+void oglClearCopyMapping()
+{
+    oglObjectCopyMapping.clear();
+}
 
 /*
  * Division control point
@@ -350,7 +383,7 @@ void wxCompositeShape::Copy(wxShape& copy)
   wxCompositeShape& compositeCopy = (wxCompositeShape&) copy;
 
   // Associate old and new copies for compositeCopying constraints and division geometry
-  oglObjectCopyMapping.Append((long)this, &compositeCopy);
+  oglAddCopyMapping(this, &compositeCopy);
 
   // Copy the children
   wxNode *node = m_children.GetFirst();
@@ -368,7 +401,7 @@ void wxCompositeShape::Copy(wxShape& copy)
     if (m_divisions.Member(object))
       compositeCopy.m_divisions.Append(newObject);
 
-    oglObjectCopyMapping.Append((long)object, newObject);
+    oglAddCopyMapping(object, newObject);
 
     node = node->GetNext();
   }
@@ -379,14 +412,14 @@ void wxCompositeShape::Copy(wxShape& copy)
   {
     wxOGLConstraint *constraint = (wxOGLConstraint *)node->GetData();
 
-    wxShape *newConstraining = (wxShape *)(oglObjectCopyMapping.Find((long)constraint->m_constrainingObject)->GetData());
+    wxShape *newConstraining = oglFindCopyMapping(constraint->m_constrainingObject);
 
     wxList newConstrainedList;
     wxNode *node2 = constraint->m_constrainedObjects.GetFirst();
     while (node2)
     {
       wxShape *constrainedObject = (wxShape *)node2->GetData();
-      wxShape *newConstrained = (wxShape *)(oglObjectCopyMapping.Find((long)constrainedObject)->GetData());
+      wxShape *newConstrained = oglFindCopyMapping(constrainedObject);
       newConstrainedList.Append(newConstrained);
       node2 = node2->GetNext();
     }
@@ -409,32 +442,32 @@ void wxCompositeShape::Copy(wxShape& copy)
   while (node)
   {
     wxDivisionShape *division = (wxDivisionShape *)node->GetData();
-    wxNode *node1 = oglObjectCopyMapping.Find((long)division);
-    wxNode *leftNode = NULL;
-    wxNode *topNode = NULL;
-    wxNode *rightNode = NULL;
-    wxNode *bottomNode = NULL;
-    if (division->GetLeftSide())
-      leftNode = oglObjectCopyMapping.Find((long)division->GetLeftSide());
-    if (division->GetTopSide())
-      topNode = oglObjectCopyMapping.Find((long)division->GetTopSide());
-    if (division->GetRightSide())
-      rightNode = oglObjectCopyMapping.Find((long)division->GetRightSide());
-    if (division->GetBottomSide())
-      bottomNode = oglObjectCopyMapping.Find((long)division->GetBottomSide());
-    if (node1)
-    {
-      wxDivisionShape *newDivision = (wxDivisionShape *)node1->GetData();
-      if (leftNode)
-        newDivision->SetLeftSide((wxDivisionShape *)leftNode->GetData());
-      if (topNode)
-        newDivision->SetTopSide((wxDivisionShape *)topNode->GetData());
-      if (rightNode)
-        newDivision->SetRightSide((wxDivisionShape *)rightNode->GetData());
-      if (bottomNode)
-        newDivision->SetBottomSide((wxDivisionShape *)bottomNode->GetData());
-    }
     node = node->GetNext();
+
+    wxDivisionShape* const newDivision = oglFindDivisionCopyMapping(division);
+    if (!newDivision)
+        continue;
+
+    if (division->GetLeftSide())
+    {
+      if (auto leftSide = oglFindDivisionCopyMapping(division->GetLeftSide()))
+        newDivision->SetLeftSide(leftSide);
+    }
+    if (division->GetTopSide())
+    {
+      if (auto topSide = oglFindDivisionCopyMapping(division->GetTopSide()))
+        newDivision->SetTopSide(topSide);
+    }
+    if (division->GetRightSide())
+    {
+      if (auto rightSide = oglFindDivisionCopyMapping(division->GetRightSide()))
+        newDivision->SetRightSide(rightSide);
+    }
+    if (division->GetBottomSide())
+    {
+      if (auto bottomSide = oglFindDivisionCopyMapping(division->GetBottomSide()))
+        newDivision->SetBottomSide(bottomSide);
+    }
   }
 }
 

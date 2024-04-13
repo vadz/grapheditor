@@ -43,8 +43,6 @@ wxCursor*       g_oglBullseyeCursor = NULL;
 
 wxChar*           oglBuffer = NULL;
 
-wxList          oglObjectCopyMapping(wxKEY_INTEGER);
-
 
 
 void wxOGLInitialize()

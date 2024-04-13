@@ -13,9 +13,8 @@
 #define _OGL_MISC_H_
 
 
-// List to use when copying objects; may need to associate elements of new objects
-// with elements of old objects, e.g. when copying constraint.s
-extern wxList oglObjectCopyMapping;
+// Clear the list used by wxCompositeShape while copying when it is done.
+extern void oglClearCopyMapping();
 
 /*
  * TEXT FORMATTING FUNCTIONS

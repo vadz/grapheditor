@@ -1737,7 +1737,7 @@ void wxShape::Copy(wxShape& copy)
 wxShape *wxShape::CreateNewCopy(bool resetMapping, bool recompute)
 {
   if (resetMapping)
-    oglObjectCopyMapping.Clear();
+    oglClearCopyMapping();
 
   wxShape* newObject = (wxShape*) GetClassInfo()->CreateObject();
 

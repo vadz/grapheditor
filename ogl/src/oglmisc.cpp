@@ -32,6 +32,7 @@
 
 #include "wx/ogl/ogl.h"
 
+#include <vector>
 
 wxFont*         g_oglNormalFont;
 wxPen*          g_oglBlackPen;
@@ -297,7 +298,7 @@ void oglCentreTextNoClipping(wxDC& dc, wxList *text_list,
   wxCoord current_width = 0;
 
   // Store text extents for speed
-  double *widths = new double[n];
+  std::vector<double> widths(n);
 
   wxObjectList::compatibility_iterator current = text_list->GetFirst();
   int i = 0;
@@ -333,7 +334,6 @@ void oglCentreTextNoClipping(wxDC& dc, wxList *text_list,
     current = current->GetNext();
     i ++;
   }
-  delete widths;
 }
 
 void oglGetCentredTextExtent(wxDC& dc, wxList *text_list,

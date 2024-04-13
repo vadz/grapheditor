@@ -1175,11 +1175,6 @@ void MyFrame::OnHelp(wxCommandEvent&)
         wxLogNull nolog;
         wxHtmlWindow *html = new wxHtmlWindow(frame);
 
-        // work around the wxhtml bug in wxWidgets 2.6.3
-#if defined __WXGTK__ && !wxUSE_UNICODE
-        html->GetParser()->SetInputEncoding(wxFONTENCODING_SYSTEM);
-#endif
-
         html->SetPage(helptext);
 
         frame->CentreOnParent();

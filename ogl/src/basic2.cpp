@@ -47,8 +47,8 @@ IMPLEMENT_DYNAMIC_CLASS(wxPolygonShape, wxShape)
 
 wxPolygonShape::wxPolygonShape()
 {
-  m_points = NULL;
-  m_originalPoints = NULL;
+  m_points = nullptr;
+  m_originalPoints = nullptr;
 }
 
 void wxPolygonShape::Create(wxList *the_points)
@@ -100,7 +100,7 @@ void wxPolygonShape::ClearPoints()
       node = m_points->GetFirst();
     }
     delete m_points;
-    m_points = NULL;
+    m_points = nullptr;
   }
   if (m_originalPoints)
   {
@@ -113,7 +113,7 @@ void wxPolygonShape::ClearPoints()
       node = m_originalPoints->GetFirst();
     }
     delete m_originalPoints;
-    m_originalPoints = NULL;
+    m_originalPoints = nullptr;
   }
 }
 
@@ -1006,7 +1006,7 @@ wxControlPoint::wxControlPoint(wxShapeCanvas *theCanvas, wxShape *object, double
   m_type = the_type;
   SetPen(g_oglBlackForegroundPen);
   SetBrush(wxBLACK_BRUSH);
-  m_oldCursor = NULL;
+  m_oldCursor = nullptr;
   m_visible = true;
   m_eraseObject = true;
 }
@@ -1534,7 +1534,7 @@ wxShapeRegion::wxShapeRegion()
   m_penColour = wxT("BLACK");
   m_penStyle = wxPENSTYLE_SOLID;
   m_actualColourObject = wxTheColourDatabase->Find(wxT("BLACK"));
-  m_actualPenObject = NULL;
+  m_actualPenObject = nullptr;
 }
 
 wxShapeRegion::wxShapeRegion(wxShapeRegion& region):wxObject()
@@ -1555,7 +1555,7 @@ wxShapeRegion::wxShapeRegion(wxShapeRegion& region):wxObject()
   m_regionProportionY = region.m_regionProportionY;
   m_formatMode = region.m_formatMode;
   m_actualColourObject = region.m_actualColourObject;
-  m_actualPenObject = NULL;
+  m_actualPenObject = nullptr;
   m_penStyle = region.m_penStyle;
   m_penColour = region.m_penColour;
 
@@ -1638,10 +1638,10 @@ wxColour wxShapeRegion::GetActualColourObject()
 void wxShapeRegion::SetPenColour(const wxString& col)
 {
   m_penColour = col;
-  m_actualPenObject = NULL;
+  m_actualPenObject = nullptr;
 }
 
-// Returns NULL if the pen is invisible
+// Returns nullptr if the pen is invisible
 // (different to pen being transparent; indicates that
 // region boundary should not be drawn.)
 wxPen *wxShapeRegion::GetActualPen()
@@ -1649,9 +1649,9 @@ wxPen *wxShapeRegion::GetActualPen()
   if (m_actualPenObject)
     return m_actualPenObject;
 
-  if (!m_penColour) return NULL;
+  if (!m_penColour) return nullptr;
   if (m_penColour == wxT("Invisible"))
-    return NULL;
+    return nullptr;
   m_actualPenObject = wxThePenList->FindOrCreatePen(m_penColour, 1, m_penStyle);
   return m_actualPenObject;
 }

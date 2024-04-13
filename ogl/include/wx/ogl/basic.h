@@ -110,7 +110,7 @@ class WXDLLIMPEXP_OGL wxShapeEvtHandler: public wxObject, public wxClientDataCon
  DECLARE_DYNAMIC_CLASS(wxShapeEvtHandler)
 
  public:
-  wxShapeEvtHandler(wxShapeEvtHandler *prev = NULL, wxShape *shape = NULL);
+  wxShapeEvtHandler(wxShapeEvtHandler *prev = nullptr, wxShape *shape = nullptr);
   virtual ~wxShapeEvtHandler();
 
   inline void SetShape(wxShape *sh) { m_handlerShape = sh; }
@@ -176,7 +176,7 @@ class WXDLLIMPEXP_OGL wxShape: public wxShapeEvtHandler
 
  public:
 
-  wxShape(wxShapeCanvas *can = NULL);
+  wxShape(wxShapeCanvas *can = nullptr);
   virtual ~wxShape();
   virtual void GetBoundingBoxMax(double *width, double *height);
   virtual void GetBoundingBoxMin(double *width, double *height) = 0;
@@ -185,7 +185,7 @@ class WXDLLIMPEXP_OGL wxShape: public wxShapeEvtHandler
                                  double *x3, double *y3);
   inline wxShapeCanvas *GetCanvas() { return m_canvas; }
   void SetCanvas(wxShapeCanvas *the_canvas);
-  virtual void AddToCanvas(wxShapeCanvas *the_canvas, wxShape *addAfter = NULL);
+  virtual void AddToCanvas(wxShapeCanvas *the_canvas, wxShape *addAfter = nullptr);
   virtual void InsertInCanvas(wxShapeCanvas *the_canvas);
 
   virtual void RemoveFromCanvas(wxShapeCanvas *the_canvas);
@@ -235,7 +235,7 @@ class WXDLLIMPEXP_OGL wxShape: public wxShapeEvtHandler
   virtual void OnSizingEndDragLeft(wxControlPoint* pt, double x, double y, int keys=0, int attachment = 0);
 
   virtual void MakeControlPoints();
-  virtual void DeleteControlPoints(wxDC *dc = NULL);
+  virtual void DeleteControlPoints(wxDC *dc = nullptr);
   virtual void ResetControlPoints();
 
   inline wxShapeEvtHandler *GetEventHandler() { return m_eventHandler; }
@@ -249,7 +249,7 @@ class WXDLLIMPEXP_OGL wxShape: public wxShapeEvtHandler
   inline virtual bool Recompute() { return true; };
   // Calculate size recursively, if size changes. Size might depend on children.
   inline virtual void CalculateSize() { };
-  virtual void Select(bool select = true, wxDC* dc = NULL);
+  virtual void Select(bool select = true, wxDC* dc = nullptr);
   virtual void SetHighlight(bool hi = true, bool recurse = false);
   inline virtual bool IsHighlighted() const { return m_highlighted; };
   virtual bool Selected() const;
@@ -363,7 +363,7 @@ class WXDLLIMPEXP_OGL wxShape: public wxShapeEvtHandler
 
   // Attachment code
   virtual bool GetAttachmentPosition(int attachment, double *x, double *y,
-                                     int nth = 0, int no_arcs = 1, wxLineShape *line = NULL);
+                                     int nth = 0, int no_arcs = 1, wxLineShape *line = nullptr);
   virtual int GetNumberOfAttachments() const;
   virtual bool AttachmentIsValid(int attachment) const;
   virtual wxList& GetAttachments() { return m_attachmentPoints; }
@@ -372,7 +372,7 @@ class WXDLLIMPEXP_OGL wxShape: public wxShapeEvtHandler
   // branching mode. This is used e.g. to indicate the edge of interest, not the point
   // on the attachment branch.
   virtual bool GetAttachmentPositionEdge(int attachment, double *x, double *y,
-                                     int nth = 0, int no_arcs = 1, wxLineShape *line = NULL);
+                                     int nth = 0, int no_arcs = 1, wxLineShape *line = nullptr);
 
   // Assuming the attachment lies along a vertical or horizontal line,
   // calculate the position on that point.
@@ -586,7 +586,7 @@ class WXDLLIMPEXP_OGL wxPolygonShape: public wxShape
 
   int GetNumberOfAttachments() const;
   bool GetAttachmentPosition(int attachment, double *x, double *y,
-                                     int nth = 0, int no_arcs = 1, wxLineShape *line = NULL);
+                                     int nth = 0, int no_arcs = 1, wxLineShape *line = nullptr);
   bool AttachmentIsValid(int attachment) const;
   // Does the copying for this object
   void Copy(wxShape& copy);
@@ -628,7 +628,7 @@ class WXDLLIMPEXP_OGL wxRectangleShape: public wxShape
 
   int GetNumberOfAttachments() const;
   bool GetAttachmentPosition(int attachment, double *x, double *y,
-                                     int nth = 0, int no_arcs = 1, wxLineShape *line = NULL);
+                                     int nth = 0, int no_arcs = 1, wxLineShape *line = nullptr);
   // Does the copying for this object
   void Copy(wxShape& copy);
 
@@ -671,7 +671,7 @@ class WXDLLIMPEXP_OGL wxEllipseShape: public wxShape
 
   int GetNumberOfAttachments() const;
   bool GetAttachmentPosition(int attachment, double *x, double *y,
-                                     int nth = 0, int no_arcs = 1, wxLineShape *line = NULL);
+                                     int nth = 0, int no_arcs = 1, wxLineShape *line = nullptr);
 
   // Does the copying for this object
   void Copy(wxShape& copy);

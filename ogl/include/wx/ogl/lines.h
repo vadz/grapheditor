@@ -48,7 +48,7 @@ class WXDLLIMPEXP_OGL wxArrowHead: public wxObject
  DECLARE_DYNAMIC_CLASS(wxArrowHead)
 
  public:
-  wxArrowHead(WXTYPE type = 0, int end = 0, double size = 0.0, double dist = 0.0, const wxString& name = wxEmptyString, wxPseudoMetaFile *mf = NULL,
+  wxArrowHead(WXTYPE type = 0, int end = 0, double size = 0.0, double dist = 0.0, const wxString& name = wxEmptyString, wxPseudoMetaFile *mf = nullptr,
             long arrowId = -1);
   ~wxArrowHead();
   wxArrowHead(wxArrowHead& toCopy);
@@ -140,10 +140,10 @@ class WXDLLIMPEXP_OGL wxLineShape: public wxShape
   void GetLabelPosition(int position, double *x, double *y);
 
   // Can override this to create a different class of label shape
-  virtual wxLabelShape* OnCreateLabelShape(wxLineShape *parent = NULL, wxShapeRegion *region = NULL, double w = 0.0, double h = 0.0);
+  virtual wxLabelShape* OnCreateLabelShape(wxLineShape *parent = nullptr, wxShapeRegion *region = nullptr, double w = 0.0, double h = 0.0);
 
   // Straighten verticals and horizontals
-  virtual void Straighten(wxDC* dc = NULL);
+  virtual void Straighten(wxDC* dc = nullptr);
 
   // Not implemented
   inline void SetMaintainStraightLines(bool flag) { m_maintainStraightLines = flag; }
@@ -172,7 +172,7 @@ class WXDLLIMPEXP_OGL wxLineShape: public wxShape
   virtual void OnSizingEndDragLeft(wxControlPoint* pt, double x, double y, int keys=0, int attachment = 0);
 
   // Override select, to create/delete temporary label-moving objects
-  void Select(bool select = true, wxDC* dc = NULL);
+  void Select(bool select = true, wxDC* dc = nullptr);
 
   // Set to spline (true) or line (false)
   inline void SetSpline(bool spl) { m_isSpline = spl; }
@@ -203,7 +203,7 @@ class WXDLLIMPEXP_OGL wxLineShape: public wxShape
   wxArrowHead *AddArrow(WXTYPE type, int end = ARROW_POSITION_END,
                         double arrowSize = 10.0, double xOffset = 0.0,
                         const wxString& name = wxEmptyString,
-                        wxPseudoMetaFile *mf = NULL, long arrowId = -1);
+                        wxPseudoMetaFile *mf = nullptr, long arrowId = -1);
 
   // Add an arrowhead in the position indicated by the reference
   // list of arrowheads, which contains all legal arrowheads for this

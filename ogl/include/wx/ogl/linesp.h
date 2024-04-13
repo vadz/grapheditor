@@ -20,7 +20,7 @@ class WXDLLIMPEXP_OGL wxLineControlPoint: public wxControlPoint
   friend class WXDLLIMPEXP_OGL wxLineShape;
  public:
 
-  wxLineControlPoint(wxShapeCanvas *the_canvas = NULL, wxShape *object = NULL, double size = 0.0,
+  wxLineControlPoint(wxShapeCanvas *the_canvas = nullptr, wxShape *object = nullptr, double size = 0.0,
      double x = 0.0, double y = 0.0, int the_type = 0);
   ~wxLineControlPoint();
 
@@ -54,7 +54,7 @@ class WXDLLIMPEXP_OGL wxLabelShape: public wxRectangleShape
   DECLARE_DYNAMIC_CLASS(wxLabelShape)
 
  public:
-  wxLabelShape(wxLineShape *parent = NULL, wxShapeRegion *region = NULL, double w = 0.0, double h = 0.0);
+  wxLabelShape(wxLineShape *parent = nullptr, wxShapeRegion *region = nullptr, double w = 0.0, double h = 0.0);
   ~wxLabelShape();
 
   void OnDraw(wxDC& dc);

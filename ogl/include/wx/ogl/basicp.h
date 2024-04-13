@@ -45,7 +45,7 @@ class WXDLLIMPEXP_OGL wxControlPoint: public wxRectangleShape
  friend class WXDLLIMPEXP_OGL wxShape;
 
  public:
-  wxControlPoint(wxShapeCanvas *the_canvas = NULL, wxShape *object = NULL, double size = 0.0, double the_xoffset = 0.0,
+  wxControlPoint(wxShapeCanvas *the_canvas = nullptr, wxShape *object = nullptr, double size = 0.0, double the_xoffset = 0.0,
     double the_yoffset = 0.0, int the_type = 0);
   ~wxControlPoint();
 
@@ -57,7 +57,7 @@ class WXDLLIMPEXP_OGL wxControlPoint: public wxRectangleShape
   void OnEndDragLeft(double x, double y, int keys=0, int attachment = 0);
 
   bool GetAttachmentPosition(int attachment, double *x, double *y,
-                                     int nth = 0, int no_arcs = 1, wxLineShape *line = NULL);
+                                     int nth = 0, int no_arcs = 1, wxLineShape *line = nullptr);
   int GetNumberOfAttachments() const;
 
   inline void SetEraseObject(bool er) { m_eraseObject = er; }
@@ -90,7 +90,7 @@ class WXDLLIMPEXP_OGL wxPolygonControlPoint: public wxControlPoint
  DECLARE_DYNAMIC_CLASS(wxPolygonControlPoint)
   friend class WXDLLIMPEXP_OGL wxPolygonShape;
  public:
-  wxPolygonControlPoint(wxShapeCanvas *the_canvas = NULL, wxShape *object = NULL, double size = 0.0, wxRealPoint *vertex = NULL,
+  wxPolygonControlPoint(wxShapeCanvas *the_canvas = nullptr, wxShape *object = nullptr, double size = 0.0, wxRealPoint *vertex = nullptr,
     double the_xoffset = 0.0, double the_yoffset = 0.0);
   ~wxPolygonControlPoint();
 
@@ -156,7 +156,7 @@ class WXDLLIMPEXP_OGL wxShapeRegion: public wxObject
   inline wxList& GetFormattedText() { return m_formattedText; }
   inline wxString GetPenColour() const { return m_penColour; }
   inline wxPenStyle GetPenStyle() const { return m_penStyle; }
-  inline void SetPenStyle(wxPenStyle style) { m_penStyle = style; m_actualPenObject = NULL; }
+  inline void SetPenStyle(wxPenStyle style) { m_penStyle = style; m_actualPenObject = nullptr; }
   void SetPenColour(const wxString& col);
   wxPen *GetActualPen();
   inline double GetWidth() const { return m_width; }

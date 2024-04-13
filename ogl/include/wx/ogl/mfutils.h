@@ -377,7 +377,7 @@ class WXDLLIMPEXP_OGL wxMetaRecord: public wxObject
 
   wxMetaRecord(int fun)
   {
-    metaFunction = fun; points = NULL; stringParam = NULL;
+    metaFunction = fun; points = nullptr; stringParam = nullptr;
     param1 = 0;
   }
   ~wxMetaRecord(void);
@@ -398,7 +398,7 @@ class WXDLLIMPEXP_OGL wxXMetaFile: public wxObject
   wxList metaRecords;
   wxList gdiObjects; // List of wxMetaRecord objects created with Create...,
                      // referenced by position in list by SelectObject
-  wxXMetaFile(const wxChar* file = NULL);
+  wxXMetaFile(const wxChar* file = nullptr);
   ~wxXMetaFile(void);
 
   // After this is called, the metafile cannot be used for anything

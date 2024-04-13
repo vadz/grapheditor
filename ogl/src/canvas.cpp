@@ -60,9 +60,9 @@ wxShapeCanvas::wxShapeCanvas(wxWindow *parent, wxWindowID id,
                              const wxString& name):
   wxScrolledWindow(parent, id, pos, size, style, name)
 {
-  m_shapeDiagram = NULL;
+  m_shapeDiagram = nullptr;
   m_dragState = NoDragging;
-  m_draggedShape = NULL;
+  m_draggedShape = nullptr;
   m_oldDragX = 0;
   m_oldDragY = 0;
   m_firstDragX = 0;
@@ -139,7 +139,7 @@ void wxShapeCanvas::OnMouseEvent(wxMouseEvent& event)
       m_draggedShape->GetEventHandler()->OnBeginDragLeft((double)x, (double)y, keys, m_draggedAttachment);
     else
     {
-      m_draggedShape = NULL;
+      m_draggedShape = nullptr;
       OnBeginDragLeft((double)x, (double)y, keys);
     }
 
@@ -160,7 +160,7 @@ void wxShapeCanvas::OnMouseEvent(wxMouseEvent& event)
     m_draggedShape->GetEventHandler()->OnDragLeft(false, m_oldDragX, m_oldDragY, keys, m_draggedAttachment);
 
     m_draggedShape->GetEventHandler()->OnEndDragLeft((double)x, (double)y, keys, m_draggedAttachment);
-    m_draggedShape = NULL;
+    m_draggedShape = nullptr;
   }
   else if (dragging && m_draggedShape && m_dragState == StartDraggingRight)
   {
@@ -170,7 +170,7 @@ void wxShapeCanvas::OnMouseEvent(wxMouseEvent& event)
       m_draggedShape->GetEventHandler()->OnBeginDragRight((double)x, (double)y, keys, m_draggedAttachment);
     else
     {
-      m_draggedShape = NULL;
+      m_draggedShape = nullptr;
       OnBeginDragRight((double)x, (double)y, keys);
     }
     m_oldDragX = x; m_oldDragY = y;
@@ -190,7 +190,7 @@ void wxShapeCanvas::OnMouseEvent(wxMouseEvent& event)
     m_draggedShape->GetEventHandler()->OnDragRight(false, m_oldDragX, m_oldDragY, keys, m_draggedAttachment);
 
     m_draggedShape->GetEventHandler()->OnEndDragRight((double)x, (double)y, keys, m_draggedAttachment);
-    m_draggedShape = NULL;
+    m_draggedShape = nullptr;
   }
 
   // All following events sent to canvas, not object
@@ -214,7 +214,7 @@ void wxShapeCanvas::OnMouseEvent(wxMouseEvent& event)
 
     OnDragLeft(false, m_oldDragX, m_oldDragY, keys);
     OnEndDragLeft((double)x, (double)y, keys);
-    m_draggedShape = NULL;
+    m_draggedShape = nullptr;
   }
   else if (dragging && !m_draggedShape && m_dragState == StartDraggingRight)
   {
@@ -236,7 +236,7 @@ void wxShapeCanvas::OnMouseEvent(wxMouseEvent& event)
 
     OnDragRight(false, m_oldDragX, m_oldDragY, keys);
     OnEndDragRight((double)x, (double)y, keys);
-    m_draggedShape = NULL;
+    m_draggedShape = nullptr;
   }
 
   // Non-dragging events
@@ -264,14 +264,14 @@ void wxShapeCanvas::OnMouseEvent(wxMouseEvent& event)
         if (nearest_object == m_draggedShape)
           nearest_object->GetEventHandler()->OnLeftClick((double)x, (double)y, keys, attachment);
 
-        m_draggedShape = NULL;
+        m_draggedShape = nullptr;
         m_dragState = NoDragging;
       }
       else if (event.LeftDClick())
       {
         nearest_object->GetEventHandler()->OnLeftDoubleClick((double)x, (double)y, keys, attachment);
 
-        m_draggedShape = NULL;
+        m_draggedShape = nullptr;
         m_dragState = NoDragging;
       }
       else if (event.RightDown())
@@ -287,7 +287,7 @@ void wxShapeCanvas::OnMouseEvent(wxMouseEvent& event)
         if (nearest_object == m_draggedShape)
           nearest_object->GetEventHandler()->OnRightClick((double)x, (double)y, keys, attachment);
 
-        m_draggedShape = NULL;
+        m_draggedShape = nullptr;
         m_dragState = NoDragging;
       }
     }
@@ -295,7 +295,7 @@ void wxShapeCanvas::OnMouseEvent(wxMouseEvent& event)
     {
       if (event.LeftDown())
       {
-        m_draggedShape = NULL;
+        m_draggedShape = nullptr;
         m_dragState = StartDraggingLeft;
         m_firstDragX = x;
         m_firstDragY = y;
@@ -304,12 +304,12 @@ void wxShapeCanvas::OnMouseEvent(wxMouseEvent& event)
       {
         OnLeftClick((double)x, (double)y, keys);
 
-        m_draggedShape = NULL;
+        m_draggedShape = nullptr;
         m_dragState = NoDragging;
       }
       else if (event.RightDown())
       {
-        m_draggedShape = NULL;
+        m_draggedShape = nullptr;
         m_dragState = StartDraggingRight;
         m_firstDragX = x;
         m_firstDragY = y;
@@ -318,7 +318,7 @@ void wxShapeCanvas::OnMouseEvent(wxMouseEvent& event)
       {
         OnRightClick((double)x, (double)y, keys);
 
-        m_draggedShape = NULL;
+        m_draggedShape = nullptr;
         m_dragState = NoDragging;
       }
     }
@@ -332,7 +332,7 @@ void wxShapeCanvas::OnMouseEvent(wxMouseEvent& event)
 wxShape *wxShapeCanvas::FindFirstSensitiveShape(double x, double y, int *new_attachment, int op)
 {
   wxShape *image = FindShape(x, y, new_attachment);
-  if (!image) return NULL;
+  if (!image) return nullptr;
 
   wxShape *actualImage = FindFirstSensitiveShape1(image, op);
   if (actualImage)
@@ -350,7 +350,7 @@ wxShape *wxShapeCanvas::FindFirstSensitiveShape1(wxShape *image, int op)
     return image;
   if (image->GetParent())
     return FindFirstSensitiveShape1(image->GetParent(), op);
-  return NULL;
+  return nullptr;
 }
 
 // Helper function: true if 'contains' wholly contains 'contained'.
@@ -381,7 +381,7 @@ wxShape *wxShapeCanvas::FindShape(double x, double y, int *attachment, wxClassIn
 {
   double nearest = 100000.0;
   int nearest_attachment = 0;
-  wxShape *nearest_object = NULL;
+  wxShape *nearest_object = nullptr;
 
   // Go backward through the object list, since we want:
   // (a) to have the control points drawn LAST to overlay
@@ -403,7 +403,7 @@ wxShape *wxShapeCanvas::FindShape(double x, double y, int *attachment, wxClassIn
     if (object->IsShown() &&
         object->IsKindOf(CLASSINFO(wxLineShape)) &&
         object->HitTest(x, y, &temp_attachment, &dist) &&
-        ((info == NULL) || object->IsKindOf(info)) &&
+        ((info == nullptr) || object->IsKindOf(info)) &&
         (!notObject || !notObject->HasDescendant(object)))
     {
       // A line is trickier to spot than a normal object.
@@ -434,7 +434,7 @@ wxShape *wxShapeCanvas::FindShape(double x, double y, int *attachment, wxClassIn
     // On second pass, only ever consider non-composites or divisions. If children want to pass
     // up control to the composite, that's up to them.
     if (object->IsShown() && (object->IsKindOf(CLASSINFO(wxDivisionShape)) || !object->IsKindOf(CLASSINFO(wxCompositeShape)))
-        && object->HitTest(x, y, &temp_attachment, &dist) && ((info == NULL) || object->IsKindOf(info)) &&
+        && object->HitTest(x, y, &temp_attachment, &dist) && ((info == nullptr) || object->IsKindOf(info)) &&
         (!notObject || !notObject->HasDescendant(object)))
     {
       if (!object->IsKindOf(CLASSINFO(wxLineShape)))

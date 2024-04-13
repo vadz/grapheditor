@@ -33,9 +33,9 @@ public:
   virtual void Clear(wxDC& dc);
   virtual void DrawOutline(wxDC& dc, double x1, double y1, double x2, double y2);
 
-  // Add object to end of object list (if addAfter is NULL)
+  // Add object to end of object list (if addAfter is nullptr)
   // or just after addAfter.
-  virtual void AddShape(wxShape *object, wxShape *addAfter = NULL);
+  virtual void AddShape(wxShape *object, wxShape *addAfter = nullptr);
 
   // Add object to front of object list
   virtual void InsertShape(wxShape *object);
@@ -76,7 +76,7 @@ protected:
 class WXDLLIMPEXP_OGL wxLineCrossing: public wxObject
 {
 public:
-    wxLineCrossing() { m_lineShape1 = NULL; m_lineShape2 = NULL; }
+    wxLineCrossing() { m_lineShape1 = nullptr; m_lineShape2 = nullptr; }
     wxRealPoint     m_pt1; // First line
     wxRealPoint     m_pt2;
     wxRealPoint     m_pt3; // Second line

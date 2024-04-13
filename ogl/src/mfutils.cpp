@@ -121,7 +121,7 @@ wxXMetaFile::wxXMetaFile(const wxChar *file)
  the handle table.
 
  When an object is deleted, the entry in the handletable is
- NULLed but the gdiObjects entry is not removed (no point, and
+ nullptred but the gdiObjects entry is not removed (no point, and
  allows us to create all GDI objects in advance of playing the
  metafile).
 */
@@ -132,7 +132,7 @@ static int HandleTableSize = 0;
 
 void DeleteMetaRecordHandle(int index)
 {
-  HandleTable[index] = NULL;
+  HandleTable[index] = nullptr;
 }
 
 int AddMetaRecordHandle(wxMetaRecord *record)

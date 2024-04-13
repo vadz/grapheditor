@@ -45,7 +45,7 @@ public:
   bool Recompute();
 
   // New members
-  void AddChild(wxShape *child, wxShape *addAfter = NULL);
+  void AddChild(wxShape *child, wxShape *addAfter = nullptr);
   void RemoveChild(wxShape *child);
 
   wxOGLConstraint *AddConstraint(wxOGLConstraint *constraint);
@@ -63,7 +63,7 @@ public:
 
   // Find constraint, also returning actual composite the constraint was in,
   // in case it had to find it recursively.
-  wxOGLConstraint *FindConstraint(long id, wxCompositeShape **actualComposite = NULL);
+  wxOGLConstraint *FindConstraint(long id, wxCompositeShape **actualComposite = nullptr);
 
   // Returns true if something changed
   bool Constrain();
@@ -194,7 +194,7 @@ class WXDLLIMPEXP_OGL wxDivisionShape: public wxCompositeShape
   inline wxString GetTopSideStyle() const { return m_topSideStyle; }
 
  protected:
-  // Adjoining divisions. NULL indicates edge
+  // Adjoining divisions. nullptr indicates edge
   // of container, and that side shouldn't be
   // drawn.
   wxDivisionShape*      m_leftSide;

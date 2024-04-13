@@ -70,7 +70,7 @@ wxShapeEvtHandler* wxShapeEvtHandler::CreateNewCopy()
 {
   wxShapeEvtHandler* newObject = (wxShapeEvtHandler*) GetClassInfo()->CreateObject();
 
-  wxASSERT( (newObject != NULL) );
+  wxASSERT( (newObject != nullptr) );
   wxASSERT( (newObject->IsKindOf(CLASSINFO(wxShapeEvtHandler))) );
 
   newObject->m_previousHandler = newObject;
@@ -279,7 +279,7 @@ wxShape::wxShape(wxShapeCanvas *can)
   m_drawHandles = true;
   m_sensitivity = OP_ALL;
   m_draggable = true;
-  m_parent = NULL;
+  m_parent = nullptr;
   m_formatMode = FORMAT_CENTRE_HORIZ | FORMAT_CENTRE_VERT;
   m_shadowMode = SHADOW_NONE;
   m_shadowOffsetX = 6;
@@ -719,7 +719,7 @@ wxFont *wxShape::GetFont(int n) const
 {
   const auto node = m_regions.Item(n);
   if (!node)
-    return NULL;
+    return nullptr;
   wxShapeRegion *region = (wxShapeRegion *)node->GetData();
   return region->GetFont();
 }
@@ -844,7 +844,7 @@ wxShape *wxShape::FindRegion(const wxString& name, int *regionId)
       return actualImage;
     node = node->GetNext();
   }
-  return NULL;
+  return nullptr;
 }
 
 // Finds all region names for this image (composite or simple).
@@ -1464,7 +1464,7 @@ void wxShape::Attach(wxShapeCanvas *can)
 
 void wxShape::Detach()
 {
-  m_canvas = NULL;
+  m_canvas = nullptr;
 }
 
 void wxShape::Move(wxDC& dc, double x, double y, bool display)
@@ -1741,7 +1741,7 @@ wxShape *wxShape::CreateNewCopy(bool resetMapping, bool recompute)
 
   wxShape* newObject = (wxShape*) GetClassInfo()->CreateObject();
 
-  wxASSERT( (newObject != NULL) );
+  wxASSERT( (newObject != nullptr) );
   wxASSERT( (newObject->IsKindOf(CLASSINFO(wxShape))) );
 
   Copy(*newObject);
@@ -1750,7 +1750,7 @@ wxShape *wxShape::CreateNewCopy(bool resetMapping, bool recompute)
   {
     wxShapeEvtHandler* newHandler = GetEventHandler()->CreateNewCopy();
     newObject->SetEventHandler(newHandler);
-    newObject->SetPreviousHandler(NULL);
+    newObject->SetPreviousHandler(nullptr);
     newHandler->SetPreviousHandler(newObject);
     newHandler->SetShape(newObject);
   }
@@ -1768,7 +1768,7 @@ void wxShape::CopyWithHandler(wxShape& copy)
 
     if (GetEventHandler() != this)
     {
-        wxASSERT( copy.GetEventHandler() != NULL );
+        wxASSERT( copy.GetEventHandler() != nullptr );
         wxASSERT( copy.GetEventHandler() != (&copy) );
         wxASSERT( GetEventHandler()->GetClassInfo() == copy.GetEventHandler()->GetClassInfo() );
         GetEventHandler()->CopyData(* (copy.GetEventHandler()));

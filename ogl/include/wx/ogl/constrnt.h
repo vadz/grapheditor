@@ -59,7 +59,7 @@ class WXDLLIMPEXP_OGL wxOGLConstraint: public wxObject
   wxOGLConstraint() {
      m_xSpacing = 0.0; m_ySpacing = 0.0; m_constraintType = 0;
      m_constraintName = wxEmptyString; m_constraintId = 0;
-     m_constrainingObject = NULL; }
+     m_constrainingObject = nullptr; }
   wxOGLConstraint(int type, wxShape *constraining, wxList& constrained);
   ~wxOGLConstraint();
 

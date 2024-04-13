@@ -416,7 +416,7 @@ void wxDividedShape::EditRegions()
   // since they need to be converted to integers
   char **styleStrings = new char *[GetRegions().GetCount()];
   for (int j = 0; j < GetRegions().GetCount(); j++)
-    styleStrings[j] = NULL;
+    styleStrings[j] = nullptr;
 
   int i = 0;
   auto node = GetRegions().GetFirst();
@@ -453,10 +453,10 @@ void wxDividedShape::EditRegions()
     "VIOLET"           ,
     "WHITE"            ,
     "YELLOW"           ,
-    NULL),
-    NULL), NULL, wxVERTICAL, 150));
+    nullptr),
+    nullptr), nullptr, wxVERTICAL, 150));
 
-    char *styleString = NULL;
+    char *styleString = nullptr;
     switch (region->penStyle)
     {
       case wxSHORT_DASH:
@@ -484,8 +484,8 @@ void wxDividedShape::EditRegions()
     "Long Dash"        ,
     "Dot"              ,
     "Dot Dash"         ,
-    NULL),
-    NULL), NULL, wxVERTICAL, 100));
+    nullptr),
+    nullptr), nullptr, wxVERTICAL, 100));
     node = node->GetNext();
     i ++;
     if (node && node->GetNext())
@@ -526,7 +526,7 @@ void wxDividedShape::EditRegions()
         region->penStyle = wxDOT_DASH;
       delete[] styleStrings[i];
     }
-    region->m_actualPenObject = NULL;
+    region->m_actualPenObject = nullptr;
     node = node->GetNext();
     i ++;
   }
@@ -613,7 +613,7 @@ void wxDividedShapeControlPoint::OnEndDragLeft(double WXUNUSED(x), double y, int
     return;
 
     wxShapeRegion *thisRegion = (wxShapeRegion *)node->GetData();
-    wxShapeRegion *nextRegion = NULL; // Region below this one
+    wxShapeRegion *nextRegion = nullptr; // Region below this one
 
     m_canvas->ReleaseMouse();
 

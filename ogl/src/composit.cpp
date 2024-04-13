@@ -327,7 +327,7 @@ void wxCompositeShape::RemoveChild(wxShape *child)
   m_children.DeleteObject(child);
   m_divisions.DeleteObject(child);
   RemoveChildFromConstraints(child);
-  child->SetParent(NULL);
+  child->SetParent(nullptr);
 }
 
 void wxCompositeShape::DeleteConstraintsInvolvingChild(wxShape *child)
@@ -359,7 +359,7 @@ void wxCompositeShape::RemoveChildFromConstraints(wxShape *child)
     if (constraint->m_constrainedObjects.Member(child))
       constraint->m_constrainedObjects.DeleteObject(child);
     if (constraint->m_constrainingObject == child)
-      constraint->m_constrainingObject = NULL;
+      constraint->m_constrainingObject = nullptr;
 
     // Delete the constraint if no participants left
     if (!constraint->m_constrainingObject)
@@ -528,7 +528,7 @@ wxOGLConstraint *wxCompositeShape::FindConstraint(long cId, wxCompositeShape **a
     }
     node = node->GetNext();
   }
-  return NULL;
+  return nullptr;
 }
 
 void wxCompositeShape::DeleteConstraint(wxOGLConstraint *constraint)
@@ -646,7 +646,7 @@ wxShape *wxCompositeShape::FindContainerImage()
       return child;
     node = node->GetNext();
   }
-  return NULL;
+  return nullptr;
 }
 
 // Returns true if division is a descendant of this container
@@ -681,10 +681,10 @@ wxDivisionShape::wxDivisionShape()
   SetSensitivityFilter(OP_CLICK_LEFT | OP_CLICK_RIGHT | OP_DRAG_RIGHT);
   SetCentreResize(false);
   SetAttachmentMode(true);
-  m_leftSide = NULL;
-  m_rightSide = NULL;
-  m_topSide = NULL;
-  m_bottomSide = NULL;
+  m_leftSide = nullptr;
+  m_rightSide = nullptr;
+  m_topSide = nullptr;
+  m_bottomSide = nullptr;
   m_handleSide = DIVISION_SIDE_NONE;
   m_leftSidePen = wxBLACK_PEN;
   m_topSidePen = wxBLACK_PEN;
@@ -1454,9 +1454,9 @@ void wxDivisionShape::EditEdge(int WXUNUSED(side))
 #if 0
   wxBeginBusyCursor();
 
-  wxPen *currentPen = NULL;
-  char **pColour = NULL;
-  char **pStyle = NULL;
+  wxPen *currentPen = nullptr;
+  char **pColour = nullptr;
+  char **pStyle = nullptr;
   if (side == DIVISION_SIDE_LEFT)
   {
     currentPen = m_leftSidePen;
@@ -1473,7 +1473,7 @@ void wxDivisionShape::EditEdge(int WXUNUSED(side))
   GraphicsForm *form = new GraphicsForm("Containers");
   int lineWidth = currentPen->GetWidth();
 
-  form->Add(wxMakeFormShort("Width", &lineWidth, wxFORM_DEFAULT, NULL, NULL, wxVERTICAL,
+  form->Add(wxMakeFormShort("Width", &lineWidth, wxFORM_DEFAULT, nullptr, nullptr, wxVERTICAL,
                150));
   form->Add(wxMakeFormString("Colour", pColour, wxFORM_CHOICE,
             new wxList(wxMakeConstraintStrings(
@@ -1499,8 +1499,8 @@ void wxDivisionShape::EditEdge(int WXUNUSED(side))
   "VIOLET"           ,
   "WHITE"            ,
   "YELLOW"           ,
-  NULL),
-  NULL), NULL, wxVERTICAL, 150));
+  nullptr),
+  nullptr), nullptr, wxVERTICAL, 150));
   form->Add(wxMakeFormString("Style", pStyle, wxFORM_CHOICE,
             new wxList(wxMakeConstraintStrings(
   "Solid"            ,
@@ -1508,8 +1508,8 @@ void wxDivisionShape::EditEdge(int WXUNUSED(side))
   "Long Dash"        ,
   "Dot"              ,
   "Dot Dash"         ,
-  NULL),
-  NULL), NULL, wxVERTICAL, 100));
+  nullptr),
+  nullptr), nullptr, wxVERTICAL, 100));
 
   wxDialogBox *dialog = new wxDialogBox(m_canvas->GetParent(), "Division properties", 10, 10, 500, 500);
   if (GraphicsLabelFont)

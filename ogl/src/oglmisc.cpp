@@ -40,9 +40,9 @@ wxPen*          g_oglWhiteBackgroundPen;
 wxPen*          g_oglTransparentPen;
 wxBrush*        g_oglWhiteBackgroundBrush;
 wxPen*          g_oglBlackForegroundPen;
-wxCursor*       g_oglBullseyeCursor = NULL;
+wxCursor*       g_oglBullseyeCursor = nullptr;
 
-wxChar*           oglBuffer = NULL;
+wxChar*           oglBuffer = nullptr;
 
 
 
@@ -71,45 +71,45 @@ void wxOGLCleanUp()
     if (oglBuffer)
     {
         delete[] oglBuffer;
-        oglBuffer = NULL;
+        oglBuffer = nullptr;
     }
-    oglBuffer = NULL;
+    oglBuffer = nullptr;
 
     if (g_oglBullseyeCursor)
     {
         delete g_oglBullseyeCursor;
-        g_oglBullseyeCursor = NULL;
+        g_oglBullseyeCursor = nullptr;
     }
 
     if (g_oglNormalFont)
     {
         delete g_oglNormalFont;
-        g_oglNormalFont = NULL;
+        g_oglNormalFont = nullptr;
     }
     if (g_oglBlackPen)
     {
         delete g_oglBlackPen;
-        g_oglBlackPen = NULL;
+        g_oglBlackPen = nullptr;
     }
     if (g_oglWhiteBackgroundPen)
     {
         delete g_oglWhiteBackgroundPen;
-        g_oglWhiteBackgroundPen = NULL;
+        g_oglWhiteBackgroundPen = nullptr;
     }
     if (g_oglTransparentPen)
     {
         delete g_oglTransparentPen;
-        g_oglTransparentPen = NULL;
+        g_oglTransparentPen = nullptr;
     }
     if (g_oglWhiteBackgroundBrush)
     {
         delete g_oglWhiteBackgroundBrush;
-        g_oglWhiteBackgroundBrush = NULL;
+        g_oglWhiteBackgroundBrush = nullptr;
     }
     if (g_oglBlackForegroundPen)
     {
         delete g_oglBlackForegroundPen;
-        g_oglBlackForegroundPen = NULL;
+        g_oglBlackForegroundPen = nullptr;
     }
 
     OGLCleanUpConstraintTypes();
@@ -192,7 +192,7 @@ int FontSizeDialog(wxFrame *parent, int old_size)
     sscanf(ans, "%d", &size);
     return oglMatchFont(size);
   }
-  else return NULL;
+  else return nullptr;
 */
 }
 
@@ -432,7 +432,7 @@ wxStringList *oglFormatText(wxDC& dc, const wxString& text, double width, double
     }
     if (new_line)
     {
-      word_list.Append(NULL);
+      word_list.Append(nullptr);
       new_line = false;
     }
   }

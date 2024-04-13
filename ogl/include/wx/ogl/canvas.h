@@ -31,7 +31,7 @@ class WXDLLIMPEXP_OGL wxShapeCanvas: public wxScrolledWindow
 {
  DECLARE_DYNAMIC_CLASS(wxShapeCanvas)
  public:
-  wxShapeCanvas(wxWindow *parent = NULL, wxWindowID id = wxID_ANY,
+  wxShapeCanvas(wxWindow *parent = nullptr, wxWindowID id = wxID_ANY,
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& size = wxDefaultSize,
                 long style = wxBORDER | wxRETAINED,
@@ -52,14 +52,14 @@ class WXDLLIMPEXP_OGL wxShapeCanvas: public wxScrolledWindow
   virtual void OnBeginDragRight(double x, double y, int keys=0);
   virtual void OnEndDragRight(double x, double y, int keys=0);
 
-  // Find object for mouse click, of given wxClassInfo (NULL for any type).
-  // If notImage is non-NULL, don't find an object that is equal to or a descendant of notImage
-  virtual wxShape *FindShape(double x, double y, int *attachment, wxClassInfo *info = NULL, wxShape *notImage = NULL);
+  // Find object for mouse click, of given wxClassInfo (nullptr for any type).
+  // If notImage is non-nullptr, don't find an object that is equal to or a descendant of notImage
+  virtual wxShape *FindShape(double x, double y, int *attachment, wxClassInfo *info = nullptr, wxShape *notImage = nullptr);
   wxShape *FindFirstSensitiveShape(double x, double y, int *new_attachment, int op);
   wxShape *FindFirstSensitiveShape1(wxShape *image, int op);
 
   // Redirect to wxDiagram object
-  virtual void AddShape(wxShape *object, wxShape *addAfter = NULL);
+  virtual void AddShape(wxShape *object, wxShape *addAfter = nullptr);
   virtual void InsertShape(wxShape *object);
   virtual void RemoveShape(wxShape *object);
   virtual void Redraw(wxDC& dc);

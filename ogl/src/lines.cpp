@@ -42,8 +42,8 @@ wxLineShape::wxLineShape()
   m_actualTextWidth = 0.0;
   m_actualTextHeight = 0.0;
 */
-  m_from = NULL;
-  m_to = NULL;
+  m_from = nullptr;
+  m_to = nullptr;
   m_erasing = false;
   m_arrowSpacing = 5.0; // For the moment, don't bother saving this to file.
   m_ignoreArrowOffsets = false;
@@ -52,7 +52,7 @@ wxLineShape::wxLineShape()
   m_alignmentStart = 0;
   m_alignmentEnd = 0;
 
-  m_lineControlPoints = NULL;
+  m_lineControlPoints = nullptr;
 
   // Clear any existing regions (created in an earlier constructor)
   // and make the three line regions.
@@ -73,7 +73,7 @@ wxLineShape::wxLineShape()
   m_regions.Append((wxObject *)newRegion);
 
   for (int i = 0; i < 3; i++)
-    m_labelObjects[i] = NULL;
+    m_labelObjects[i] = nullptr;
 }
 
 wxLineShape::~wxLineShape()
@@ -90,7 +90,7 @@ wxLineShape::~wxLineShape()
       m_labelObjects[i]->Select(false);
       m_labelObjects[i]->RemoveFromCanvas(m_canvas);
       delete m_labelObjects[i];
-      m_labelObjects[i] = NULL;
+      m_labelObjects[i] = nullptr;
     }
   }
   ClearArrowsAtPosition(-1);
@@ -411,8 +411,8 @@ void wxLineShape::Unlink()
     m_to->GetLines().DeleteObject(this);
   if (m_from)
     m_from->GetLines().DeleteObject(this);
-  m_to = NULL;
-  m_from = NULL;
+  m_to = nullptr;
+  m_from = nullptr;
 }
 
 void wxLineShape::SetEnds(double x1, double y1, double x2, double y2)
@@ -962,9 +962,9 @@ void wxLineShape::OnDrawOutline(wxDC& dc, double WXUNUSED(x), double WXUNUSED(y)
   GetEventHandler()->OnDraw(dc);
 
   if (old_pen) SetPen(old_pen);
-  else SetPen(NULL);
+  else SetPen(nullptr);
   if (old_brush) SetBrush(old_brush);
-  else SetBrush(NULL);
+  else SetBrush(nullptr);
 }
 
 bool wxLineShape::OnMovePre(wxDC& dc, double x, double y, double old_x, double old_y, bool WXUNUSED(display))
@@ -1450,7 +1450,7 @@ void wxLineShape::Select(bool select, wxDC* dc)
         m_labelObjects[i]->Erase(*dc);
         m_labelObjects[i]->RemoveFromCanvas(m_canvas);
         delete m_labelObjects[i];
-        m_labelObjects[i] = NULL;
+        m_labelObjects[i] = nullptr;
       }
     }
   }
@@ -1469,7 +1469,7 @@ wxLineControlPoint::wxLineControlPoint(wxShapeCanvas *theCanvas, wxShape *object
   m_xpos = x;
   m_ypos = y;
   m_type = the_type;
-  m_point = NULL;
+  m_point = nullptr;
 }
 
 wxLineControlPoint::~wxLineControlPoint()
@@ -1820,7 +1820,7 @@ bool wxLineShape::AddArrowOrdered(wxArrowHead *arrow, wxList& referenceList, int
     if ((currArrow->GetArrowEnd() == end) &&
         (currArrow->GetName() == refArrow->GetName()))
     {
-      currNode = currNode->GetNext(); // Could be NULL now
+      currNode = currNode->GetNext(); // Could be nullptr now
       if (currNode)
         currArrow = (wxArrowHead *)currNode->GetData();
     }
@@ -1921,7 +1921,7 @@ wxArrowHead *wxLineShape::FindArrowHead(int position, const wxString& name)
       return arrow;
     node = node->GetNext();
   }
-  return NULL;
+  return nullptr;
 }
 
 wxArrowHead *wxLineShape::FindArrowHead(long arrowId)
@@ -1934,7 +1934,7 @@ wxArrowHead *wxLineShape::FindArrowHead(long arrowId)
       return arrow;
     node = node->GetNext();
   }
-  return NULL;
+  return nullptr;
 }
 
 /*
@@ -2107,7 +2107,7 @@ wxRealPoint *wxLineShape::GetNextControlPoint(wxShape *nodeObject)
     return (wxRealPoint *)node->GetData();
   }
   else
-    return NULL;
+    return nullptr;
 }
 
 /*
@@ -2143,7 +2143,7 @@ wxArrowHead::wxArrowHead(wxArrowHead& toCopy):wxObject()
   if (toCopy.m_metaFile)
     m_metaFile = new wxPseudoMetaFile(*(toCopy.m_metaFile));
   else
-    m_metaFile = NULL;
+    m_metaFile = nullptr;
   m_id = wxNewId();
 }
 

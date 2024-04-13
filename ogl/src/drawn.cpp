@@ -939,8 +939,8 @@ wxPseudoMetaFile::wxPseudoMetaFile()
   m_rotateable = true;
   m_width = 0.0;
   m_height = 0.0;
-  m_outlinePen = NULL;
-  m_fillBrush = NULL;
+  m_outlinePen = nullptr;
+  m_fillBrush = nullptr;
   m_outlineOp = -1;
 }
 
@@ -1299,7 +1299,7 @@ bool wxPseudoMetaFile::LoadFromMetaFile(const wxString& filename, double *rwidth
       case META_DIBCREATEPATTERNBRUSH:
       {
         // Place holder
-        m_gdiObjects.Append(NULL);
+        m_gdiObjects.Append(nullptr);
         break;
       }
 //      case META_STRETCHDIB:
@@ -1314,19 +1314,19 @@ bool wxPseudoMetaFile::LoadFromMetaFile(const wxString& filename, double *rwidth
       case META_CREATEPALETTE:
       {
         // Place holder
-        m_gdiObjects.Append(NULL);
+        m_gdiObjects.Append(nullptr);
         break;
       }
       case META_CREATEBRUSH:
       {
         // Place holder
-        m_gdiObjects.Append(NULL);
+        m_gdiObjects.Append(nullptr);
         break;
       }
       case META_CREATEPATTERNBRUSH:
       {
         // Place holder
-        m_gdiObjects.Append(NULL);
+        m_gdiObjects.Append(nullptr);
         break;
       }
       case META_CREATEPENINDIRECT:
@@ -1354,19 +1354,19 @@ bool wxPseudoMetaFile::LoadFromMetaFile(const wxString& filename, double *rwidth
       case META_CREATEBITMAPINDIRECT:
       {
         // Place holder
-        m_gdiObjects.Append(NULL);
+        m_gdiObjects.Append(nullptr);
         break;
       }
       case META_CREATEBITMAP:
       {
         // Place holder
-        m_gdiObjects.Append(NULL);
+        m_gdiObjects.Append(nullptr);
         break;
       }
       case META_CREATEREGION:
       {
         // Place holder
-        m_gdiObjects.Append(NULL);
+        m_gdiObjects.Append(nullptr);
         break;
       }
       default:

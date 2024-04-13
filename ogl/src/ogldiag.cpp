@@ -36,7 +36,7 @@ IMPLEMENT_DYNAMIC_CLASS(wxDiagram, wxObject)
 // Object canvas
 wxDiagram::wxDiagram()
 {
-  m_diagramCanvas = NULL;
+  m_diagramCanvas = nullptr;
   m_snapToGrid = true;
   m_gridSpacing = 5.0;
   m_gridSpacingAspect = 1.0;
@@ -226,7 +226,7 @@ wxShape* wxDiagram::FindShape(long id) const
             return shape;
         node = node->GetNext();
     }
-    return NULL;
+    return nullptr;
 }
 
 

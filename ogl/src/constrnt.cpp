@@ -112,7 +112,7 @@ void OGLCleanUpConstraintTypes()
         return;
 
     delete wxOGLConstraintTypes;
-    wxOGLConstraintTypes = NULL;
+    wxOGLConstraintTypes = nullptr;
 }
 
 /*

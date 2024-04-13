@@ -54,7 +54,7 @@ class WXDLLIMPEXP_OGL wxDividedShape: public wxRectangleShape
 
   // Attachment points correspond to regions in the divided box
   bool GetAttachmentPosition(int attachment, double *x, double *y,
-                                     int nth = 0, int no_arcs = 1, wxLineShape *line = NULL);
+                                     int nth = 0, int no_arcs = 1, wxLineShape *line = nullptr);
   bool AttachmentIsValid(int attachment) const;
   int GetNumberOfAttachments() const;
 

@@ -143,7 +143,7 @@ void wxDrawnShape::Rotate(double x, double y, double theta)
   // Rotate attachment points
   double sinTheta = (double)sin(actualTheta);
   double cosTheta = (double)cos(actualTheta);
-  wxNode *node = m_attachmentPoints.GetFirst();
+  auto node = m_attachmentPoints.GetFirst();
   while (node)
   {
     wxAttachmentPoint *point = (wxAttachmentPoint *)node->GetData();
@@ -199,8 +199,7 @@ void wxDrawnShape::OnDrawOutline(wxDC& dc, double x, double y, double w, double 
 {
     if (m_metafiles[m_currentAngle].GetOutlineOp() != -1)
     {
-        wxNode* node = m_metafiles[m_currentAngle].GetOps().Item(m_metafiles[m_currentAngle].GetOutlineOp());
-        wxASSERT (node != NULL);
+        const auto node = m_metafiles[m_currentAngle].GetOps().Item(m_metafiles[m_currentAngle].GetOutlineOp());
         wxDrawOp* op = (wxDrawOp*) node->GetData();
 
         if (op->OnDrawOutline(dc, x, y, w, h, m_width, m_height))
@@ -219,8 +218,7 @@ bool wxDrawnShape::GetPerimeterPoint(double x1, double y1,
 {
     if (m_metafiles[m_currentAngle].GetOutlineOp() != -1)
     {
-        wxNode* node = m_metafiles[m_currentAngle].GetOps().Item(m_metafiles[m_currentAngle].GetOutlineOp());
-        wxASSERT (node != NULL);
+        const auto node = m_metafiles[m_currentAngle].GetOps().Item(m_metafiles[m_currentAngle].GetOutlineOp());
         wxDrawOp* op = (wxDrawOp*) node->GetData();
 
         if (op->GetPerimeterPoint(x1, y1, x2, y2, x3, y3, GetX(), GetY(), GetAttachmentMode()))
@@ -393,7 +391,7 @@ void wxOpSetGDI::Do(wxDC& dc, double WXUNUSED(xoffset), double WXUNUSED(yoffset)
       }
       else
       {
-        wxNode *node = m_image->m_gdiObjects.Item(m_gdiIndex);
+        const auto node = m_image->m_gdiObjects.Item(m_gdiIndex);
         if (node)
         {
           wxPen *pen = (wxPen *)node->GetData();
@@ -426,7 +424,7 @@ void wxOpSetGDI::Do(wxDC& dc, double WXUNUSED(xoffset), double WXUNUSED(yoffset)
       }
       else
       {
-        wxNode *node = m_image->m_gdiObjects.Item(m_gdiIndex);
+        const auto node = m_image->m_gdiObjects.Item(m_gdiIndex);
         if (node)
         {
           wxBrush *brush = (wxBrush *)node->GetData();
@@ -438,7 +436,7 @@ void wxOpSetGDI::Do(wxDC& dc, double WXUNUSED(xoffset), double WXUNUSED(yoffset)
     }
     case DRAWOP_SET_FONT:
     {
-      wxNode *node = m_image->m_gdiObjects.Item(m_gdiIndex);
+      const auto node = m_image->m_gdiObjects.Item(m_gdiIndex);
       if (node)
       {
         wxFont *font = (wxFont *)node->GetData();
@@ -958,7 +956,7 @@ wxPseudoMetaFile::~wxPseudoMetaFile()
 
 void wxPseudoMetaFile::Clear()
 {
-  wxNode *node = m_ops.GetFirst();
+  auto node = m_ops.GetFirst();
   while (node)
   {
     wxDrawOp *op = (wxDrawOp *)node->GetData();
@@ -974,7 +972,7 @@ void wxPseudoMetaFile::Clear()
 
 void wxPseudoMetaFile::Draw(wxDC& dc, double xoffset, double yoffset)
 {
-  wxNode *node = m_ops.GetFirst();
+  auto node = m_ops.GetFirst();
   while (node)
   {
     wxDrawOp *op = (wxDrawOp *)node->GetData();
@@ -985,7 +983,7 @@ void wxPseudoMetaFile::Draw(wxDC& dc, double xoffset, double yoffset)
 
 void wxPseudoMetaFile::Scale(double sx, double sy)
 {
-  wxNode *node = m_ops.GetFirst();
+  auto node = m_ops.GetFirst();
   while (node)
   {
     wxDrawOp *op = (wxDrawOp *)node->GetData();
@@ -998,7 +996,7 @@ void wxPseudoMetaFile::Scale(double sx, double sy)
 
 void wxPseudoMetaFile::Translate(double x, double y)
 {
-  wxNode *node = m_ops.GetFirst();
+  auto node = m_ops.GetFirst();
   while (node)
   {
     wxDrawOp *op = (wxDrawOp *)node->GetData();
@@ -1014,7 +1012,7 @@ void wxPseudoMetaFile::Rotate(double x, double y, double theta)
   double cosTheta = (double)cos(theta1);
   double sinTheta = (double)sin(theta1);
 
-  wxNode *node = m_ops.GetFirst();
+  auto node = m_ops.GetFirst();
   while (node)
   {
     wxDrawOp *op = (wxDrawOp *)node->GetData();
@@ -1038,7 +1036,7 @@ void wxPseudoMetaFile::Copy(wxPseudoMetaFile& copy)
   copy.m_outlineOp = m_outlineOp;
 
   // Copy the GDI objects
-  wxNode *node = m_gdiObjects.GetFirst();
+  auto node = m_gdiObjects.GetFirst();
   while (node)
   {
     wxObject *obj = (wxObject *)node->GetData();
@@ -1083,7 +1081,7 @@ bool wxPseudoMetaFile::LoadFromMetaFile(const wxString& filename, double *rwidth
   double lastY = 0.0;
 
   // Convert from metafile records to wxDrawnShape records
-  wxNode *node = metaFile->metaRecords.GetFirst();
+  auto node = metaFile->metaRecords.GetFirst();
   while (node)
   {
     wxMetaRecord *record = (wxMetaRecord *)node->GetData();
@@ -1258,7 +1256,7 @@ bool wxPseudoMetaFile::LoadFromMetaFile(const wxString& filename, double *rwidth
       {
         // The pen, brush etc. has already been created when the metafile
         // was read in, so we don't create it - we set it.
-        wxNode *recNode = metaFile->gdiObjects.Item((int)record->param2);
+        const auto recNode = metaFile->gdiObjects.Item((int)record->param2);
         if (recNode)
         {
           wxMetaRecord *gdiRec = (wxMetaRecord *)recNode->GetData();
@@ -1433,7 +1431,7 @@ void wxPseudoMetaFile::GetBounds(double *boundMinX, double *boundMinY, double *b
   double minX = (double) 99999.9;
   double minY = (double) 99999.9;
 
-  wxNode *node = m_ops.GetFirst();
+  auto node = m_ops.GetFirst();
   while (node)
   {
     wxDrawOp *op = (wxDrawOp *)node->GetData();

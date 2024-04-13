@@ -133,7 +133,7 @@ wxOGLConstraint::wxOGLConstraint(int type, wxShape *constraining, wxList& constr
   m_constraintId = 0;
   m_constraintName = wxT("noname");
 
-  wxNode *node = constrained.GetFirst();
+  auto node = constrained.GetFirst();
   while (node)
   {
     m_constrainedObjects.Append(node->GetData());
@@ -171,7 +171,7 @@ bool wxOGLConstraint::Evaluate()
     {
       int n = m_constrainedObjects.GetCount();
       double totalObjectHeight = 0.0;
-      wxNode *node = m_constrainedObjects.GetFirst();
+      auto node = m_constrainedObjects.GetFirst();
       while (node)
       {
         wxShape *constrainedObject = (wxShape *)node->GetData();
@@ -219,7 +219,7 @@ bool wxOGLConstraint::Evaluate()
     {
       int n = m_constrainedObjects.GetCount();
       double totalObjectWidth = 0.0;
-      wxNode *node = m_constrainedObjects.GetFirst();
+      auto node = m_constrainedObjects.GetFirst();
       while (node)
       {
         wxShape *constrainedObject = (wxShape *)node->GetData();
@@ -268,7 +268,7 @@ bool wxOGLConstraint::Evaluate()
       int n = m_constrainedObjects.GetCount();
       double totalObjectWidth = 0.0;
       double totalObjectHeight = 0.0;
-      wxNode *node = m_constrainedObjects.GetFirst();
+      auto node = m_constrainedObjects.GetFirst();
       while (node)
       {
         wxShape *constrainedObject = (wxShape *)node->GetData();
@@ -338,7 +338,7 @@ bool wxOGLConstraint::Evaluate()
     {
       bool changed = false;
 
-      wxNode *node = m_constrainedObjects.GetFirst();
+      auto node = m_constrainedObjects.GetFirst();
       while (node)
       {
         wxShape *constrainedObject = (wxShape *)node->GetData();
@@ -361,7 +361,7 @@ bool wxOGLConstraint::Evaluate()
     {
       bool changed = false;
 
-      wxNode *node = m_constrainedObjects.GetFirst();
+      auto node = m_constrainedObjects.GetFirst();
       while (node)
       {
         wxShape *constrainedObject = (wxShape *)node->GetData();
@@ -384,7 +384,7 @@ bool wxOGLConstraint::Evaluate()
     {
       bool changed = false;
 
-      wxNode *node = m_constrainedObjects.GetFirst();
+      auto node = m_constrainedObjects.GetFirst();
       while (node)
       {
         wxShape *constrainedObject = (wxShape *)node->GetData();
@@ -407,7 +407,7 @@ bool wxOGLConstraint::Evaluate()
     {
       bool changed = false;
 
-      wxNode *node = m_constrainedObjects.GetFirst();
+      auto node = m_constrainedObjects.GetFirst();
       while (node)
       {
         wxShape *constrainedObject = (wxShape *)node->GetData();
@@ -430,7 +430,7 @@ bool wxOGLConstraint::Evaluate()
     {
       bool changed = false;
 
-      wxNode *node = m_constrainedObjects.GetFirst();
+      auto node = m_constrainedObjects.GetFirst();
       while (node)
       {
         wxShape *constrainedObject = (wxShape *)node->GetData();
@@ -453,7 +453,7 @@ bool wxOGLConstraint::Evaluate()
     {
       bool changed = false;
 
-      wxNode *node = m_constrainedObjects.GetFirst();
+      auto node = m_constrainedObjects.GetFirst();
       while (node)
       {
         wxShape *constrainedObject = (wxShape *)node->GetData();
@@ -480,7 +480,7 @@ bool wxOGLConstraint::Evaluate()
     {
       bool changed = false;
 
-      wxNode *node = m_constrainedObjects.GetFirst();
+      auto node = m_constrainedObjects.GetFirst();
       while (node)
       {
         wxShape *constrainedObject = (wxShape *)node->GetData();
@@ -503,7 +503,7 @@ bool wxOGLConstraint::Evaluate()
     {
       bool changed = false;
 
-      wxNode *node = m_constrainedObjects.GetFirst();
+      auto node = m_constrainedObjects.GetFirst();
       while (node)
       {
         wxShape *constrainedObject = (wxShape *)node->GetData();
@@ -526,7 +526,7 @@ bool wxOGLConstraint::Evaluate()
     {
       bool changed = false;
 
-      wxNode *node = m_constrainedObjects.GetFirst();
+      auto node = m_constrainedObjects.GetFirst();
       while (node)
       {
         wxShape *constrainedObject = (wxShape *)node->GetData();
@@ -546,7 +546,7 @@ bool wxOGLConstraint::Evaluate()
     {
       bool changed = false;
 
-      wxNode *node = m_constrainedObjects.GetFirst();
+      auto node = m_constrainedObjects.GetFirst();
       while (node)
       {
         wxShape *constrainedObject = (wxShape *)node->GetData();
@@ -570,7 +570,7 @@ bool wxOGLConstraint::Evaluate()
     {
       bool changed = false;
 
-      wxNode *node = m_constrainedObjects.GetFirst();
+      auto node = m_constrainedObjects.GetFirst();
       while (node)
       {
         wxShape *constrainedObject = (wxShape *)node->GetData();
@@ -590,7 +590,7 @@ bool wxOGLConstraint::Evaluate()
     {
       bool changed = false;
 
-      wxNode *node = m_constrainedObjects.GetFirst();
+      auto node = m_constrainedObjects.GetFirst();
       while (node)
       {
         wxShape *constrainedObject = (wxShape *)node->GetData();

@@ -3904,7 +3904,7 @@ void GraphElement::SetShape(wxShape *shape)
 
         if (shape) {
             wxList *list = canvas->GetDiagram()->GetShapeList();
-            wxObjectListNode *node = list->Find(m_shape)->GetPrevious();
+            const auto node = list->Find(m_shape)->GetPrevious();
             prev = node ? static_cast<wxShape*>(node->GetData()) : NULL;
         }
 

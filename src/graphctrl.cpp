@@ -4142,8 +4142,6 @@ void GraphEdge::SetArrowSize(int size)
     wxLineShape *shape = GetShape();
 
     if (shape) {
-        Refresh();
-
         wxList& arrows = shape->GetArrows();
         wxList::iterator it;
 

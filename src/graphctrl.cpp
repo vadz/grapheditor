@@ -1789,6 +1789,7 @@ void GraphNodeHandler::OnEndDrag(int mode, double x, double y)
     GraphCanvas *canvas = wxStaticCast(shape->GetCanvas(), GraphCanvas);
     Graph *graph = canvas->GetGraph();
     canvas->ReleaseIfCaptured();
+    canvas->ClearHints();
 
     if ((mode & Drag_Connect) != 0 && m_target) {
         if (m_sources.empty()) {

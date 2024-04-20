@@ -82,10 +82,6 @@ void wxShapeCanvas::OnPaint(wxPaintEvent& WXUNUSED(event))
 
     PrepareDC(dc);
 
-    // We're repainting the window, so the overlay must be invalidated to avoid
-    // reusing the old contents when it's used again, e.g. during the next drag.
-    m_overlay.Reset();
-
     if (GetDiagram())
         GetDiagram()->Redraw(dc);
 }

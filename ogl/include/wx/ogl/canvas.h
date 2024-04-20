@@ -65,6 +65,9 @@ class WXDLLIMPEXP_OGL wxShapeCanvas: public wxScrolledWindow
   virtual void Redraw(wxDC& dc);
   void Snap(double *x, double *y);
 
+  // Clear any temporarily drawn hints.
+  void ClearHints() { m_overlay.Reset(); }
+
   // Events
   void OnPaint(wxPaintEvent& event);
   void OnMouseEvent(wxMouseEvent& event);

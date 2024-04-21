@@ -1,0 +1,3 @@
+[submodule "ogl"]
+	path = ogl
+	url = ../wxOGL

@@ -12,7 +12,7 @@ Prerequisites
 
 1. wxWidgets 3.1.2 or later.
 1. Graphviz headers and libraries: tested with Graphviz 2.26 and 2.38.
-
+1. Checkout with submodules, i.e. use `git clone --recurse-submodules`.
 
 Using Microsoft Visual Studio
 -----------------------------

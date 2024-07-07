@@ -134,10 +134,11 @@ void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
 
     canvas->PrepareDC(dc);
 
-    rcClip.x = dc.DeviceToLogicalX(rcClip.x);
-    rcClip.y = dc.DeviceToLogicalY(rcClip.y);
-    rcClip.SetRight(dc.DeviceToLogicalX(rcClip.GetRight()));
-    rcClip.SetBottom(dc.DeviceToLogicalY(rcClip.GetBottom()));
+    wxRect rc = rcClip;
+    rc.x = dc.DeviceToLogicalX(rc.x);
+    rc.y = dc.DeviceToLogicalY(rc.y);
+    rc.SetRight(dc.DeviceToLogicalX(rc.GetRight()));
+    rc.SetBottom(dc.DeviceToLogicalY(rc.GetBottom()));
 
     if (m_background[0] == m_background[1]) {
         dc.SetBackground(m_background[0]);
@@ -146,9 +147,9 @@ void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
         // In order to use the correct, and same, colours, independently of
         // whether this is a full or a partial repaint, always draw the entire
         // horizontal window span, not just the area we're repainting.
-        wxRect rc = rcClip;
-        rc.x = dc.DeviceToLogicalX(0);
-        rc.SetRight(dc.DeviceToLogicalX(canvas->GetClientSize().x));
+        wxRect rcFull = rc;
+        rcFull.x = dc.DeviceToLogicalX(0);
+        rcFull.SetRight(dc.DeviceToLogicalX(canvas->GetClientSize().x));
         dc.GradientFillLinear(rc, m_background[0], m_background[1]);
     }
 
@@ -158,27 +159,27 @@ void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
         dc.SetPen(GetForegroundColour());
         wxCoord x1, y1, x2, y2;
 
-        x1 = rcClip.x - rcClip.x % spacing.x;
-        if (rcClip.x < 0)
+        x1 = rc.x - rc.x % spacing.x;
+        if (rc.x < 0)
             x1 -= spacing.x;
-        x2 = rcClip.GetRight() - rcClip.GetRight() % spacing.x;
-        if (rcClip.GetRight() > 0)
+        x2 = rc.GetRight() - rc.GetRight() % spacing.x;
+        if (rc.GetRight() > 0)
             x2 += spacing.x;
-        y1 = rcClip.y;
-        y2 = rcClip.GetBottom();
+        y1 = rc.y;
+        y2 = rc.GetBottom();
 
         while (x1 <= x2) {
             dc.DrawLine(x1, y1, x1, y2);
             x1 += spacing.x;
         }
 
-        x1 = rcClip.x;
-        x2 = rcClip.GetRight();
-        y1 = rcClip.y - rcClip.y % spacing.y;
-        if (rcClip.y < 0)
+        x1 = rc.x;
+        x2 = rc.GetRight();
+        y1 = rc.y - rc.y % spacing.y;
+        if (rc.y < 0)
             y1 -= spacing.y;
-        y2 = rcClip.GetBottom() - rcClip.GetBottom() % spacing.y;
-        if (rcClip.GetBottom() > 0)
+        y2 = rc.GetBottom() - rc.GetBottom() % spacing.y;
+        if (rc.GetBottom() > 0)
             y2 += spacing.y;
 
         while (y1 <= y2) {

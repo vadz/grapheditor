@@ -128,28 +128,21 @@ void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
     wxASSERT(GetGraph());
     wxWindow *canvas = GetCanvas();
 
-    wxRect rcClip;
-    dc.GetClippingBox(rcClip);
-    rcClip.Inflate(1, 1);
-
     canvas->PrepareDC(dc);
 
-    wxRect rc = rcClip;
-    rc.x = dc.DeviceToLogicalX(rc.x);
-    rc.y = dc.DeviceToLogicalY(rc.y);
-    rc.SetRight(dc.DeviceToLogicalX(rc.GetRight()));
-    rc.SetBottom(dc.DeviceToLogicalY(rc.GetBottom()));
+    // Draw just on the visible part of the canvas.
+    const wxSize size{canvas->GetClientSize()};
+
+    wxRect rc;
+    rc.x = dc.DeviceToLogicalX(0);
+    rc.y = dc.DeviceToLogicalY(0);
+    rc.width = dc.DeviceToLogicalXRel(size.x);
+    rc.height = dc.DeviceToLogicalYRel(size.y);
 
     if (m_background[0] == m_background[1]) {
         dc.SetBackground(m_background[0]);
         dc.Clear();
     } else {
-        // In order to use the correct, and same, colours, independently of
-        // whether this is a full or a partial repaint, always draw the entire
-        // horizontal window span, not just the area we're repainting.
-        wxRect rcFull = rc;
-        rcFull.x = dc.DeviceToLogicalX(0);
-        rcFull.SetRight(dc.DeviceToLogicalX(canvas->GetClientSize().x));
         dc.GradientFillLinear(rc, m_background[0], m_background[1]);
     }
 

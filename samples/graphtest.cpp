@@ -378,8 +378,8 @@ public:
     // this one is called on application startup and is a good place for the app
     // initialization (doing it here and not in the ctor allows to have an error
     // return: if OnInit() returns false, the application terminates)
-    virtual bool OnInit();
-    virtual int OnExit();
+    bool OnInit() override;
+    int OnExit() override;
 };
 
 // Define a new frame type: this is going to be our main frame
@@ -832,6 +832,11 @@ MyFrame::MyFrame(const wxString& title)
     m_printPosX = .5;
     // and towards the top, split free space 30% / 70%
     m_printPosY = .3;
+
+#ifndef FIXME_VZ
+    m_graph->Add(new SampleNode(), wxPoint(100, 100));
+    m_graph->Add(new SampleNode(), wxPoint(1000, 1000));
+#endif // FIXME_VZ
 }
 
 MyFrame::~MyFrame()

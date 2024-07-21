@@ -356,10 +356,10 @@ public:
      * corresponding methods of GraphPages.
      */
     //@{
-    void OnPreparePrinting();
-    bool HasPage(int page);
-    bool OnPrintPage(int page);
-    void GetPageInfo(int *minPage, int *maxPage, int *pageFrom, int *pageTo);
+    void OnPreparePrinting() override;
+    bool HasPage(int page) override;
+    bool OnPrintPage(int page) override;
+    void GetPageInfo(int *minPage, int *maxPage, int *pageFrom, int *pageTo) override;
     //@}
 
 private:

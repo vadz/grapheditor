@@ -55,8 +55,8 @@ public:
     /** @brief Destructor. */
     ~ProjectNode();
 
-    void SetText(const wxString& text);
-    void SetFont(const wxFont& font);
+    void SetText(const wxString& text) override;
+    void SetFont(const wxFont& font) override;
 
     //@{
     /** @brief The node's id. */
@@ -87,7 +87,7 @@ public:
      * Can be overridden in a derived class to handle any additional
      * attributes.
      */
-    bool Serialise(tt_solutions::Archive::Item& arc);
+    bool Serialise(tt_solutions::Archive::Item& arc) override;
 
     /**
      * @brief Indicates what part of the node is at the given point, for
@@ -145,11 +145,11 @@ public:
     void SetMaxAutoSize(const wxSize& size) { m_maxAutoSize = size; }
     /** @endcond */
 
-    void OnDraw(wxDC& dc);
-    void OnLayout(wxDC &dc);
+    void OnDraw(wxDC& dc) override;
+    void OnLayout(wxDC &dc) override;
 
     wxPoint GetPerimeterPoint(const wxPoint& inside,
-                              const wxPoint& outside) const;
+                              const wxPoint& outside) const override;
 
 protected:
     /**
@@ -224,7 +224,7 @@ public:
     void DrawCanvasBackground(wxDC& dc);
 
     /** @brief Sets the background colour of the control. */
-    bool SetBackgroundColour(const wxColour& colour);
+    bool SetBackgroundColour(const wxColour& colour) override;
     /** @brief Sets the background colour gradient of the control. */
     void SetBackgroundGradient(const wxColour& from, const wxColour& to);
 

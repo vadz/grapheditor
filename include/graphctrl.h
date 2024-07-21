@@ -626,7 +626,7 @@ public:
      *
      * Invalidates any iterators pointing to this element.
      */
-    virtual void SetStyle(int style);
+    void SetStyle(int style) override;
 
     //@{
     /** @brief Size of the arrow head, if present. */
@@ -689,7 +689,7 @@ public:
      * Can be overridden in a derived class to handle any additional
      * attributes.
      */
-    bool Serialise(Archive::Item& arc);
+    bool Serialise(Archive::Item& arc) override;
 
     /**
      * @brief Get the associated graphic object from the underlying graphics
@@ -724,13 +724,13 @@ public:
      * Such as SetSize(), SetText() and SetFont(), to give the element the
      * chance to adjust its layout. The default implementation does nothing.
      */
-    virtual void Layout() { }
+    void Layout() override { }
 
     /** @brief Overridable returning the pen that will be used. */
-    wxPen GetPen() const { return wxPen(GetColour(), m_linewidth); }
+    wxPen GetPen() const override { return wxPen(GetColour(), m_linewidth); }
 
 protected:
-    virtual void UpdateShape() { }
+    void UpdateShape() override { }
 
     /**
      * Move this edge to the front of the list of shapes.
@@ -873,7 +873,7 @@ public:
      *
      * Invalidates any iterators pointing to this element.
      */
-    virtual void SetStyle(int style);
+    void SetStyle(int style) override;
 
     //@{
     /**
@@ -942,7 +942,7 @@ public:
      * Can be overridden in a derived class to handle any additional
      * attributes.
      */
-    bool Serialise(Archive::Item& arc);
+    bool Serialise(Archive::Item& arc) override;
 
     /**
      * @brief Move the node, centering it on the given point.
@@ -977,7 +977,7 @@ public:
      *
      * Invalidates any iterators pointing to this element.
      */
-    void SetShape(wxShape *shape);
+    void SetShape(wxShape *shape) override;
 
     /**
      * @brief This can be overridden to give the node a custom shape.
@@ -1000,8 +1000,8 @@ public:
                                       const wxPoint& outside) const;
 
 protected:
-    virtual void DoSelect(bool select);
-    virtual void UpdateShape();
+    void DoSelect(bool select) override;
+    void UpdateShape() override;
 
     /**
      * Ensure that we use the correct text colour.
@@ -1031,7 +1031,7 @@ protected:
      * to adjust its layout. It calls OnLayout() to allow derived classes
      * to take care of any custom features they add.
      */
-    virtual void Layout();
+    void Layout() override;
 
 private:
     /// Get the list of all underlying lines connecting to this node.
@@ -1222,7 +1222,7 @@ public:
      *
      * Affected by @c SetMargin().
      */
-    virtual void Fit();
+    void Fit() override;
 
     /**
      * @brief The kind of border the scrollbars leave around the graph.
@@ -1449,7 +1449,7 @@ public:
 
 protected:
     /** Returns the DPI used by the control. */
-    virtual wxSize GetDPI() const;
+    wxSize GetDPI() const override;
 
 private:
     /**
@@ -2224,7 +2224,7 @@ public:
     GraphEvent(const GraphEvent& event);
 
     /** @brief Clone. */
-    virtual wxEvent *Clone() const      { return new GraphEvent(*this); }
+    wxEvent *Clone() const override { return new GraphEvent(*this); }
 
     /**
      * @brief The node being added, deleted, clicked, etc.

@@ -54,7 +54,7 @@ public:
      *
      * This interferes with drag and drop.
      */
-    bool SendAutoScrollEvents(wxScrollWinEvent&) const { return false; }
+    bool SendAutoScrollEvents(wxScrollWinEvent&) const override { return false; }
 
     /// Event handler for begin drag event.
 
@@ -138,7 +138,7 @@ public:
     void SetIcon(const wxIcon& icon) { m_icon = icon; }
 
     /** @brief Clone. */
-    wxEvent *Clone() const { return new GraphTreeEvent(*this); }
+    wxEvent *Clone() const override { return new GraphTreeEvent(*this); }
 
 private:
     GraphCtrl *m_target;    ///< Target of the drop.

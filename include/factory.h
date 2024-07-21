@@ -280,7 +280,7 @@ public:
          *
          * Notice that a covariant return type is used here.
          */
-        T *New() const {
+        T *New() const override {
             return new T(*GetDefault());
         }
 
@@ -289,7 +289,7 @@ public:
          *
          * Notice that a covariant return type is used here.
          */
-        const T *GetDefault() const {
+        const T *GetDefault() const override {
             if (!m_default)
                 m_default = new T;
             return m_default;

@@ -390,14 +390,14 @@ public:
      *
      * Deselects all items and generates a Evt_Graph_Click event.
      */
-    void OnLeftClick(double x, double y, int keys);
+    void OnLeftClick(double x, double y, int keys) override;
 
     /**
      * Called when right mouse button is clicked.
      *
      * Generates a Evt_Graph_Menu event.
      */
-    void OnRightClick(double x, double y, int keys);
+    void OnRightClick(double x, double y, int keys) override;
 
     /**
      * Called when mouse starts to move with left button down.
@@ -405,21 +405,21 @@ public:
      * Sets up the variables used by OnDragLeft(): starts panning if Shift key
      * is pressed or rubber-banding otherwise.
      */
-    void OnBeginDragLeft(double x, double y, int keys);
+    void OnBeginDragLeft(double x, double y, int keys) override;
 
     /**
      * Called when mouse is moved with left button down.
      *
      * Implements feedback for panning and rubber-banding.
      */
-    void OnDragLeft(bool draw, double x, double y, int keys);
+    void OnDragLeft(bool draw, double x, double y, int keys) override;
 
     /**
      * Called when the left mouse button is released after dragging.
      *
      * Finalizes a panning or rubber-banding operation.
      */
-    void OnEndDragLeft(double x, double y, int keys);
+    void OnEndDragLeft(double x, double y, int keys) override;
     //@}
 
     /**
@@ -442,7 +442,7 @@ public:
     /**
      * Override event processing to send mouse events to the parent.
      */
-    bool ProcessEvent(wxEvent& event);
+    bool ProcessEvent(wxEvent& event) override;
 
     /**
      * Release mouse if we currently have the capture.
@@ -534,7 +534,7 @@ public:
      * The scrollbars will be set from CheckBounds() called from
      * GraphCtrl::OnIdle() instead.
      */
-    void AdjustScrollbars() { }
+    void AdjustScrollbars() override { }
     //@}
 
     /**
@@ -1322,8 +1322,8 @@ public:
 
     /// Overridden base class virtual method.
     //@{
-    void OnErase(wxDC& dc);
-    void OnMoveLink(wxDC& dc, bool moveControlPoints);
+    void OnErase(wxDC& dc) override;
+    void OnMoveLink(wxDC& dc, bool moveControlPoints) override;
     //@}
 
 protected:
@@ -1392,7 +1392,7 @@ public:
     ControlPointHandler(wxShapeEvtHandler *prev);
 
     /// Overridden base class virtual method.
-    void OnErase(wxDC& dc);
+    void OnErase(wxDC& dc) override;
 };
 
 ControlPointHandler::ControlPointHandler(wxShapeEvtHandler *prev)
@@ -1421,12 +1421,12 @@ public:
 
     /// Overridden base class virtual method.
     //@{
-    void OnLeftClick(double x, double y, int keys, int attachment);
-    void OnLeftDoubleClick(double x, double y, int keys, int attachment);
-    void OnRightClick(double x, double y, int keys, int attachment);
+    void OnLeftClick(double x, double y, int keys, int attachment) override;
+    void OnLeftDoubleClick(double x, double y, int keys, int attachment) override;
+    void OnRightClick(double x, double y, int keys, int attachment) override;
 
-    void OnDraw(wxDC& dc)       { GetElement(GetShape())->OnDraw(dc); }
-    void OnDrawContents(wxDC&)  { }
+    void OnDraw(wxDC& dc) override { GetElement(GetShape())->OnDraw(dc); }
+    void OnDrawContents(wxDC&) override { }
     //@}
 
 protected:
@@ -1557,29 +1557,36 @@ public:
 
     /// Overridden base class virtual method.
     //@{
-    void OnLeftClick(double x, double y, int keys, int attachment);
-    void OnLeftDoubleClick(double x, double y, int keys, int attachment);
-    void OnRightClick(double x, double y, int keys, int attachment);
+    void OnLeftClick(double x, double y, int keys, int attachment) override;
+    void OnLeftDoubleClick(double x, double y, int keys, int attachment) override;
+    void OnRightClick(double x, double y, int keys, int attachment) override;
 
-    void OnBeginDragLeft(double x, double y, int keys, int attachment);
-    void OnDragLeft(bool draw, double x, double y, int keys, int attachment);
-    void OnEndDragLeft(double x, double y, int keys, int attachment);
+    void OnBeginDragLeft(double x, double y, int keys, int attachment) override;
+    void OnDragLeft(bool draw, double x, double y, int keys, int attachment) override;
+    void OnEndDragLeft(double x, double y, int keys, int attachment) override;
 
-    void OnBeginDragRight(double x, double y, int keys, int attachment);
-    void OnDragRight(bool draw, double x, double y, int keys, int attachment);
-    void OnEndDragRight(double x, double y, int keys, int attachment);
+    void OnBeginDragRight(double x, double y, int keys, int attachment) override;
+    void OnDragRight(bool draw, double x, double y, int keys, int attachment) override;
+    void OnEndDragRight(double x, double y, int keys, int attachment) override;
 
     void OnBeginDrag(int mode, double x, double y);
     void OnDrag(int mode, bool draw, double x, double y);
     void OnEndDrag(int mode, double x, double y);
 
-    void OnEraseContents(wxDC& dc)  { GraphElementHandler::OnErase(dc); }
-    void OnErase(wxDC& dc)          { wxShapeEvtHandler::OnErase(dc); }
+    void OnEraseContents(wxDC& dc) override
+    {
+        GraphElementHandler::OnErase(dc);
+    }
 
-    void OnDraw(wxDC& dc);
+    void OnErase(wxDC& dc) override
+    {
+        wxShapeEvtHandler::OnErase(dc);
+    }
 
-    void OnSizingDragLeft(wxControlPoint* pt, bool draw, double x, double y, int keys, int attachment);
-    void OnSizingEndDragLeft(wxControlPoint* pt, double x, double y, int keys, int attachment);
+    void OnDraw(wxDC& dc) override;
+
+    void OnSizingDragLeft(wxControlPoint* pt, bool draw, double x, double y, int keys, int attachment) override;
+    void OnSizingEndDragLeft(wxControlPoint* pt, double x, double y, int keys, int attachment) override;
     //@}
 
     /// Return the associated GraphNode.
@@ -1863,7 +1870,7 @@ public:
 protected:
     /// Overridden base class virtual method.
     //@{
-    wxRect GetEraseRect() const;
+    wxRect GetEraseRect() const override;
     inline wxLineShape *GetShape() const;
     //@}
 };
@@ -1915,7 +1922,7 @@ public:
     /// Overridden base class virtual method.
     bool GetPerimeterPoint(double x1, double y1,
                            double x2, double y2,
-                           double *x3, double *y3);
+                           double *x3, double *y3) override;
 };
 
 bool GraphNodeShape::GetPerimeterPoint(double x1, double y1,
@@ -1965,14 +1972,14 @@ public:
      *
      * Calls SetEventHandler() and the base class method.
      */
-    void AddShape(wxShape *shape, wxShape *addAfter = NULL);
+    void AddShape(wxShape *shape, wxShape *addAfter = NULL) override;
 
     /**
      * Override to set up a correct handler for @a shape.
      *
      * Calls SetEventHandler() and the base class method.
      */
-    void InsertShape(wxShape *shape);
+    void InsertShape(wxShape *shape) override;
 
     /**
      * Associate an appropriate custom event handler with the shape.
@@ -1987,7 +1994,7 @@ public:
      * Override Redraw since the default method displays a busy cursor which
      * flashes on and off during panning.
      */
-    void Redraw(wxDC& dc);
+    void Redraw(wxDC& dc) override;
 };
 
 // The custom behaviour of the wxShapes is achieved using wxShapeEvtHandler
@@ -2186,7 +2193,7 @@ public:
     /**
      * Advance the iterator skipping over unacceptable elements.
      */
-    void inc()
+    void inc() override
     {
         do {
             ++m_it;
@@ -2197,7 +2204,7 @@ public:
     /**
      * Advance the iterator backwards skipping over unacceptable elements.
      */
-    void dec()
+    void dec() override
     {
         do {
             --m_it;
@@ -2210,20 +2217,20 @@ public:
      *
      * The comparison doesn't take filter settings into account.
      */
-    bool eq(const GraphIteratorImpl& other) const
+    bool eq(const GraphIteratorImpl& other) const override
     {
         return typeid(other) == typeid(ListIterImpl) &&
                m_it == static_cast<const ListIterImpl&>(other).m_it;
     }
 
     /// Dereference the iterator.
-    GraphElement *get() const
+    GraphElement *get() const override
     {
         return GetElement(wxStaticCast(*m_it, wxShape));
     }
 
     /// Create a copy of this iterator polymorphically.
-    ListIterImpl *clone() const
+    ListIterImpl *clone() const override
     {
         return new ListIterImpl(*this);
     }
@@ -2279,7 +2286,7 @@ public:
     /**
      * Advance the iterator skipping over unacceptable elements.
      */
-    void inc()
+    void inc() override
     {
         do {
             m_pos++;
@@ -2290,7 +2297,7 @@ public:
     /**
      * Advance the iterator backwards skipping over unacceptable elements.
      */
-    void dec()
+    void dec() override
     {
         do {
             m_pos--;
@@ -2304,7 +2311,7 @@ public:
      * The comparison doesn't take filter settings (i.e. type of the elements
      * to accept) into account.
      */
-    bool eq(const GraphIteratorImpl& other) const
+    bool eq(const GraphIteratorImpl& other) const override
     {
         if (typeid(other) != typeid(PairIterImpl))
             return false;
@@ -2313,13 +2320,13 @@ public:
     }
 
     /// Dereference the iterator.
-    GraphElement *get() const
+    GraphElement *get() const override
     {
         return GetElement(m_pos == 1 ? m_line->GetFrom() : m_line->GetTo());
     }
 
     /// Create a copy of this iterator polymorphically.
-    PairIterImpl *clone() const
+    PairIterImpl *clone() const override
     {
         return new PairIterImpl(*this);
     }

@@ -57,14 +57,14 @@ public:
      * implement this by explicitly forwarding any such events that we get to
      * our parent window.
      */
-    bool ProcessEvent(wxEvent& event);
+    bool ProcessEvent(wxEvent& event) override;
 
     /**
      * @brief Override the base class method to refuse focus.
      *
      * A tooltip window doesn't accept input and hence doesn't need the focus.
      */
-    bool AcceptsFocus() const { return false; }
+    bool AcceptsFocus() const override { return false; }
 
     /**
      * @brief Paint event handler.
@@ -84,7 +84,7 @@ protected:
      */
     void DoSetSize(int x, int y,
                    int width, int height,
-                   int sizeFlags = wxSIZE_AUTO);
+                   int sizeFlags = wxSIZE_AUTO) override;
 
 private:
     /// A possibly multiline text to show.

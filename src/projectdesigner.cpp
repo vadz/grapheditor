@@ -290,7 +290,7 @@ int ProjectNode::GetSpacing() const
 // the sizes of the text labels, m_rcText and m_rcResult, when the rects
 // are null, so usual it runs quickly.
 //
-void ProjectNode::OnLayout(wxDC &dc)
+void ProjectNode::OnLayout(wxReadOnlyDC &dc)
 {
     int spacing = GetSpacing();
     int border = GetBorderThickness();

@@ -146,7 +146,7 @@ public:
     /** @endcond */
 
     void OnDraw(wxDC& dc) override;
-    void OnLayout(wxDC &dc) override;
+    void OnLayout(wxReadOnlyDC &dc) override;
 
     wxPoint GetPerimeterPoint(const wxPoint& inside,
                               const wxPoint& outside) const override;

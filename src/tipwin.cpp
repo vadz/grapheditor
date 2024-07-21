@@ -13,6 +13,10 @@
 
 #include <wx/display.h>
 
+#ifndef wxHAS_INFO_DC
+    using wxInfoDC = wxClientDC;
+#endif
+
 /**
  * @file
  * @brief Custom tooltip window class implementation.
@@ -56,8 +60,7 @@ TipWindow::TipWindow(wxWindow *parent,
 
 void TipWindow::DoSetSize(int x, int y, int width, int height, int sizeFlags)
 {
-    wxClientDC dc(this);
-    dc.SetFont(GetFont());
+    wxInfoDC dc(this);
 
     wxSize autsize = dc.GetMultiLineTextExtent(m_text);
     autsize += m_margin * 2;

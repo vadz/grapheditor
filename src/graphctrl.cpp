@@ -526,7 +526,7 @@ public:
     /**
      * Set up the DC origin and scale for the current position and zoom level.
      */
-    void PrepareDC(wxDC& dc);
+    void PrepareDC(wxReadOnlyDC& dc);
 
     /**
      * Override to not do any scrollbar adjustments.
@@ -768,7 +768,7 @@ void GraphCanvas::OnLeftButton(wxMouseEvent& event)
             SetFocus();
 
         if (event.ShiftDown() && !event.Dragging()) {
-            wxClientDC dc(this);
+            wxInfoDC dc(this);
             PrepareDC(dc);
             wxPoint ptLog(event.GetLogicalPosition(dc));
             m_checkTolerance = true;
@@ -1018,7 +1018,7 @@ void GraphCanvas::OnScroll(wxScrollWinEvent& event)
 
 bool GraphCanvas::CheckBounds()
 {
-    wxClientDC dc(this);
+    wxInfoDC dc(this);
     PrepareDC(dc);
 
     wxSize cs = GetFullClientSize();
@@ -1142,7 +1142,7 @@ void GraphCanvas::OnSize(wxSizeEvent& event)
     event.Skip();
 }
 
-void GraphCanvas::PrepareDC(wxDC& dc)
+void GraphCanvas::PrepareDC(wxReadOnlyDC& dc)
 {
     int x = m_ptOrigin.x - m_xScrollPosition;
     int y = m_ptOrigin.y - m_yScrollPosition;
@@ -1158,7 +1158,7 @@ wxPoint GraphCanvas::GetScroll() const
 
 void GraphCanvas::ScrollTo(const wxPoint& ptGraph, bool draw)
 {
-    wxClientDC dc(this);
+    wxInfoDC dc(this);
     PrepareDC(dc);
 
     wxSize cs = GetScrollClientSize();
@@ -1170,7 +1170,7 @@ void GraphCanvas::ScrollTo(const wxPoint& ptGraph, bool draw)
 
 wxPoint GraphCanvas::GetScrollPosition()
 {
-    wxClientDC dc(this);
+    wxInfoDC dc(this);
     PrepareDC(dc);
 
     wxSize cs = GetScrollClientSize();
@@ -1197,7 +1197,7 @@ wxPoint GraphCanvas::ScrollByOffset(int x, int y, bool draw)
 
 void GraphCanvas::EnsureVisible(wxRect rcGraph, bool draw)
 {
-    wxClientDC dc(this);
+    wxInfoDC dc(this);
     PrepareDC(dc);
 
     rcGraph.Inflate(m_margin);
@@ -1229,7 +1229,7 @@ void GraphCanvas::ScrollTo(int side, bool draw)
 {
     wxASSERT(m_graph);
 
-    wxClientDC dc(this);
+    wxInfoDC dc(this);
     PrepareDC(dc);
 
     wxRect rcGraph = m_graph->GetBounds();
@@ -1270,7 +1270,7 @@ void GraphCanvas::ScrollTo(int side, bool draw)
 
 wxRect GraphCanvas::ScreenToGraph(const wxRect& rcScreen)
 {
-    wxClientDC dc(this);
+    wxInfoDC dc(this);
     PrepareDC(dc);
     wxPoint pt = ScreenToClient(rcScreen.GetTopLeft());
     return wxRect(dc.DeviceToLogicalX(pt.x),
@@ -1281,7 +1281,7 @@ wxRect GraphCanvas::ScreenToGraph(const wxRect& rcScreen)
 
 wxRect GraphCanvas::GraphToScreen(const wxRect& rcGraph)
 {
-    wxClientDC dc(this);
+    wxInfoDC dc(this);
     PrepareDC(dc);
     wxPoint pt( dc.LogicalToDeviceX(rcGraph.x),
                 dc.LogicalToDeviceY(rcGraph.y));
@@ -1322,8 +1322,8 @@ public:
 
     /// Overridden base class virtual method.
     //@{
-    void OnErase(wxDC& dc) override;
-    void OnMoveLink(wxDC& dc, bool moveControlPoints) override;
+    void OnErase(wxReadOnlyDC& dc) override;
+    void OnMoveLink(wxReadOnlyDC& dc, bool moveControlPoints) override;
     //@}
 
 protected:
@@ -1336,7 +1336,7 @@ GraphHandler::GraphHandler(wxShapeEvtHandler *prev)
 {
 }
 
-void GraphHandler::OnErase(wxDC& dc)
+void GraphHandler::OnErase(wxReadOnlyDC& dc)
 {
     wxShape *shape = GetShape();
 
@@ -1374,7 +1374,7 @@ wxRect GraphHandler::GetEraseRect() const
     return wxRect(x1, y1, x2 - x1, y2 - y1);
 }
 
-void GraphHandler::OnMoveLink(wxDC& dc, bool moveControlPoints)
+void GraphHandler::OnMoveLink(wxReadOnlyDC& dc, bool moveControlPoints)
 {
     wxShape *shape = GetShape();
     shape->Show(false);
@@ -1392,7 +1392,7 @@ public:
     ControlPointHandler(wxShapeEvtHandler *prev);
 
     /// Overridden base class virtual method.
-    void OnErase(wxDC& dc) override;
+    void OnErase(wxReadOnlyDC& dc) override;
 };
 
 ControlPointHandler::ControlPointHandler(wxShapeEvtHandler *prev)
@@ -1400,7 +1400,7 @@ ControlPointHandler::ControlPointHandler(wxShapeEvtHandler *prev)
 {
 }
 
-void ControlPointHandler::OnErase(wxDC& dc)
+void ControlPointHandler::OnErase(wxReadOnlyDC& dc)
 {
     wxControlPoint *control = wxStaticCast(GetShape(), wxControlPoint);
     control->SetX(control->m_shape->GetX() + control->m_xoffset);
@@ -1573,12 +1573,12 @@ public:
     void OnDrag(int mode, bool draw, double x, double y);
     void OnEndDrag(int mode, double x, double y);
 
-    void OnEraseContents(wxDC& dc) override
+    void OnEraseContents(wxReadOnlyDC& dc) override
     {
         GraphElementHandler::OnErase(dc);
     }
 
-    void OnErase(wxDC& dc) override
+    void OnErase(wxReadOnlyDC& dc) override
     {
         wxShapeEvtHandler::OnErase(dc);
     }
@@ -3438,7 +3438,7 @@ void GraphCtrl::SetZoom(double percent, const wxPoint& ptCentre)
     percent = event.GetZoom();
     wxPoint pt = event.GetPosition();
 
-    wxClientDC dc(m_canvas);
+    wxInfoDC dc(m_canvas);
     m_canvas->PrepareDC(dc);
     wxPoint ptGraph(dc.DeviceToLogicalX(pt.x), dc.DeviceToLogicalY(pt.y));
 
@@ -3970,7 +3970,7 @@ void GraphElement::Refresh()
 {
     wxShapeCanvas *canvas = GetCanvas(m_shape);
     if (canvas) {
-        wxClientDC dc(canvas);
+        wxInfoDC dc(canvas);
         canvas->PrepareDC(dc);
         m_shape->Erase(dc);
     }
@@ -4010,7 +4010,7 @@ void GraphElement::DoSelect(bool select)
         wxShapeCanvas *canvas = GetCanvas(m_shape);
 
         if (canvas) {
-            wxClientDC dc(canvas);
+            wxInfoDC dc(canvas);
             canvas->PrepareDC(dc);
             if (select) {
                 m_shape->Select(true);
@@ -4277,7 +4277,7 @@ void GraphNode::DoSelect(bool select)
         wxShapeCanvas *canvas = GetCanvas(shape);
 
         if (canvas) {
-            wxClientDC dc(canvas);
+            wxInfoDC dc(canvas);
             canvas->PrepareDC(dc);
 
             if (select) {
@@ -4384,7 +4384,7 @@ void GraphNode::Layout()
     wxShapeCanvas *canvas = GetCanvas(GetShape());
 
     if (canvas) {
-        wxClientDC dc(canvas);
+        wxInfoDC dc(canvas);
         canvas->PrepareDC(dc);
         OnLayout(dc);
     }
@@ -4397,7 +4397,7 @@ void GraphNode::SetPosition(const wxPoint& pt)
 
     if (canvas) {
         Graph *graph = GetGraph();
-        wxClientDC dc(canvas);
+        wxInfoDC dc(canvas);
         canvas->PrepareDC(dc);
         double x = pt.x, y = pt.y;
         canvas->Snap(&x, &y);
@@ -4418,7 +4418,7 @@ void GraphNode::SetPosition(const wxPoint& pt)
     }
 }
 
-void GraphNode::DoSetSize(wxDC& dc, const wxSize& size)
+void GraphNode::DoSetSize(wxReadOnlyDC& dc, const wxSize& size)
 {
     wxShape *shape = GetShape();
     shape->Erase(dc);
@@ -4441,7 +4441,7 @@ void GraphNode::SetSize(const wxSize& size)
         GetGraph()->SendEvent(event);
 
         if (event.IsAllowed()) {
-            wxClientDC dc(canvas);
+            wxInfoDC dc(canvas);
             canvas->PrepareDC(dc);
             DoSetSize(dc, event.GetSize());
             OnLayout(dc);

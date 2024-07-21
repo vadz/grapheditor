@@ -13,6 +13,7 @@
 #define GRAPHCTRL_H
 
 #include <wx/wx.h>
+#include <wx/ogl/defs.h>
 
 #include <iterator>
 #include <list>
@@ -1016,12 +1017,12 @@ protected:
      * This is called only if the resizing does happen, i.e. wasn't vetoed by
      * an event handler.
      */
-    virtual void DoSetSize(wxDC& dc, const wxSize& size);
+    virtual void DoSetSize(wxReadOnlyDC& dc, const wxSize& size);
 
     /**
      * @brief Overridable called from Layout().
      */
-    virtual void OnLayout(wxDC&) { }
+    virtual void OnLayout(wxReadOnlyDC&) { }
     /**
      * @brief Calculates the positions of any text labels, icons, etc.
      * within the node.

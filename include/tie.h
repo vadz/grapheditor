@@ -41,6 +41,9 @@ namespace impl
         /// Constructor from pair components.
         RefPair(A& a, B& b) : first(a), second(b) { }
 
+        /// Default copy constructor.
+        RefPair(const RefPair<A, B>& t) = default;
+
         /// Assignment operator from a <code>std::pair</code>
         RefPair& operator=(const std::pair<A, B>& p)
         {
@@ -49,13 +52,8 @@ namespace impl
             return *this;
         }
 
-        /// Assignment operator.
-        RefPair& operator=(const RefPair<A, B>& t)
-        {
-            first = t.first;
-            second = t.second;
-            return *this;
-        }
+        /// Default assignment operator.
+        RefPair& operator=(const RefPair<A, B>& t) = default;
 
         A& first;       ///< First pair component.
         B& second;      ///< Second pair component.

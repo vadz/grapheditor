@@ -3143,8 +3143,9 @@ bool Graph::Serialise(Archive& archive, const iterator_pair& range)
                 rcBounds += it->GetBounds();
         }
         else {
+            const auto& value = *it;
             wxFAIL_MSG(_T("Define a Factory<type>::Impl instance for ") +
-                       wxString::FromAscii(typeid(*it).name()));
+                       wxString::FromAscii(typeid(value).name()));
             badfactory = true;
         }
     }

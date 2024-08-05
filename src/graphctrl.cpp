@@ -526,7 +526,11 @@ public:
     /**
      * Set up the DC origin and scale for the current position and zoom level.
      */
-    void PrepareDC(wxReadOnlyDC& dc);
+#if wxCHECK_VERSION(3, 3, 0)
+    void DoPrepareReadOnlyDC(wxReadOnlyDC& dc) override;
+#else // wx < 3.3.0
+    void DoPrepareDC(wxDC& dc) override;
+#endif // wx version
 
     /**
      * Override to not do any scrollbar adjustments.
@@ -1142,7 +1146,11 @@ void GraphCanvas::OnSize(wxSizeEvent& event)
     event.Skip();
 }
 
-void GraphCanvas::PrepareDC(wxReadOnlyDC& dc)
+#if wxCHECK_VERSION(3, 3, 0)
+void GraphCanvas::DoPrepareReadOnlyDC(wxReadOnlyDC& dc)
+#else // wx < 3.3.0
+void GraphCanvas::DoPrepareDC(wxDC& dc)
+#endif // wx version
 {
     int x = m_ptOrigin.x - m_xScrollPosition;
     int y = m_ptOrigin.y - m_yScrollPosition;

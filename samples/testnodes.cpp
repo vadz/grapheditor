@@ -92,7 +92,7 @@ TestNode::TestNode(const wxColour& colour,
     SetRank(rank);
 }
 
-void TestNode::OnLayout(wxDC& dc)
+void TestNode::OnLayout(wxReadOnlyDC& dc)
 {
 #ifdef FIXED_NODE_SIZE
     static wxSize defSize(3 * GetDPI().x / 2, GetDPI().y);

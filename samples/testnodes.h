@@ -28,7 +28,7 @@ struct TestNode : datactics::ProjectNode
              const wxString& operation,
              const wxString& imgfile,
              const wxString& rank = wxEmptyString);
-    void OnLayout(wxDC& dc);
+    void OnLayout(wxReadOnlyDC& dc);
 };
 
 /// Base class for import test nodes.

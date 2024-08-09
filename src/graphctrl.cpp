@@ -3388,7 +3388,7 @@ GraphCtrl::GraphCtrl(
         long style,
         const wxValidator& validator,
         const wxString& name)
-  : wxControl(parent, winid, pos, size, style | wxWANTS_CHARS, validator, name),
+  : wxControl(parent, winid, pos, size, style | wxFULL_REPAINT_ON_RESIZE | wxWANTS_CHARS, validator, name),
     m_canvas(new GraphCanvas(this, winid, wxPoint(0, 0), size, 0)),
     m_graph(NULL),
     m_tiptimer(this),

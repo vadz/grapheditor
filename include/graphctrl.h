@@ -13,7 +13,13 @@
 #define GRAPHCTRL_H
 
 #include <wx/wx.h>
-#include <wx/ogl/defs.h>
+
+// These definitions are also present in wx/ogl/defs.h, but we don't want to
+// depend on that header here, so reproduce them.
+#ifndef wxHAS_INFO_DC
+    using wxReadOnlyDC = wxDC;
+    using wxInfoDC = wxClientDC;
+#endif
 
 #include <iterator>
 #include <list>

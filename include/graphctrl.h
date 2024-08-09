@@ -1170,7 +1170,7 @@ public:
               wxWindowID id = wxID_ANY,
               const wxPoint& pos = wxDefaultPosition,
               const wxSize& size = wxDefaultSize,
-              long style = wxBORDER | wxRETAINED,
+              long style = wxBORDER,
               const wxValidator& validator = wxDefaultValidator,
               const wxString& name = DefaultName);
     ~GraphCtrl();

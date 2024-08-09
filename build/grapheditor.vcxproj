@@ -34,6 +34,7 @@
     <ClInclude Include="..\include\graphctrl.h" />
     <ClInclude Include="..\include\graphprint.h" />
     <ClInclude Include="..\include\graphtree.h" />
+    <ClInclude Include="..\include\iterrange.h" />
     <ClInclude Include="..\include\projectdesigner.h" />
     <ClInclude Include="..\include\tie.h" />
     <ClInclude Include="..\include\tipwin.h" />

@@ -52,6 +52,9 @@
     <ClInclude Include="..\include\graphtree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\iterrange.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\include\projectdesigner.h">
       <Filter>Header Files</Filter>
     </ClInclude>

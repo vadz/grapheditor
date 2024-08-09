@@ -21,7 +21,7 @@
 #include <wx/mstream.h>
 
 #include "archive.h"
-#include "tie.h"
+#include "iterrange.h"
 
 /**
  * @file
@@ -579,11 +579,9 @@ bool Archive::Save(wxOutputStream& stream) const
             attrs += Attribute(TAGSORT, sortkey);
         out.Start(classname + attrs);
 
-        Item::const_iterator j, jend;
-
-        for (tie(j, jend) = item->GetAttribs(); j != jend; ++j) {
-            wxString pname = j->first;
-            wxString value = j->second;
+        for (const auto& j : MakeRange(item->GetAttribs())) {
+            wxString pname = j.first;
+            wxString value = j.second;
 
             out.Pair(pname, value);
         }
@@ -668,11 +666,10 @@ void Archive::SortAdd(Item *item) const
 void Archive::SortRemove(Item *item) const
 {
     wxString key = item->GetSort();
-    iterator it, end;
 
-    for (tie(it, end) = m_sort.equal_range(key); it != end; ++it) {
-        if (it->second == item) {
-            m_sort.erase(it);
+    for (const auto& it : MakeRange(m_sort.equal_range(key))) {
+        if (it.second == item) {
+            m_sort.erase(it.first);
             break;
         }
     }

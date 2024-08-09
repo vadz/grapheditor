@@ -49,12 +49,14 @@ public:
         Init();
     }
 
+#ifdef wxHAS_GENERIC_TREECTRL
     /**
      * @brief Override base class function to avoid auto scrolling.
      *
      * This interferes with drag and drop.
      */
     bool SendAutoScrollEvents(wxScrollWinEvent&) const override { return false; }
+#endif // wxHAS_GENERIC_TREECTRL
 
     /// Event handler for begin drag event.
 

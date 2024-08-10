@@ -72,6 +72,9 @@ wxString FontId(const wxString& desc)
 // XML parser
 // ----------------------------------------------------------------------------
 
+// Buffer size used for reading/writing XML data.
+constexpr size_t bufsize = 8192;
+
 #ifndef NO_EXPAT
 
 /**
@@ -401,7 +404,7 @@ void Generator::CharData(const wxString& str)
         }
         square = ch == _T(']') ? square + 1 : 0;
 
-        if (buf.length() >= 8192) {
+        if (buf.length() >= bufsize) {
             Write(buf);
             buf.clear();
         }
@@ -547,7 +550,6 @@ bool Archive::Load(wxInputStream& stream)
     XML_SetElementHandler(parser, start_element, end_element);
     XML_SetCharacterDataHandler(parser, char_data);
 
-    const size_t bufsize = 8192;
     wxCharBuffer buf(bufsize);
     XML_Status status = XML_STATUS_OK;
 

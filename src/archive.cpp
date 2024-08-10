@@ -334,7 +334,7 @@ void Generator::Write(const char *utf, size_t len)
 
 void Generator::Write(const wxString& str)
 {
-    wxCharBuffer cbuf = str.utf8_str();
+    const wxCharBuffer cbuf(str.utf8_str());
     Write(cbuf, cbuf.length());
 }
 
@@ -971,18 +971,13 @@ void PutImage(Archive::Item *item, const wxImage& img, wxBitmapType type)
     wxString value;
 
     {
-        wxCharBuffer buf;
-        size_t len;
+        wxMemoryOutputStream stream;
+        img.SaveFile(stream, type);
 
-        {
-            wxMemoryOutputStream stream;
-            img.SaveFile(stream, type);
+        const size_t len = size_t(stream.GetLength());
+        wxCharBuffer buf(len);
 
-            len = size_t(stream.GetLength());
-            buf = wxCharBuffer(len);
-
-            stream.CopyTo(buf.data(), len);
-        }
+        stream.CopyTo(buf.data(), len);
 
         value = wxBase64Encode(buf, len);
     }

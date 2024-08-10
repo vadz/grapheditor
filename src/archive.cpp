@@ -123,7 +123,7 @@ private:
      *
      * This is incremented by StartElement() and decremented by EndElement().
      */
-    int m_depth;
+    size_t m_depth;
 
     Archive *m_archive;         ///< The associated archive.
     Archive::Item *m_item;      ///< Current item, may be @c NULL.
@@ -310,7 +310,7 @@ protected:
     //@}
 
 private:
-    int m_depth;                ///< Current depth in XML hierarchy.
+    size_t m_depth;             ///< Current depth in XML hierarchy.
     bool m_leaf;                ///< True while we're writing an element.
     wxOutputStream& m_stream;   ///< The associated stream.
 };

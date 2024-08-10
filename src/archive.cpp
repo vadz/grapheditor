@@ -555,7 +555,7 @@ bool Archive::Load(wxInputStream& stream)
     size_t len;
     while (status == XML_STATUS_OK &&
             (len = stream.Read(buf.data(), bufsize).LastRead()) != 0)
-        status = XML_Parse(parser, buf, len, len < bufsize);
+        status = XML_Parse(parser, buf, static_cast<int>(len), len < bufsize);
 
     XML_ParserFree(parser);
     return status == XML_STATUS_OK;

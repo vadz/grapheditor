@@ -95,8 +95,7 @@ template <class T> bool ShouldInsert(const T& value, const T& def)
  * objects, in which case you see the items in the order given by the sort
  * key:
  * @code
- *  Archive::const_iterator it, end;
- *  for (tie(it, end) = archive.GetItems(); it != end; ++it) {
+ *  for (const auto it : MakeRange(archive.GetItems())) {
  *      const Archive::Item *arc = it->second;
  *      if (arc->GetClass() == "myclass") {
  *          wxString text = arc->Get("text");
@@ -569,9 +568,9 @@ public:
      * sort key begins with that prefix. Or if the <code>prefix</code> is
      * omitted, returns all items.
      * @code
-     *  Archive::const_iterator it, end;
-     *  for (tie(it, end) = archive.GetItems(prefix); it != end; ++it)
+     *  for (const auto& it : MakeRange(archive.GetItems(prefix))) {
      *      ...
+     *  }
      * @endcode
      *
      * The items are returned in the order of their sort keys.

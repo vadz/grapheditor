@@ -86,25 +86,21 @@
  * <code>GraphElement</code>).
  *
  * Methods that return iterators return a begin/end pair in a
- * <code>std::pair</code>.  These can be assigned to a pair of variables
- * using the '<code>tie</code>' function, so the usual idiom for using them
- * is:
+ * <code>std::pair</code> from which an iterable range can be constructed
+ * using the '<code>MakeRange()</code>' function, so the usual idiom for using
+ * them is:
  *
  * @code
- *  Graph::node_iterator it, end;
- *
- *  for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it)
- *      it->SetSize(size);
+ *  for (auto& node : MakeRange(m_graph->GetSelectionNodes()))
+ *      node.SetSize(size);
  * @endcode
  *
  * Overloads exists that return iterators for derived element types. This
  * allows methods of derived nodes types to be used directly without casting:
  *
  * @code
- *  GraphIterator<ProjectNode> it, end;
- *
- *  for (tie(it, end) = m_graph->GetSelection<ProjectNode>(); it != end; ++it)
- *      it->SetBorderThickness<Points>(thickness);
+ *  for (auto& node : MakeRange(m_graph->GetSelection<ProjectNode>())))
+ *      node.SetBorderThickness<Points>(thickness);
  * @endcode
  *
  * @section units Units
@@ -1210,10 +1206,8 @@ void MyFrame::OnSetSize(wxCommandEvent&)
         size.x = wxAtoi(str.BeforeFirst(sep));
         size.y = wxAtoi(str.AfterFirst(sep));
 
-        Graph::node_iterator it, end;
-
-        for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it)
-            it->SetSize<Points>(size);
+        for (auto& node : MakeRange(m_graph->GetSelectionNodes()))
+            node.SetSize<Points>(size);
     }
 }
 
@@ -1224,8 +1218,8 @@ void MyFrame::OnSetFont(wxCommandEvent&)
     if (font.Ok()) {
         Graph::node_iterator it, end;
 
-        for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it)
-            it->SetFont(font);
+        for (auto& node : MakeRange(m_graph->GetSelectionNodes()))
+            node.SetFont(font);
     }
 }
 
@@ -1236,8 +1230,8 @@ void MyFrame::OnSetColour(wxCommandEvent&)
     if (colour.Ok()) {
         Graph::iterator it, end;
 
-        for (tie(it, end) = m_graph->GetSelection(); it != end; ++it)
-            it->SetColour(colour);
+        for (auto& elem : MakeRange(m_graph->GetSelection()))
+            elem.SetColour(colour);
     }
 }
 
@@ -1249,8 +1243,8 @@ void MyFrame::OnSetBgColour(wxCommandEvent&)
     if (colour.Ok()) {
         Graph::iterator it, end;
 
-        for (tie(it, end) = m_graph->GetSelection(); it != end; ++it)
-            it->SetBackgroundColour(colour);
+        for (auto& elem : MakeRange(m_graph->GetSelection()))
+            elem.SetBackgroundColour(colour);
     }
 }
 
@@ -1261,27 +1255,21 @@ void MyFrame::OnSetTextColour(wxCommandEvent&)
     if (colour.Ok()) {
         Graph::node_iterator it, end;
 
-        for (tie(it, end) = m_graph->GetSelectionNodes(); it != end; ++it)
-            it->SetTextColour(colour);
+        for (auto& node : MakeRange(m_graph->GetSelectionNodes()))
+            node.SetTextColour(colour);
     }
 }
 
 void MyFrame::OnSetStyle(wxCommandEvent& event)
 {
-    Graph::node_iterator it, end;
-    tie(it, end) = m_graph->GetSelectionNodes();
-
-    while (it != end)
-        it++->SetStyle(event.GetId() - ID_CUSTOM + GraphNode::Style_Custom);
+    for (auto& node : MakeRange(m_graph->GetSelectionNodes()))
+        node.SetStyle(event.GetId() - ID_CUSTOM + GraphNode::Style_Custom);
 }
 
 void MyFrame::OnSetLineStyle(wxCommandEvent& event)
 {
-    GraphIterator<GraphEdge> it, end;
-    tie(it, end) = m_graph->GetSelection<GraphEdge>();
-
-    while (it != end)
-        it++->SetStyle(event.GetId() - ID_LINE + GraphEdge::Style_Line);
+    for (auto& edge : MakeRange(m_graph->GetSelection<GraphEdge>()))
+        edge.SetStyle(event.GetId() - ID_LINE + GraphEdge::Style_Line);
 }
 
 void MyFrame::OnSetArrowSize(wxCommandEvent&)
@@ -1295,11 +1283,8 @@ void MyFrame::OnSetArrowSize(wxCommandEvent&)
     if (size < 0)
         return;
 
-    GraphIterator<GraphEdge> it, end;
-    tie(it, end) = m_graph->GetSelection<GraphEdge>();
-
-    while (it != end)
-        it++->SetArrowSize(size);
+    for (auto& edge : MakeRange(m_graph->GetSelection<GraphEdge>()))
+        edge.SetArrowSize(size);
 }
 
 void MyFrame::OnSetLineWidth(wxCommandEvent&)
@@ -1313,11 +1298,8 @@ void MyFrame::OnSetLineWidth(wxCommandEvent&)
     if (width < 0)
         return;
 
-    GraphIterator<GraphEdge> it, end;
-    tie(it, end) = m_graph->GetSelection<GraphEdge>();
-
-    while (it != end)
-        it++->SetLineWidth(width);
+    for (auto& edge : MakeRange(m_graph->GetSelection<GraphEdge>()))
+        edge.SetLineWidth(width);
 }
 
 void MyFrame::OnSetBorderThickness(wxCommandEvent&)
@@ -1331,10 +1313,8 @@ void MyFrame::OnSetBorderThickness(wxCommandEvent&)
     if (thickness < 1)
         return;
 
-    GraphIterator<ProjectNode> it, end;
-
-    for (tie(it, end) = m_graph->GetSelection<ProjectNode>(); it != end; ++it)
-        it->SetBorderThickness<Points>(thickness);
+    for (auto& node : MakeRange(m_graph->GetSelection<ProjectNode>()))
+        node.SetBorderThickness<Points>(thickness);
 }
 
 void MyFrame::OnSetCornerRadius(wxCommandEvent&)
@@ -1348,10 +1328,8 @@ void MyFrame::OnSetCornerRadius(wxCommandEvent&)
     if (radius < 1)
         return;
 
-    GraphIterator<ProjectNode> it, end;
-
-    for (tie(it, end) = m_graph->GetSelection<ProjectNode>(); it != end; ++it)
-        it->SetCornerRadius<Points>(radius);
+    for (auto& node : MakeRange(m_graph->GetSelection<ProjectNode>()))
+        node.SetCornerRadius<Points>(radius);
 }
 
 void MyFrame::OnNew(wxCommandEvent&)

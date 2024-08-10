@@ -27,7 +27,7 @@
 #include "factory.h"
 #include "archive.h"
 #include "coords.h"
-#include "tie.h"
+#include "iterrange.h"
 
 /**
  * @file graphctrl.h
@@ -193,15 +193,13 @@ namespace impl
  * iterators.
  *
  * Methods that return iterators return a begin/end pair in a
- * <code>std::pair</code>.  These can be assigned to a pair of variables
- * using the '<code>tie</code>' function, so the usual idiom for using them
- * is:
+ * <code>std::pair</code> from which an iterable range can be constructed
+ * using the '<code>MakeRange()</code>' function, so the usual idiom for using
+ * them is:
  *
  * @code
- *  GraphIterator<ProjectNode> it, end;
- *
- *  for (tie(it, end) = m_graph->GetSelection<ProjectNode>(); it != end; ++it)
- *      it->SetSize(size);
+ *  for (auto& node : MakeRange(m_graph->GetSelection<ProjectNode>()))
+ *      node.SetSize(size);
  * @endcode
  *
  * As with <code>std::list</code>, deleting an element from a graph
@@ -230,6 +228,7 @@ namespace impl
  * @see
  * tie() \n
  * IterPair \n
+ * MakeRange \n
  * Graph::GetNodes() \n
  * Graph::GetSelection() \n
  * GraphNode::GetEdges() \n

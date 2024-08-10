@@ -1705,26 +1705,26 @@ void GraphNodeHandler::OnDrag(int mode, bool draw, double x, double y)
             target = NULL;
 
         if (target && target != m_target) {
-            Graph::node_iterator it, end;
             m_sources.clear();
 
-            for (tie(it, end) = graph->GetSelectionNodes(); it != end; ++it) {
-                if (&*it != target) {
-                    GraphNode::iterator i, iend;
+            for (auto& node : MakeRange(graph->GetSelectionNodes())) {
+                if (&node != target) {
+                    bool found = false;
 
-                    for (tie(i, iend) = it->GetEdges(); i != iend; ++i) {
-                        GraphEdge::iterator j, jend;
-
-                        for (tie(j, jend) = i->GetNodes(); j != jend; ++j)
-                            if (&*j == target)
+                    for (const auto& edge : MakeRange(node.GetEdges())) {
+                        for (const auto& node2 : MakeRange(edge.GetNodes())) {
+                            if (&node2 == target) {
+                                found = true;
                                 break;
+                            }
+                        }
 
-                        if (j != jend)
+                        if (found)
                             break;
                     }
 
-                    if (i == iend)
-                        m_sources.push_back(&*it);
+                    if (!found)
+                        m_sources.push_back(&node);
                 }
             }
 
@@ -1762,22 +1762,19 @@ void GraphNodeHandler::OnDrag(int mode, bool draw, double x, double y)
         canvas->SetCursor(wxCURSOR_DEFAULT);
 
     if ((mode & Drag_Connect) != 0 && m_target) {
-        NodeList::iterator it;
-
-        for (it = m_sources.begin(); it != m_sources.end(); ++it) {
+        for (const auto& source : m_sources) {
             double xp, yp;
-            (*it)->GetShape()->GetAttachmentPosition(attachment, &xp, &yp);
+            source->GetShape()->GetAttachmentPosition(attachment, &xp, &yp);
             dc.DrawLine(wxCoord(xp), wxCoord(yp), wxCoord(x), wxCoord(y));
         }
     }
     else if ((mode & Drag_Move) != 0) {
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
-        Graph::node_iterator it, end;
         double shapeX = shape->GetX();
         double shapeY = shape->GetY();
 
-        for (tie(it, end) = graph->GetSelectionNodes(); it != end; ++it) {
-            wxShape *sh = it->GetShape();
+        for (const auto& node : MakeRange(graph->GetSelectionNodes())) {
+            wxShape *sh = node.GetShape();
             double xx = x - shapeX + sh->GetX() + m_offset.x;
             double yy = y - shapeY + sh->GetY() + m_offset.y;
 
@@ -1788,11 +1785,9 @@ void GraphNodeHandler::OnDrag(int mode, bool draw, double x, double y)
         }
     }
     else if ((mode & Drag_Connect) != 0) {
-        Graph::node_iterator it, end;
-
-        for (tie(it, end) = graph->GetSelectionNodes(); it != end; ++it) {
+        for (const auto& node : MakeRange(graph->GetSelectionNodes())) {
             double xp, yp;
-            it->GetShape()->GetAttachmentPosition(attachment, &xp, &yp);
+            node.GetShape()->GetAttachmentPosition(attachment, &xp, &yp);
             dc.DrawLine(wxCoord(xp), wxCoord(yp), wxCoord(x), wxCoord(y));
         }
     }
@@ -1819,10 +1814,8 @@ void GraphNodeHandler::OnEndDrag(int mode, double x, double y)
             graph->SendEvent(event);
 
             if (event.IsAllowed()) {
-                NodeList::iterator it;
-
-                for (it = m_sources.begin(); it != m_sources.end(); ++it)
-                    graph->Add(**it, *m_target);
+                for (auto& source : m_sources)
+                    graph->Add(*source, *m_target);
             }
 
             m_target = NULL;
@@ -1832,10 +1825,9 @@ void GraphNodeHandler::OnEndDrag(int mode, double x, double y)
     else if ((mode & Drag_Move) != 0) {
         wxPoint ptOffset = wxPoint(int(x), int(y)) + m_offset -
                            GetNode()->GetPosition();
-        Graph::node_iterator it, end;
 
-        for (tie(it, end) = graph->GetSelectionNodes(); it != end; ++it)
-            it->SetPosition(it->GetPosition() + ptOffset);
+        for (auto& node : MakeRange(graph->GetSelectionNodes()))
+            node.SetPosition(node.GetPosition() + ptOffset);
     }
 }
 
@@ -1900,12 +1892,10 @@ wxRect GraphEdgeHandler::GetEraseRect() const
     wxLineShape *line = GetShape();
     GraphEdge *edge = GetEdge(line);
 
-    wxList& arrows = line->GetArrows();
-    wxList::iterator it;
     int size = 0;
 
-    for (it = arrows.begin(); it != arrows.end(); ++it) {
-        wxArrowHead *head = static_cast<wxArrowHead*>(*it);
+    for (auto& obj : line->GetArrows()) {
+        wxArrowHead *head = static_cast<wxArrowHead*>(obj);
         size = max(size, int(head->GetSize()));
     }
 
@@ -2041,10 +2031,8 @@ void GraphDiagram::InsertShape(wxShape *shape)
 void GraphDiagram::Redraw(wxDC& dc)
 {
     if (m_shapeList) {
-        wxList::iterator it;
-
-        for (it = m_shapeList->begin(); it != m_shapeList->end(); ++it) {
-            wxShape *object = static_cast<wxShape*>(*it);
+        for (auto& obj : *m_shapeList) {
+            wxShape *object = static_cast<wxShape*>(obj);
             if (!object->GetParent())
                 object->Draw(dc);
         }
@@ -2469,10 +2457,8 @@ void Graph::SendEvent(wxEvent& event)
 wxRect Graph::GetBounds() const
 {
     if (m_rcBounds.IsEmpty()) {
-        const_node_iterator it, end;
-
-        for (tie(it, end) = GetNodes(); it != end; ++it)
-            m_rcBounds.Union(it->GetBounds());
+        for (const auto& node : MakeRange(GetNodes()))
+            m_rcBounds.Union(node.GetBounds());
     }
 
     return m_rcBounds;
@@ -2504,11 +2490,8 @@ void Graph::SetCanvas(GraphCanvas *canvas)
     if (oldcanvas)
         canvas->SetFont(oldcanvas->GetFont());
 
-    wxList::iterator it, end;
-    wxList *list = m_diagram->GetShapeList();
-
-    for (it = list->begin(); it != list->end(); ++it)
-        wxStaticCast(*it, wxShape)->SetCanvas(canvas);
+    for(auto& obj : *m_diagram->GetShapeList())
+        wxStaticCast(obj, wxShape)->SetCanvas(canvas);
 
     if (!oldctrl)
         delete oldcanvas;
@@ -2779,48 +2762,43 @@ GraphIteratorImpl *Graph::IterImpl(
     return new ListIterImpl(begin, end, classinfo, which);
 }
 
-size_t Graph::GetNodeCount() const
+namespace
 {
-    const_iterator it, end;
-    size_t count = 0;
 
-    for (tie(it, end) = GetNodes(); it != end; ++it)
+// Helper for all the GetXXXCount() functions below.
+template<typename T>
+size_t GetCount(T&& range)
+{
+    size_t count = 0;
+    for (const auto& element : MakeRange(range)) {
         count++;
 
+        wxUnusedVar(element);
+    }
+
     return count;
+}
+
+} // anonymous namespace
+
+size_t Graph::GetNodeCount() const
+{
+    return GetCount(GetNodes());
 }
 
 size_t Graph::GetElementCount() const
 {
-    const_iterator it, end;
-    size_t count = 0;
-
-    for (tie(it, end) = GetElements(); it != end; ++it)
-        count++;
-
-    return count;
+    return GetCount(GetElements());
 }
 
 size_t Graph::GetSelectionCount() const
 {
-    const_iterator it, end;
-    size_t count = 0;
-
-    for (tie(it, end) = GetSelection(); it != end; ++it)
-        count++;
-
-    return count;
+    return GetCount(GetSelection());
 }
 
 size_t Graph::GetSelectionNodeCount() const
 {
-    const_iterator it, end;
-    size_t count = 0;
-
-    for (tie(it, end) = GetSelectionNodes(); it != end; ++it)
-        count++;
-
-    return count;
+    return GetCount(GetSelectionNodes());
 }
 
 bool Graph::LayoutAll(const GraphNode *fixed, double ranksep, double nodesep)
@@ -2847,7 +2825,6 @@ bool Graph::Layout(const node_iterator_pair& range,
     wxSize dpi = wxSize(int(Points::Inch), int(Points::Inch));
     bool findFixed = fixed == NULL;
     bool externalConnection = false;
-    node_iterator i, endi;
 
     typedef multiset<const GraphNode*, ElementCompare> NodeSet;
     typedef multiset<const GraphEdge*, ElementCompare> EdgeSet;
@@ -2859,25 +2836,21 @@ bool Graph::Layout(const node_iterator_pair& range,
     // First put the nodes into a set. The ElementCompare functor puts them
     // into the order they appear on the screen, which avoids the nodes
     // being randomly reordered on screen.
-    for (tie(i, endi) = range; i != endi; ++i)
-        nodeset.insert(&*i);
+    for (const auto& node : MakeRange(range))
+        nodeset.insert(&node);
 
     // Now iterate over all the edges of all the nodes
-    for (NodeSet::iterator it = nodeset.begin(); it != nodeset.end(); ++it)
-    {
-        const GraphNode *node = *it;
-        GraphNode::const_iterator j, endj;
+    for (const GraphNode* node : nodeset) {
         bool extCon = false;
 
-        for (tie(j, endj) = node->GetEdges(); j != endj; ++j)
-        {
-            const GraphNode *n1 = j->GetFrom(), *n2 = j->GetTo();
+        for (const auto& edge : MakeRange(node->GetEdges())) {
+            const GraphNode *n1 = edge.GetFrom(), *n2 = edge.GetTo();
 
             // looking for edges which connect nodes in the set
             if (nodeset.count(n1 != node ? n1 : n2)) {
                 // each edge will be found twice, but only add it once
                 if (n1 == node)
-                    edgeset.insert(&*j);
+                    edgeset.insert(&edge);
             }
             else {
                 extCon = true;
@@ -3128,32 +3101,24 @@ bool Graph::Serialise(Archive& archive, const iterator_pair& range)
     bool badfactory = false;
     wxRect rcBounds;
 
-    Graph::iterator it, end;
-
-    if (range == iterator_pair())
-        tie(it, end) = GetElements();
-    else
-        tie(it, end) = range;
-
-    for ( ; it != end; ++it) {
-        Factory<GraphElement> factory(*it);
+    for (auto& elem : MakeRange(range == iterator_pair() ? GetElements() : range)) {
+        Factory<GraphElement> factory(elem);
 
         if (factory) {
             wxString name = factory.GetName();
-            wxString id = Archive::MakeId(&*it);
+            wxString id = Archive::MakeId(&elem);
 
             Archive::Item *arc = archive.Put(name, id);
             wxASSERT(arc);
 
-            if (!it->Serialise(*arc))
+            if (!elem.Serialise(*arc))
                 archive.Remove(id);
             else
-                rcBounds += it->GetBounds();
+                rcBounds += elem.GetBounds();
         }
         else {
-            const auto& value = *it;
             wxFAIL_MSG(_T("Define a Factory<type>::Impl instance for ") +
-                       wxString::FromAscii(typeid(value).name()));
+                       wxString::FromAscii(typeid(elem).name()));
             badfactory = true;
         }
     }
@@ -3249,11 +3214,9 @@ bool Graph::DeserialiseInto(Archive& archive, const wxPoint& pt)
         item->SetInstance(new GraphInfo(font, offset), true);
     }
 
-    Archive::iterator it, end;
-
-    for (tie(it, end) = archive.GetItems(SORT_ELEMENT); it != end; ++it) {
-        wxString sortkey = it->first;
-        Archive::Item *arc = it->second;
+    for (const auto& elem : MakeRange(archive.GetItems(SORT_ELEMENT))) {
+        wxString sortkey = elem.first;
+        Archive::Item *arc = elem.second;
 
         wxString classname = arc->GetClass();
         Factory<GraphElement> factory(classname);
@@ -3276,12 +3239,12 @@ bool Graph::DeserialiseInto(Archive& archive, const wxPoint& pt)
 
 wxPoint Graph::FindSpace(const wxSize& spacing, int columns)
 {
-    Graph::node_iterator it, end;
     wxRect rc;
 
-    for (tie(it, end) = GetNodes(); it != end; ++it)
-        if (it->GetEdgeCount())
-            rc.Union(it->GetBounds());
+    for (const auto& node : MakeRange(GetNodes())) {
+        if (node.GetEdgeCount())
+            rc.Union(node.GetBounds());
+    }
 
     wxPoint pt(0, rc.IsEmpty() ? 0 : rc.GetBottom());
     pt += spacing / 2;
@@ -3312,10 +3275,8 @@ wxPoint Graph::FindSpace(const wxPoint& position,
     offset -= spacing / 2;
     offset = -offset;
 
-    Graph::node_iterator it, end;
-
-    for (tie(it, end) = GetNodes(); it != end; ++it) {
-        wxRect rc = it->GetBounds();
+    for (const auto& node : MakeRange(GetNodes())) {
+        wxRect rc = node.GetBounds();
         rc.Offset(offset);
 
         wxPoint pt1 = rc.GetTopLeft();
@@ -3501,10 +3462,10 @@ void GraphCtrl::Home()
         return;
 
     GraphNode *root = NULL;
-    Graph::node_iterator it, end;
-    for (tie(it, end) = m_graph->GetNodes(); it != end; ++it)
-        if (!root || it->GetPosition() < root->GetPosition())
-            root = &*it;
+    for (auto& node : MakeRange(m_graph->GetNodes())) {
+        if (!root || node.GetPosition() < root->GetPosition())
+            root = &node;
+    }
 
     if (m_canvas->GetCheckBounds())
         m_canvas->SetFits();
@@ -4159,11 +4120,8 @@ void GraphEdge::SetArrowSize(int size)
     wxLineShape *shape = GetShape();
 
     if (shape) {
-        wxList& arrows = shape->GetArrows();
-        wxList::iterator it;
-
-        for (it = arrows.begin(); it != arrows.end(); ++it)
-            static_cast<wxArrowHead*>(*it)->SetSize(size);
+        for (auto& obj : shape->GetArrows())
+            static_cast<wxArrowHead*>(obj)->SetSize(size);
 
         Refresh();
     }
@@ -4327,11 +4285,8 @@ void GraphNode::SetShape(wxShape *shape)
     wxShape *old = GetShape();
 
     if (old && shape) {
-        wxList& lines = old->GetLines();
-        wxList::iterator it, end;
-
-        for (it = lines.begin(), end = lines.end(); it != end; ++it) {
-            wxLineShape *line = static_cast<wxLineShape*>(*it);
+        for (auto& obj : old->GetLines()) {
+            wxLineShape *line = static_cast<wxLineShape*>(obj);
 
             if (line->GetFrom() == old)
                 shape->AddLine(line, line->GetTo());
@@ -4343,11 +4298,8 @@ void GraphNode::SetShape(wxShape *shape)
     GraphElement::SetShape(shape);
 
     if (old && shape) {
-        wxList& lines = shape->GetLines();
-        wxList::iterator it, end;
-
-        for (it = lines.begin(), end = lines.end(); it != end; ++it) {
-            wxLineShape *line = static_cast<wxLineShape*>(*it);
+        for (auto& obj : shape->GetLines()) {
+            wxLineShape *line = static_cast<wxLineShape*>(obj);
             double x1, y1, x2, y2;
             line->FindLineEndPoints(&x1, &y1, &x2, &y2);
             line->SetEnds(x1, y1, x2, y2);
@@ -4557,24 +4509,12 @@ size_t GraphNode::GetEdgeCount() const
 
 size_t GraphNode::GetInEdgeCount() const
 {
-    const_iterator it, end;
-    size_t count = 0;
-
-    for (tie(it, end) = GetInEdges(); it != end; ++it)
-        count++;
-
-    return count;
+    return GetCount(GetInEdges());
 }
 
 size_t GraphNode::GetOutEdgeCount() const
 {
-    const_iterator it, end;
-    size_t count = 0;
-
-    for (tie(it, end) = GetOutEdges(); it != end; ++it)
-        count++;
-
-    return count;
+    return GetCount(GetOutEdges());
 }
 
 wxPoint GraphNode::GetPerimeterPoint(const wxPoint& inside,

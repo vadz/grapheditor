@@ -41,7 +41,7 @@ GraphPrintout::GraphPrintout(Graph *graph,
                              const wxString& title)
   : wxPrintout(title),
     m_graphpages(new GraphPages(graph, setup, scale,
-                                shrinktofit, labels, posX, posY))
+                                shrinktofit, std::move(labels), posX, posY))
 {
     m_graphpages->SetPrintout(this);
 }
@@ -101,7 +101,7 @@ GraphPages::GraphPages(Graph *graph,
     m_scale(scale / 100),
     m_max(shrinktofit),
     m_setup(setup),
-    m_labels(labels),
+    m_labels(std::move(labels)),
     m_posX(min(max(posX, 0.0), 1.0)),
     m_posY(min(max(posY, 0.0), 1.0))
 {

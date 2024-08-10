@@ -94,15 +94,6 @@ namespace impl
         /// Unimplemented copy ctor.
         FactoryBase(const FactoryBase&) { }
 
-        /// Factories registry allowing fast access by string key.
-        typedef std::unordered_map<wxString, FactoryBase *> ClassMap;
-
-        /// Registry indexing factories by their type name from type info.
-        static ClassMap *sm_typeidx;
-
-        /// Registry indexing factories by their name as specified in ctor.
-        static ClassMap *sm_nameidx;
-
         /// The type name of the objects created by this factory from type info.
         wxString m_type;
 

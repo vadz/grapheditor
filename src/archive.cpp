@@ -449,7 +449,6 @@ wxString Attribute(const wxString& name, const wxString& str)
 // Archive
 // ----------------------------------------------------------------------------
 
-using std::pair;
 using std::make_pair;
 
 Archive::Archive()

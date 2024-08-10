@@ -9,6 +9,8 @@
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
+// We have to use this reserved identifier to avoid warnings from MSVC headers.
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CRT_SECURE_NO_WARNINGS
 
 #if NO_EXPAT

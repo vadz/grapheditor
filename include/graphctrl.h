@@ -346,21 +346,7 @@ private:
  * GraphIterator<T> ></code>.
  */
 template <class T>
-struct IterPair : std::pair< GraphIterator<T>, GraphIterator<T> >
-{
-    /// Shorter name for a pair of iterators.
-    typedef std::pair< GraphIterator<T>, GraphIterator<T> > Base;
-
-    /// Default ctor.
-    IterPair()
-    { }
-
-    /// Template copy ctor.
-    template <class U>
-    IterPair(const std::pair< GraphIterator<U>, GraphIterator<U> >& other)
-      : Base(other)
-    { }
-};
+using IterPair = std::pair< GraphIterator<T>, GraphIterator<T> >;
 
 /**
  * @brief An abstract base class which provides a common interface for nodes

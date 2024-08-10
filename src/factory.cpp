@@ -51,11 +51,10 @@ void FactoryBase::Register()
 
 void FactoryBase::Unregister()
 {
-    int n1 = GetIndexByType().erase(m_type);
-    int n2 = GetIndexByName().erase(m_name);
-    wxASSERT(n1 == 1 && n2 == 1);
-    (void)n1;
-    (void)n2;
+    if ( GetIndexByType().erase(m_type) != GetIndexByName().erase(m_name) )
+    {
+        wxFAIL_MSG("Should be registered in both maps");
+    }
 }
 
 FactoryBase *FactoryBase::Get(const std::type_info& type)

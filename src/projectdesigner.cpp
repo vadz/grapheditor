@@ -26,7 +26,6 @@ using namespace tt_solutions;
 
 using std::min;
 using std::max;
-using std::abs;
 
 // ----------------------------------------------------------------------------
 // ProjectDesigner

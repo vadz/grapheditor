@@ -43,22 +43,22 @@ namespace {
  */
 //@{
 
-const wxChar *TAGARCHIVE    = _T("archive");
-const wxChar *TAGID         = _T("id");
-const wxChar *TAGSORT       = _T("sort");
+const wxChar* const TAGARCHIVE    = _T("archive");
+const wxChar* const TAGID         = _T("id");
+const wxChar* const TAGSORT       = _T("sort");
 
-const wxString TAGFONT      = _T("wxFont");
+const wxString      TAGFONT       = _T("wxFont");
 
-const wxChar *TAGFACE       = _T("face");
-const wxChar *TAGPOINTS     = _T("points");
-const wxChar *TAGFAMILY     = _T("family");
-const wxChar *TAGSTYLE      = _T("style");
-const wxChar *TAGWEIGHT     = _T("weight");
-const wxChar *TAGUNDERLINE  = _T("underline");
-const wxChar *TAGENCODING   = _T("encoding");
+const wxChar* const TAGFACE       = _T("face");
+const wxChar* const TAGPOINTS     = _T("points");
+const wxChar* const TAGFAMILY     = _T("family");
+const wxChar* const TAGSTYLE      = _T("style");
+const wxChar* const TAGWEIGHT     = _T("weight");
+const wxChar* const TAGUNDERLINE  = _T("underline");
+const wxChar* const TAGENCODING   = _T("encoding");
 
-const wxString TAGIMAGE     = _T("wxImage");
-const wxChar *TAGBASE64     = _T("base64");
+const wxString      TAGIMAGE      = _T("wxImage");
+const wxChar* const TAGBASE64     = _T("base64");
 
 //@}
 

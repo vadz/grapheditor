@@ -2354,11 +2354,11 @@ namespace {
  * Name of the corresponding object in the archive.
  */
 //@{
-const wxChar *TAGGRAPH  = _T("graph");
-const wxChar *TAGFONT   = _T("font");
-const wxChar *TAGSNAP   = _T("snap");
-const wxChar *TAGGRID   = _T("grid");
-const wxChar *TAGBOUNDS = _T("bounds");
+const wxChar* const TAGGRAPH  = _T("graph");
+const wxChar* const TAGFONT   = _T("font");
+const wxChar* const TAGSNAP   = _T("snap");
+const wxChar* const TAGGRID   = _T("grid");
+const wxChar* const TAGBOUNDS = _T("bounds");
 //@}
 
 /**

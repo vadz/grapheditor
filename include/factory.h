@@ -15,6 +15,7 @@
 #include <wx/wx.h>
 
 #include <typeinfo>
+#include <unordered_map>
 
 /**
  * @file factory.h
@@ -93,12 +94,8 @@ namespace impl
         /// Unimplemented copy ctor.
         FactoryBase(const FactoryBase&) { }
 
-#ifdef DOXYGEN
         /// Factories registry allowing fast access by string key.
         typedef std::unordered_map<wxString, FactoryBase *> ClassMap;
-#else
-        WX_DECLARE_STRING_HASH_MAP(FactoryBase*, ClassMap);
-#endif
 
         /// Registry indexing factories by their type name from type info.
         static ClassMap *sm_typeidx;

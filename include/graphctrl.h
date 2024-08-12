@@ -23,6 +23,7 @@
 
 #include <iterator>
 #include <list>
+#include <memory>
 
 #include "factory.h"
 #include "archive.h"
@@ -103,13 +104,13 @@ namespace impl
         typedef GraphElement& reference;
 
         /// Default constructor creates iterator in an invalid state.
-        GraphIteratorBase() : m_impl(NULL) { }
+        GraphIteratorBase();
 
         /// Copy constructor.
         GraphIteratorBase(const GraphIteratorBase& it);
 
         /// Constructor from the internal implementation object.
-        GraphIteratorBase(GraphIteratorImpl *impl) : m_impl(impl) { }
+        GraphIteratorBase(GraphIteratorImpl *impl);
 
         ~GraphIteratorBase();
 
@@ -157,7 +158,7 @@ namespace impl
 
     private:
         /// The implementation object owned by the iterator.
-        GraphIteratorImpl *m_impl;
+        std::unique_ptr<GraphIteratorImpl> m_impl;
     };
 
     /**

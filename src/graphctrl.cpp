@@ -2069,15 +2069,19 @@ public:
     virtual GraphIteratorImpl *clone() const = 0;
 };
 
+GraphIteratorBase::GraphIteratorBase() = default;
+
 GraphIteratorBase::GraphIteratorBase(const GraphIteratorBase& it)
   : m_impl(it.m_impl ? it.m_impl->clone() : NULL)
 {
 }
 
-GraphIteratorBase::~GraphIteratorBase()
+GraphIteratorBase::GraphIteratorBase(GraphIteratorImpl *impl)
+    : m_impl(impl)
 {
-    delete m_impl;
 }
+
+GraphIteratorBase::~GraphIteratorBase() = default;
 
 GraphElement& GraphIteratorBase::operator*() const
 {
@@ -2087,8 +2091,7 @@ GraphElement& GraphIteratorBase::operator*() const
 GraphIteratorBase& GraphIteratorBase::operator=(const GraphIteratorBase& it)
 {
     if (&it != this) {
-        delete m_impl;
-        m_impl = it.m_impl ? it.m_impl->clone() : NULL;
+        m_impl.reset(it.m_impl ? it.m_impl->clone() : NULL);
     }
     return *this;
 }

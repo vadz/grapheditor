@@ -2416,12 +2416,12 @@ Graph::Graph(wxEvtHandler *handler)
     m_handler(handler),
     m_dpi(GetScreenDPI())
 {
-    New();
+    Graph::New();
 }
 
 Graph::~Graph()
 {
-    New();
+    Graph::New();
     GraphCtrl *ctrl = GetCtrl();
 
     if (ctrl) {
@@ -3388,7 +3388,7 @@ GraphCtrl::GraphCtrl(
 
 GraphCtrl::~GraphCtrl()
 {
-    SetGraph(NULL);
+    GraphCtrl::SetGraph(NULL);
     delete m_canvas;
 }
 

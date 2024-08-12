@@ -2213,7 +2213,7 @@ public:
     /** @brief Constructor. */
     GraphEvent(wxEventType commandType = wxEVT_NULL, int winid = 0);
     /** @brief Copy constructor. */
-    GraphEvent(const GraphEvent& event);
+    GraphEvent(const GraphEvent& event) = default;
 
     /** @brief Clone. */
     wxEvent *Clone() const override { return new GraphEvent(*this); }

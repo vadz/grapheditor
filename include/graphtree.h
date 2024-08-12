@@ -111,13 +111,7 @@ public:
     { }
 
     /** @brief Copy constructor. */
-    GraphTreeEvent(const GraphTreeEvent& event)
-        : wxCommandEvent(event),
-          m_target(event.GetTarget()),
-          m_pos(event.GetPosition()),
-          m_item(event.GetItem()),
-          m_icon(event.GetIcon())
-    { }
+    GraphTreeEvent(const GraphTreeEvent& event) = default;
 
     /** @brief The GraphCtrl that is the target of a drop. */
     GraphCtrl *GetTarget() const { return m_target; }

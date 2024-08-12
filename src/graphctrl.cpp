@@ -333,17 +333,6 @@ GraphEvent::GraphEvent(wxEventType commandType, int winid)
 {
 }
 
-GraphEvent::GraphEvent(const GraphEvent& event)
-  : wxNotifyEvent(event),
-    m_pos(event.m_pos),
-    m_node(event.m_node),
-    m_target(event.m_target),
-    m_edge(event.m_edge),
-    m_sources(event.m_sources),
-    m_zoom(event.m_zoom)
-{
-}
-
 // ----------------------------------------------------------------------------
 // Canvas
 // ----------------------------------------------------------------------------

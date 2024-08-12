@@ -36,7 +36,7 @@ TipWindow::TipWindow(wxWindow *parent,
                      const wxSize& size,
                      long style,
                      const wxString& name)
-  : wxPopupWindow(parent, style),
+  : wxPopupWindow(parent, static_cast<int>(style)),
     m_text(text),
     m_margin(3, 3)
 {

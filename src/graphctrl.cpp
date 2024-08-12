@@ -1595,6 +1595,9 @@ public:
 
     void OnErase(wxReadOnlyDC& dc) override
     {
+        // We intentionally skip the GraphHandler::OnErase() version here.
+        //
+        // NOLINTNEXTLINE(bugprone-parent-virtual-call)
         wxShapeEvtHandler::OnErase(dc);
     }
 

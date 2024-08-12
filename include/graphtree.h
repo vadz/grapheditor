@@ -158,6 +158,10 @@ typedef void (wxEvtHandler::*GraphTreeEventFunction)(GraphTreeEvent&);
 
 } // namespace tt_solutions
 
+// Avoid warnings about using the usual wx macros.
+//
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
+
 /**
  * @brief Helper macro for use with Connect().
  *
@@ -187,5 +191,7 @@ typedef void (wxEvtHandler::*GraphTreeEventFunction)(GraphTreeEvent&);
 #define EVT_GRAPHTREE_DROP(id, fn) \
     DECLARE_EVENT_TABLE_ENTRY(tt_solutions::Evt_GraphTree_Drop, id, \
                               wxID_ANY, GraphTreeEventHandler(fn), NULL),
+
+// NOLINTEND(cppcoreguidelines-macro-usage)
 
 #endif // GRAPHTREE_H

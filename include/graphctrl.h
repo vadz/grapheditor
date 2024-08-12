@@ -2385,6 +2385,10 @@ BEGIN_DECLARE_EVENT_TYPES()
     /** @endcond */
 END_DECLARE_EVENT_TYPES()
 
+// Avoid warnings about using the usual wx macros.
+//
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
+
 /**
  * @brief Helper macro for use with Connect().
  *
@@ -2572,6 +2576,8 @@ END_DECLARE_EVENT_TYPES()
  * a single event handler.
  */
 #define EVT_GRAPH_ELEMENT_MENU(id, fn) EVT_GRAPH_NODE_MENU(id, fn) EVT_GRAPH_EDGE_MENU(id, fn)
+
+// NOLINTEND(cppcoreguidelines-macro-usage)
 
 } // namespace tt_solutions
 

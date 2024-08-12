@@ -44,6 +44,7 @@
 
 #include "graphctrl.h"
 #include "tipwin.h"
+#include <wx/math.h>
 #include <wx/richtooltip.h>
 #include <wx/tooltip.h>
 #include <wx/ogl/ogl.h>
@@ -3063,7 +3064,7 @@ void Graph::SetGridSpacing(int spacing)
         spacing = 1;
 
 #ifdef oglHAVE_XY_GRID
-    int xspacing = WXROUND(double(spacing) * m_dpi.x / m_dpi.y);
+    int xspacing = wxRound(double(spacing) * m_dpi.x / m_dpi.y);
     if (xspacing < 1)
         xspacing = 1;
     m_diagram->SetGridSpacing(xspacing, spacing);
@@ -3087,8 +3088,8 @@ wxSize Graph::GetGridSpacing() const
     x = y = m_diagram->GetGridSpacing();
 #endif
 
-    spacing.x = WXROUND(x);
-    spacing.y = WXROUND(y);
+    spacing.x = wxRound(x);
+    spacing.y = wxRound(y);
 
     return spacing;
 }
@@ -4027,10 +4028,10 @@ wxRect GraphElement::GetBounds() const
         shape->GetBoundingBoxMin(&width, &height);
 
         constexpr double HALF = 0.5;
-        rc.x = WXROUND(shape->GetX() - width * HALF);
-        rc.y = WXROUND(shape->GetY() - height * HALF);
-        rc.width = WXROUND(width);
-        rc.height = WXROUND(height);
+        rc.x = wxRound(shape->GetX() - width * HALF);
+        rc.y = wxRound(shape->GetY() - height * HALF);
+        rc.width = wxRound(width);
+        rc.height = wxRound(height);
     }
 
     return rc;
@@ -4042,8 +4043,8 @@ wxPoint GraphElement::GetPosition() const
     wxPoint pt;
 
     if (shape) {
-        pt.x = WXROUND(shape->GetX());
-        pt.y = WXROUND(shape->GetY());
+        pt.x = wxRound(shape->GetX());
+        pt.y = wxRound(shape->GetY());
     }
 
     return pt;
@@ -4057,8 +4058,8 @@ wxSize GraphElement::GetSize() const
     if (shape) {
         double width, height;
         shape->GetBoundingBoxMin(&width, &height);
-        size.x = WXROUND(width);
-        size.y = WXROUND(height);
+        size.x = wxRound(width);
+        size.y = wxRound(height);
     }
 
     return size;

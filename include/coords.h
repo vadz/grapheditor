@@ -20,6 +20,12 @@
  * @brief Convert coordinates between pixels and points or twips.
  */
 
+// There are a few numbers used here to define the conversion factors between
+// units and it doesn't seem worth to define separate constants for them, so
+// just suppress clang-tidy warnings about them.
+//
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
+
 namespace tt_solutions {
 
 /**
@@ -301,5 +307,7 @@ typedef Coords<720> Points;
 typedef Coords<14400> Twips;
 
 } // namespace tt_solutions
+
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
 
 #endif // COORDS_H

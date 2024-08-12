@@ -264,7 +264,14 @@ bool ShowLine(wxLineShape *line, GraphNode *from, GraphNode *to)
  */
 wxFont DefaultFont()
 {
-    static wxFont font(wxFontInfo(10).Family(wxFONTFAMILY_SWISS).FaceName("Arial"));
+    constexpr int DEFAULT_FONT_SIZE = 10;
+
+    static wxFont
+        font(
+            wxFontInfo(DEFAULT_FONT_SIZE)
+            .Family(wxFONTFAMILY_SWISS)
+            .FaceName("Arial")
+        );
     return font;
 }
 
@@ -973,14 +980,16 @@ void GraphCanvas::ScrollGraph(int orient, int type, int pos, int lines)
     int size = horz ? m_virtualSize.x : m_virtualSize.y;
     int cs = horz ? GetClientSize().x : GetClientSize().y;
 
+    constexpr int SCROLL_LINE = 16;
+
     if (type == wxEVT_SCROLLWIN_TOP)
         pos = 0;
     else if (type == wxEVT_SCROLLWIN_BOTTOM)
         pos = size;
     else if (type == wxEVT_SCROLLWIN_LINEUP)
-        pos = scroll - 16 * lines;
+        pos = scroll - SCROLL_LINE * lines;
     else if (type == wxEVT_SCROLLWIN_LINEDOWN)
-        pos = scroll + 16 * lines;
+        pos = scroll + SCROLL_LINE * lines;
     else if (type == wxEVT_SCROLLWIN_PAGEUP)
         pos = scroll - cs;
     else if (type == wxEVT_SCROLLWIN_PAGEDOWN)
@@ -1028,8 +1037,10 @@ bool GraphCanvas::CheckBounds()
         b.width = dc.LogicalToDeviceXRel(b.width);
         b.height = dc.LogicalToDeviceYRel(b.height);
 
+        // Borders are expressed in percent of the size.
+        constexpr int PERCENT_FACTOR = 100;
         if (m_borderType == GraphCtrl::Percentage_Border)
-            b.Inflate(wxSize(cs.x * m_border.x, cs.y * m_border.y) / 100);
+            b.Inflate(wxSize(cs.x * m_border.x, cs.y * m_border.y) / PERCENT_FACTOR);
         else if (m_borderType == GraphCtrl::Ctrl_Border)
             b.Inflate(m_border);
 
@@ -2420,7 +2431,8 @@ void Graph::New()
         wxStaticCast(canvas, GraphCanvas)->ScrollTo(wxPoint(0, 0), false);
     }
 
-    SetGridSpacing(m_dpi.y / 18);
+    constexpr int GRID_SPACING_FACTOR = 18;
+    SetGridSpacing(m_dpi.y / GRID_SPACING_FACTOR);
 
     RefreshBounds();
 }
@@ -3257,8 +3269,9 @@ wxPoint Graph::FindSpace(const wxPoint& position,
         }
     }
 
-    bitset<8192> grid;
-    const int rows = grid.size() / columns;
+    constexpr int BITSET_SIZE = 8192;
+    bitset<BITSET_SIZE> grid;
+    const int rows = BITSET_SIZE / columns;
 
     wxPoint offset = position;
     offset -= spacing / 2;
@@ -3289,7 +3302,7 @@ wxPoint Graph::FindSpace(const wxPoint& position,
         }
     }
 
-    for (size_t i = 0; i < grid.size(); i++)
+    for (int i = 0; i < BITSET_SIZE; i++)
         if (!grid[i])
             return position + wxSize(spacing.x * (i % columns),
                                      spacing.y * (i / columns));
@@ -3330,6 +3343,8 @@ const wxChar GraphCtrl::DefaultName[] = _T("graphctrl");
 int GraphCtrl::sm_leftDrag = GraphCtrl::Drag_Move;
 int GraphCtrl::sm_rightDrag = GraphCtrl::Drag_Connect;
 
+constexpr int TIP_DELAY_MS = 500;
+
 GraphCtrl::GraphCtrl(
         wxWindow *parent,
         wxWindowID winid,
@@ -3343,7 +3358,7 @@ GraphCtrl::GraphCtrl(
     m_graph(NULL),
     m_tiptimer(this),
     m_tipmode(Tip_Enable),
-    m_tipdelay(500),
+    m_tipdelay(TIP_DELAY_MS),
     m_tipnode(NULL),
     m_tipwin(NULL),
     m_tipopen(false)
@@ -3401,7 +3416,10 @@ void GraphCtrl::SetZoom(double percent, const wxPoint& ptCentre)
     m_canvas->PrepareDC(dc);
     wxPoint ptGraph(dc.DeviceToLogicalX(pt.x), dc.DeviceToLogicalY(pt.y));
 
-    double scale = max(1.0, min(500.0, percent)) / 100.0;
+    constexpr double ZOOM_MIN = 1.0;
+    constexpr double ZOOM_MAX = 500.0;
+
+    double scale = max(ZOOM_MIN, min(ZOOM_MAX, percent)) / 100.0;
     m_canvas->SetScale(scale, scale);
 
     m_canvas->Refresh();
@@ -3720,7 +3738,10 @@ void GraphCtrl::OnMouseWheel(wxMouseEvent& event)
     int lines = event.GetWheelRotation() / event.GetWheelDelta();
 
     if (zoom) {
-        double factor = pow(2.0, lines / 10.0);
+        constexpr double ZOOM_BASE = 2.0;
+        constexpr double ZOOM_LINE_FACTOR = 10.0;
+
+        double factor = pow(ZOOM_BASE, lines / ZOOM_LINE_FACTOR);
         SetZoom(GetZoom() * factor, event.GetPosition());
     }
     else {
@@ -3996,8 +4017,10 @@ wxRect GraphElement::GetBounds() const
     if (shape) {
         double width, height;
         shape->GetBoundingBoxMin(&width, &height);
-        rc.x = WXROUND(shape->GetX() - width / 2.0);
-        rc.y = WXROUND(shape->GetY() - height / 2.0);
+
+        constexpr double HALF = 0.5;
+        rc.x = WXROUND(shape->GetX() - width * HALF);
+        rc.y = WXROUND(shape->GetY() - height * HALF);
         rc.width = WXROUND(width);
         rc.height = WXROUND(height);
     }
@@ -4053,11 +4076,13 @@ IMPLEMENT_DYNAMIC_CLASS(GraphEdge, GraphElement)
 /// Define the factory for creating edge objects.
 Factory<GraphEdge>::Impl graphedgefactory(_T("edge"));
 
+constexpr int DEFAULT_ARROW_SIZE = 10;
+
 GraphEdge::GraphEdge(const wxColour& colour,
                      const wxColour& bgcolour,
                      int style)
   : GraphElement(colour, bgcolour, style),
-    m_arrowsize(10),
+    m_arrowsize(DEFAULT_ARROW_SIZE),
     m_linewidth(1)
 {
 }
@@ -4322,7 +4347,10 @@ void GraphNode::SetStyle(int style)
             break;
     }
 
-    shape->SetSize(100, 50);
+    constexpr int DEFAULT_SHAPE_WIDTH = 100;
+    constexpr int DEFAULT_SHAPE_HEIGHT = 50;
+
+    shape->SetSize(DEFAULT_SHAPE_WIDTH, DEFAULT_SHAPE_HEIGHT);
     shape->Show(true);
 
     SetShape(shape);

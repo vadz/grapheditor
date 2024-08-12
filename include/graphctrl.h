@@ -42,6 +42,9 @@ class wxLineShape;
  */
 namespace tt_solutions {
 
+constexpr double DEFAULT_VERT_SPACING_IN_INCHES = 0.5;
+constexpr double DEFAULT_HORZ_SPACING_IN_INCHES = 0.3;
+
 /// Shape representation used in the underlying graphics library.
 typedef wxShape GraphShape;
 
@@ -1610,8 +1613,8 @@ public:
      * @param nodesep The horizontal separation in inches.
      */
     virtual bool LayoutAll(const GraphNode *fixed = NULL,
-                           double ranksep = 0.5,
-                           double nodesep = 0.3);
+                           double ranksep = DEFAULT_VERT_SPACING_IN_INCHES,
+                           double nodesep = DEFAULT_HORZ_SPACING_IN_INCHES);
     /**
      * @brief Invokes a layout engine to lay out the subset of the graph
      * specified by the given iterator range.
@@ -1624,8 +1627,8 @@ public:
      */
     virtual bool Layout(const node_iterator_pair& range,
                         const GraphNode *fixed = NULL,
-                        double ranksep = 0.5,
-                        double nodesep = 0.3);
+                        double ranksep = DEFAULT_VERT_SPACING_IN_INCHES,
+                        double nodesep = DEFAULT_HORZ_SPACING_IN_INCHES);
 
     /**
      * @brief Finds an empty space for a new node.

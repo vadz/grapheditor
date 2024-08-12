@@ -60,7 +60,7 @@ void ProjectDesigner::Init()
 
     m_background[0] = m_background[1] = GetBackgroundColour();
     m_showGrid = true;
-    m_gridFactor = 5;
+    m_gridFactor = 5; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
 }
 
 ProjectDesigner::~ProjectDesigner()
@@ -94,7 +94,8 @@ int ProjectDesigner::AdjustedGridFactor() const
     double zoom = GetZoom();
 
     if (zoom > 0) {
-        while (zoom <= 50) {
+        constexpr double MAX_ZOOM = 50.0;
+        while (zoom <= MAX_ZOOM) {
             factor *= 2;
             zoom *= 2;
         }
@@ -187,6 +188,12 @@ void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
 
 IMPLEMENT_DYNAMIC_CLASS(ProjectNode, GraphNode)
 
+constexpr int MAX_AUTO_HEIGHT = 72;
+constexpr int MAX_AUTO_WIDTH = 2*MAX_AUTO_HEIGHT;
+
+constexpr int DEFAULT_CORNER_RADIUS = 150;
+constexpr int DEFAULT_BORDER_THICKNESS = 90;
+
 ProjectNode::ProjectNode(const wxString& operation,
                          const wxString& result,
                          const wxString& id,
@@ -198,11 +205,11 @@ ProjectNode::ProjectNode(const wxString& operation,
     m_id(id),
     m_result(result),
     m_icon(icon),
-    m_maxAutoSize(Pixels::From<Points>(wxSize(144, 72), GetDPI()))
+    m_cornerRadius(DEFAULT_CORNER_RADIUS),
+    m_borderThickness(DEFAULT_BORDER_THICKNESS),
+    m_maxAutoSize(Pixels::From<Points>(wxSize(MAX_AUTO_WIDTH, MAX_AUTO_HEIGHT), GetDPI())),
+    m_divide(0)
 {
-    m_borderThickness = 90;
-    m_cornerRadius = 150;
-    m_divide = 0;
     SetStyle(Style_Custom);
 }
 
@@ -274,6 +281,10 @@ int ProjectNode::GetSpacing() const
     int border = GetBorderThickness();
     int corner = GetCornerRadius();
 
+    // This code could be improved by introducing named constants.
+    //
+    // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
+
     // this keeps the text within the inner radius of the curved corners
     if (corner > border)
         spacing = corner + border / 2 - (corner - border / 2)
@@ -281,6 +292,8 @@ int ProjectNode::GetSpacing() const
     // if the border is thicker than the corner curve then just allow 3
     if (spacing < border + 3)
         spacing = border + 3;
+
+    // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
 
     return spacing;
 }

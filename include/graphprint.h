@@ -184,6 +184,9 @@ inline PrintLabels operator+(const PrintLabels& l1, const PrintLabels& l2)
 }
 //@}
 
+constexpr int DEFAULT_HEADER_FOOTER_HEIGHT = 10;
+constexpr int DEFAULT_HEADER_FOOTER_FONT_SIZE = 12;
+
 /**
  * @brief Create a header for the GraphPrintout.
  *
@@ -193,8 +196,8 @@ inline PrintLabels operator+(const PrintLabels& l1, const PrintLabels& l2)
 inline PrintLabels Footer(
     const wxString& text = _("Page %PAGE% of %PAGES%"),
     int align = wxALIGN_CENTRE,
-    int height = 10,
-    const wxFont& font = wxFontInfo(12).Family(wxFONTFAMILY_SWISS))
+    int height = DEFAULT_HEADER_FOOTER_HEIGHT,
+    const wxFont& font = wxFontInfo(DEFAULT_HEADER_FOOTER_FONT_SIZE).Family(wxFONTFAMILY_SWISS))
 {
     return PrintLabel(text, align | wxALIGN_BOTTOM | wxBOTTOM, height, font);
 }
@@ -208,11 +211,15 @@ inline PrintLabels Footer(
 inline PrintLabels Header(
     const wxString& text = _("Page %PAGE% of %PAGES%"),
     int align = wxALIGN_CENTRE,
-    int height = 10,
-    const wxFont& font = wxFontInfo(12).Family(wxFONTFAMILY_SWISS))
+    int height = DEFAULT_HEADER_FOOTER_HEIGHT,
+    const wxFont& font = wxFontInfo(DEFAULT_HEADER_FOOTER_FONT_SIZE).Family(wxFONTFAMILY_SWISS))
 {
     return PrintLabel(text, align | wxALIGN_TOP | wxTOP, height, font);
 }
+
+constexpr double DEFAULT_SCALE = 100;
+constexpr double DEFAULT_POS_X = 0.5;
+constexpr double DEFAULT_POS_Y = 0.3;
 
 /**
  * @brief The implementation of the <code>GraphPrintout</code> class.
@@ -239,11 +246,16 @@ public:
      */
     GraphPages(Graph *graph,
                const wxPageSetupDialogData& setup,
-               double scale = 100,
+               double scale = DEFAULT_SCALE,
                MaxPages shrinktofit = MaxPages::Unlimited,
                PrintLabels labels = Footer(),
-               double posX = .5,
-               double posY = .3);
+               double posX = DEFAULT_POS_X,
+               double posY = DEFAULT_POS_Y);
+
+    GraphPages(const GraphPages&) = delete;
+    GraphPages(GraphPages&&) = delete;
+    GraphPages& operator=(const GraphPages&) = delete;
+    GraphPages& operator=(GraphPages&&) = delete;
 
     /** @brief Destructor. */
     virtual ~GraphPages() { }
@@ -332,11 +344,11 @@ public:
      */
     GraphPrintout(Graph *graph,
                   const wxPageSetupDialogData& setup,
-                  double scale = 100,
+                  double scale = DEFAULT_SCALE,
                   MaxPages shrinktofit = MaxPages::Unlimited,
                   PrintLabels labels = Footer(),
-                  double posX = .5,
-                  double posY = .3,
+                  double posX = DEFAULT_POS_X,
+                  double posY = DEFAULT_POS_Y,
                   const wxString& title = _("Graph"));
     /**
      * @brief Constructor.

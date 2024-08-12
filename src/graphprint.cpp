@@ -89,6 +89,8 @@ void GraphPrintout::GetPageInfo(int *minPage,
 // GraphPages
 // ----------------------------------------------------------------------------
 
+constexpr double MAX_SCALE = 100;
+
 GraphPages::GraphPages(Graph *graph,
                        const wxPageSetupDialogData& setup,
                        double scale,
@@ -98,7 +100,7 @@ GraphPages::GraphPages(Graph *graph,
                        double posY)
   : m_printout(NULL),
     m_graph(graph),
-    m_scale(scale / 100),
+    m_scale(scale / MAX_SCALE),
     m_max(shrinktofit),
     m_setup(setup),
     m_labels(std::move(labels)),
@@ -269,8 +271,9 @@ bool GraphPages::PrintPage(int printoutPage, int graphPage)
         (m_print.x - m_print.width * xpage) * wdc / wpage,
         (m_print.y - m_print.height * ypage) * hdc / hpage);
 
-    int signX = dc->LogicalToDeviceX(100) >= dc->LogicalToDeviceX(0) ? 1 : -1;
-    int signY = dc->LogicalToDeviceY(100) >= dc->LogicalToDeviceY(0) ? 1 : -1;
+    constexpr int ARBITRARY_POSITIVE_COORD = 100;
+    int signX = dc->LogicalToDeviceX(ARBITRARY_POSITIVE_COORD) >= dc->LogicalToDeviceX(0) ? 1 : -1;
+    int signY = dc->LogicalToDeviceY(ARBITRARY_POSITIVE_COORD) >= dc->LogicalToDeviceY(0) ? 1 : -1;
 
     dc->SetLogicalOrigin(signX * m_firstPage.x, signY * m_firstPage.y);
 

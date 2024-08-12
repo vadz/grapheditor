@@ -87,7 +87,7 @@ public:
      * @param height Height of the header or footer in millimeters.
      * @param font The font to use.
      */
-    PrintLabel(const wxString& text, int flags, int height, wxFont font)
+    PrintLabel(const wxString& text, int flags, int height, const wxFont& font)
       : m_text(text), m_flags(flags), m_height(height), m_font(font)
     { }
 

@@ -109,6 +109,9 @@ namespace impl
         /// Copy constructor.
         GraphIteratorBase(const GraphIteratorBase& it);
 
+        /// Move constructor.
+        GraphIteratorBase(GraphIteratorBase&& it) noexcept;
+
         /// Constructor from the internal implementation object.
         GraphIteratorBase(GraphIteratorImpl *impl);
 
@@ -124,6 +127,9 @@ namespace impl
 
         /// Assignment operator from another iterator.
         GraphIteratorBase& operator=(const GraphIteratorBase& it);
+
+        /// Move assignment operator from another iterator.
+        GraphIteratorBase& operator=(GraphIteratorBase&& it) noexcept;
 
         /// Advance the iterator, in prefix and postfix forms.
         //@{

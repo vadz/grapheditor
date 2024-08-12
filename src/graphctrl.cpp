@@ -2076,6 +2076,8 @@ GraphIteratorBase::GraphIteratorBase(const GraphIteratorBase& it)
 {
 }
 
+GraphIteratorBase::GraphIteratorBase(GraphIteratorBase&& it) noexcept = default;
+
 GraphIteratorBase::GraphIteratorBase(GraphIteratorImpl *impl)
     : m_impl(impl)
 {
@@ -2095,6 +2097,9 @@ GraphIteratorBase& GraphIteratorBase::operator=(const GraphIteratorBase& it)
     }
     return *this;
 }
+
+GraphIteratorBase&
+GraphIteratorBase::operator=(GraphIteratorBase&& it) noexcept = default;
 
 GraphIteratorBase& GraphIteratorBase::operator++()
 {

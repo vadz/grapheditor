@@ -2618,6 +2618,9 @@ GraphEdge *Graph::DoAdd(GraphNode& from, GraphNode& to, GraphEdge *edge)
     return edge;
 }
 
+// This function is recursive, but this is fine.
+//
+// NOLINTNEXTLINE(misc-no-recursion)
 void Graph::Delete(GraphElement *element)
 {
     GraphNode *node = wxDynamicCast(element, GraphNode);

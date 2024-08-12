@@ -174,12 +174,13 @@ namespace impl
     {
     public:
         Initialisor();
+        Initialisor(const Initialisor&) = delete;
+        Initialisor(Initialisor&&) = delete;
+        Initialisor& operator=(const Initialisor&) = delete;
+        Initialisor& operator=(Initialisor&&) = delete;
         ~Initialisor();
 
     private:
-        /// Forbid copy construction for a singleton class.
-        Initialisor(const Initialisor&);
-
         /// The initialization counter.
         static int m_initalise;
     };
@@ -264,10 +265,13 @@ public:
 
 
     /// Default ctor.
-    GraphIterator() : Base() { }
+    GraphIterator() = default;
 
     /// Copy ctor.
-    GraphIterator(const GraphIterator& it) : Base(it) { }
+    GraphIterator(const GraphIterator& it) = default;
+
+    /// Move ctor.
+    GraphIterator(GraphIterator&& it) noexcept = default;
 
     /// Template copy ctor.
     template <class U>
@@ -279,7 +283,7 @@ public:
     /// Ctor from the internal implementation object.
     GraphIterator(impl::GraphIteratorImpl *impl) : Base(impl) { }
 
-    ~GraphIterator() { }
+    ~GraphIterator() = default;
 
     /// Dereference an iterator. Must be valid.
     T& operator*() const {
@@ -294,6 +298,12 @@ public:
     /// Assignment operator.
     GraphIterator& operator=(const GraphIterator& it) {
         Base::operator=(it);
+        return *this;
+    }
+
+    /// Move assignment operator.
+    GraphIterator& operator=(GraphIterator&& it) noexcept {
+        Base::operator=(std::move(it));
         return *this;
     }
 
@@ -376,12 +386,17 @@ public:
                  const wxColour& bgcolour,
                  int style);
     /** @brief Destructor. */
-    virtual ~GraphElement();
+    ~GraphElement() override;
 
     /** @brief Copy constructor. */
     GraphElement(const GraphElement& element);
     /** @brief Assignment operator. */
     GraphElement& operator=(const GraphElement& element);
+
+    /** @brief Don't implement move constructor. */
+    GraphElement(GraphElement&& element) = delete;
+    /** @brief Don't implement move assignment operator. */
+    GraphElement& operator=(GraphElement&& element) = delete;
 
     /**
      * @brief A number from the Style enumeration indicating the element's
@@ -620,7 +635,12 @@ public:
               const wxColour& bgcolour = *wxWHITE,
               int style = Style_Arrow);
     /** @brief Destructor. */
-    ~GraphEdge();
+    ~GraphEdge() override;
+
+    GraphEdge(const GraphEdge&) = default;
+    GraphEdge(GraphEdge&&) = delete;
+    GraphEdge& operator=(const GraphEdge&) = delete;
+    GraphEdge& operator=(GraphEdge&&) = delete;
 
     /**
      * @brief A number from the Style enumeration indicating the edge's
@@ -828,7 +848,12 @@ public:
               const wxColour& textcolour = *wxBLACK,
               int style = Style_Rectangle);
     /** @brief Destructor. */
-    ~GraphNode();
+    ~GraphNode() override;
+
+    GraphNode(const GraphNode&) = default;
+    GraphNode(GraphNode&&) = delete;
+    GraphNode& operator=(const GraphNode&) = delete;
+    GraphNode& operator=(GraphNode&&) = delete;
 
     //@{
     /** @brief The node's main text label. */
@@ -1168,7 +1193,12 @@ public:
               long style = wxBORDER,
               const wxValidator& validator = wxDefaultValidator,
               const wxString& name = DefaultName);
-    ~GraphCtrl();
+    ~GraphCtrl() override;
+
+    GraphCtrl(const GraphCtrl&) = delete;
+    GraphCtrl(GraphCtrl&&) = delete;
+    GraphCtrl& operator=(const GraphCtrl&) = delete;
+    GraphCtrl& operator=(GraphCtrl&&) = delete;
 
     /**
      * @brief Scales the image by the given percantage.
@@ -1503,7 +1533,6 @@ private:
 
     DECLARE_EVENT_TABLE()
     DECLARE_DYNAMIC_CLASS(GraphCtrl)
-    DECLARE_NO_COPY_CLASS(GraphCtrl)
 };
 
 // Inline definitions
@@ -1562,7 +1591,12 @@ public:
      */
     Graph(wxEvtHandler *handler = NULL);
     /** @brief Destructor. */
-    ~Graph();
+    ~Graph() override;
+
+    Graph(const Graph&) = delete;
+    Graph(Graph&&) = delete;
+    Graph& operator=(const Graph&) = delete;
+    Graph& operator=(Graph&&) = delete;
 
     /** @brief Clear all the graph's data. */
     virtual void New();
@@ -2079,7 +2113,6 @@ private:
     wxSize m_dpi;
 
     DECLARE_DYNAMIC_CLASS(Graph)
-    DECLARE_NO_COPY_CLASS(Graph)
 };
 
 // Inline definitions
@@ -2224,6 +2257,12 @@ public:
     GraphEvent(wxEventType commandType = wxEVT_NULL, int winid = 0);
     /** @brief Copy constructor. */
     GraphEvent(const GraphEvent& event) = default;
+
+    GraphEvent(GraphEvent&&) = delete;
+    GraphEvent& operator=(const GraphEvent&) = delete;
+    GraphEvent& operator=(GraphEvent&&) = delete;
+
+    ~GraphEvent() override = default;
 
     /** @brief Clone. */
     wxEvent *Clone() const override { return new GraphEvent(*this); }

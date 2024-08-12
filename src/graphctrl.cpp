@@ -362,7 +362,12 @@ public:
                  const wxSize& size = wxDefaultSize,
                  long style = wxBORDER | wxRETAINED,
                  const wxString& name = DefaultName);
-    ~GraphCanvas();
+    ~GraphCanvas() override;
+
+    GraphCanvas(const GraphCanvas&) = delete;
+    GraphCanvas(GraphCanvas&&) = delete;
+    GraphCanvas& operator=(const GraphCanvas&) = delete;
+    GraphCanvas& operator=(GraphCanvas&&) = delete;
 
     /// Default name for GraphCanvas window.
     static const wxChar DefaultName[];
@@ -690,7 +695,6 @@ private:
 
     DECLARE_EVENT_TABLE()
     DECLARE_DYNAMIC_CLASS(GraphCanvas)
-    DECLARE_NO_COPY_CLASS(GraphCanvas)
 };
 
 const wxChar GraphCanvas::DefaultName[] = _T("graph_canvas");
@@ -2061,7 +2065,8 @@ namespace impl {
 class GraphIteratorImpl
 {
 public:
-    virtual ~GraphIteratorImpl() { }
+    GraphIteratorImpl() = default;
+    virtual ~GraphIteratorImpl() = default;
 
     /// Advance the iterator forward.
     virtual void inc() = 0;
@@ -2077,6 +2082,17 @@ public:
 
     /// Create a copy of this iterator polymorphically.
     virtual GraphIteratorImpl *clone() const = 0;
+
+protected:
+    // Copy ctor is only used by clone() from the derived classes.
+    GraphIteratorImpl(const GraphIteratorImpl&) = default;
+
+    // Moving is not allowed.
+    GraphIteratorImpl(GraphIteratorImpl&&) = delete;
+
+    // Assignment is not allowed at all.
+    GraphIteratorImpl& operator=(const GraphIteratorImpl&) = delete;
+    GraphIteratorImpl& operator=(GraphIteratorImpl&&) = delete;
 };
 
 GraphIteratorBase::GraphIteratorBase() = default;
@@ -2946,8 +2962,9 @@ bool Graph::Layout(const node_iterator_pair& range,
         class GraphVizContext
         {
         public:
-            GraphVizContext() {
-                context = gvContext();
+            GraphVizContext()
+                : context(gvContext())
+            {
             }
             ~GraphVizContext() {
                 gvFreeContext(context);
@@ -2955,8 +2972,14 @@ bool Graph::Layout(const node_iterator_pair& range,
             GVC_t* get() {
                 return context;
             }
+
+            GraphVizContext(const GraphVizContext&) = delete;
+            GraphVizContext(GraphVizContext&&) = delete;
+            GraphVizContext& operator=(const GraphVizContext&) = delete;
+            GraphVizContext& operator=(GraphVizContext&&) = delete;
+
         private:
-            GVC_t *context;
+            GVC_t* const context;
         };
 
 #ifdef SUPPRESS_GRAPHVIZ_MEMLEAKS

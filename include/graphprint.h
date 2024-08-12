@@ -258,7 +258,7 @@ public:
     GraphPages& operator=(GraphPages&&) = delete;
 
     /** @brief Destructor. */
-    virtual ~GraphPages() { }
+    virtual ~GraphPages() = default;
 
     /** @brief Implements wxPrintout::OnPreparePrinting(). */
     virtual void PreparePrinting();
@@ -359,7 +359,12 @@ public:
     GraphPrintout(GraphPages *graphpages,
                   const wxString& title = _("Graph"));
     /** @brief Destructor. */
-    ~GraphPrintout();
+    ~GraphPrintout() override;
+
+    GraphPrintout(const GraphPrintout&) = delete;
+    GraphPrintout(GraphPrintout&&) = delete;
+    GraphPrintout& operator=(const GraphPrintout&) = delete;
+    GraphPrintout& operator=(GraphPrintout&&) = delete;
 
     /**
      * Override wxPrintout methods which must be implemented for printing.

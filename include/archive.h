@@ -159,6 +159,11 @@ public:
              const wxString& id,
              const wxString& sort);
 
+        Item(const Item&) = delete;
+        Item(Item&&) = delete;
+        Item& operator=(const Item&) = delete;
+        Item& operator=(Item&&) = delete;
+
         ~Item() { SetInstance(NULL); }
 
     public:
@@ -451,6 +456,10 @@ private:
 
 public:
     Archive();
+    Archive(const Archive&) = delete;
+    Archive(Archive&&) = delete;
+    Archive& operator=(const Archive&) = delete;
+    Archive& operator=(Archive&&) = delete;
     ~Archive();
 
     /** @brief Deletes all the <code>Item</code> objects in the archive. */

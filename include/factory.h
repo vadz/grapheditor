@@ -41,6 +41,12 @@ namespace impl
     class FactoryBase
     {
     public:
+        FactoryBase(const FactoryBase&) = delete;
+        FactoryBase(FactoryBase&&) = delete;
+        FactoryBase& operator=(const FactoryBase&) = delete;
+        FactoryBase& operator=(FactoryBase&&) = delete;
+        virtual ~FactoryBase() = default;
+
         /// Override to create a new object.
         virtual wxObject *New() const = 0;
 
@@ -74,8 +80,6 @@ namespace impl
         FactoryBase(const std::type_info& type, const wxString& name)
           : m_type(wxString::FromAscii(type.name())), m_name(name) { }
 
-        virtual ~FactoryBase() { }
-
         /**
          * @brief Register this factory so that Get() could find it.
          *
@@ -91,9 +95,6 @@ namespace impl
         void Unregister();
 
     private:
-        /// Unimplemented copy ctor.
-        FactoryBase(const FactoryBase&) { }
-
         /// The type name of the objects created by this factory from type info.
         wxString m_type;
 
@@ -254,7 +255,13 @@ public:
             wxASSERT(sm_this == NULL);
             sm_this = this;
         }
-        ~Impl() {
+
+        Impl(const Impl&) = delete;
+        Impl(Impl&&) = delete;
+        Impl& operator=(const Impl&) = delete;
+        Impl& operator=(Impl&&) = delete;
+
+        ~Impl() override {
             FactoryBase::Unregister();
             delete m_default;
             sm_this = NULL;

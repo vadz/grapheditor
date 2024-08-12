@@ -53,7 +53,12 @@ public:
                 const wxColour& bgcolour = *wxWHITE,
                 const wxColour& textcolour = *wxBLACK);
     /** @brief Destructor. */
-    ~ProjectNode();
+    ~ProjectNode() override;
+
+    ProjectNode(const ProjectNode&) = default;
+    ProjectNode(ProjectNode&&) = delete;
+    ProjectNode& operator=(const ProjectNode&) = delete;
+    ProjectNode& operator=(ProjectNode&&) = delete;
 
     void SetText(const wxString& text) override;
     void SetFont(const wxFont& font) override;
@@ -204,7 +209,12 @@ public:
                     const wxString& name = DefaultName);
 
     /** @brief Destructor. */
-    ~ProjectDesigner();
+    ~ProjectDesigner() override;
+
+    ProjectDesigner(const ProjectDesigner&) = delete;
+    ProjectDesigner(ProjectDesigner&&) = delete;
+    ProjectDesigner& operator=(const ProjectDesigner&) = delete;
+    ProjectDesigner& operator=(ProjectDesigner&&) = delete;
 
     /**
      * Event handler for background erase event.
@@ -281,7 +291,6 @@ private:
     int m_gridFactor;
 
     DECLARE_DYNAMIC_CLASS(ProjectDesigner)
-    DECLARE_NO_COPY_CLASS(ProjectDesigner)
 };
 
 // ----------------------------------------------------------------------------

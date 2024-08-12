@@ -49,6 +49,12 @@ public:
         Init();
     }
 
+    GraphTreeCtrl(const GraphTreeCtrl&) = delete;
+    GraphTreeCtrl(GraphTreeCtrl&&) = delete;
+    GraphTreeCtrl& operator=(const GraphTreeCtrl&) = delete;
+    GraphTreeCtrl& operator=(GraphTreeCtrl&&) = delete;
+    ~GraphTreeCtrl() override = default;
+
 #ifdef wxHAS_GENERIC_TREECTRL
     /**
      * @brief Override base class function to avoid auto scrolling.
@@ -80,7 +86,6 @@ private:
 
     DECLARE_EVENT_TABLE()
     DECLARE_DYNAMIC_CLASS(GraphTreeCtrl)
-    DECLARE_NO_COPY_CLASS(GraphTreeCtrl)
 };
 
 /**
@@ -112,6 +117,11 @@ public:
 
     /** @brief Copy constructor. */
     GraphTreeEvent(const GraphTreeEvent& event) = default;
+
+    GraphTreeEvent(GraphTreeEvent&&) = delete;
+    GraphTreeEvent& operator=(const GraphTreeEvent&) = delete;
+    GraphTreeEvent& operator=(GraphTreeEvent&&) = delete;
+    ~GraphTreeEvent() override = default;
 
     /** @brief The GraphCtrl that is the target of a drop. */
     GraphCtrl *GetTarget() const { return m_target; }

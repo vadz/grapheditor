@@ -2300,7 +2300,7 @@ public:
     /**
      * Advance the iterator skipping over unacceptable elements.
      */
-    void inc() override
+    void inc() final
     {
         do {
             m_pos++;
@@ -2311,7 +2311,7 @@ public:
     /**
      * Advance the iterator backwards skipping over unacceptable elements.
      */
-    void dec() override
+    void dec() final
     {
         do {
             m_pos--;
@@ -2325,7 +2325,7 @@ public:
      * The comparison doesn't take filter settings (i.e. type of the elements
      * to accept) into account.
      */
-    bool eq(const GraphIteratorImpl& other) const override
+    bool eq(const GraphIteratorImpl& other) const final
     {
         if (typeid(other) != typeid(PairIterImpl))
             return false;
@@ -2334,13 +2334,13 @@ public:
     }
 
     /// Dereference the iterator.
-    GraphElement *get() const override
+    GraphElement *get() const final
     {
         return GetElement(m_pos == 1 ? m_line->GetFrom() : m_line->GetTo());
     }
 
     /// Create a copy of this iterator polymorphically.
-    PairIterImpl *clone() const override
+    PairIterImpl *clone() const final
     {
         return new PairIterImpl(*this);
     }

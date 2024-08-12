@@ -1255,6 +1255,10 @@ void GraphCanvas::ScrollTo(int side, bool draw)
 
     int x = 0, y = 0;
 
+    // This code triggers clang-tidy warnings and might be worth rewriting to
+    // get rid of them, but for now just disable them here.
+    //
+    // NOLINTBEGIN(bugprone-branch-clone)
     if ((side & wxLEFT) != 0)
         x = rc.x - rcClient.x;
     else if ((side & wxRIGHT) != 0)
@@ -1272,6 +1276,8 @@ void GraphCanvas::ScrollTo(int side, bool draw)
         y = rc.y - rcClient.y;
     else if (rc.GetBottom() < rcClient.GetBottom())
         y = rc.GetBottom() - rcClient.GetBottom();
+
+    // NOLINTEND(bugprone-branch-clone)
 
     if (x || y)
         ScrollByOffset(x, y, draw);

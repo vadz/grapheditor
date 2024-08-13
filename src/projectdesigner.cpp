@@ -162,7 +162,7 @@ void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
         y2 = rc.GetBottom();
 
         while (x1 <= x2) {
-            dc.DrawLine(x1, y1, x1, y2);
+            dc.DrawLine(x1, y1, x1, y2 + 1);
             x1 += spacing.x;
         }
 
@@ -176,7 +176,7 @@ void ProjectDesigner::DrawCanvasBackground(wxDC& dc)
             y2 += spacing.y;
 
         while (y1 <= y2) {
-            dc.DrawLine(x1, y1, x2, y1);
+            dc.DrawLine(x1, y1, x2 + 1, y1);
             y1 += spacing.y;
         }
     }
